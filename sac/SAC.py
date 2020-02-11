@@ -12,11 +12,12 @@ import tensorflow as tf
 from envs.common_envs_utils.env_state_utils import \
     get_state_combiner_by_settings_file, \
     from_image_vector_to_combined_state
-from envs.common_envs_utils.replay_buffer import Torch_Separated_Replay_Buffer
 
 from sac.Base_Agent import Base_Agent
 from sac.OU_Noise import OU_Noise
-from sac.utils_continues import QNet, Policy
+
+from common_agents_utils import Torch_Separated_Replay_Buffer
+from common_agents_utils import QNet, Policy
 
 LOG_SIG_MAX = 2
 LOG_SIG_MIN = -20

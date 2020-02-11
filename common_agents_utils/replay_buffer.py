@@ -7,33 +7,44 @@ import numpy as np
 class Torch_Separated_Replay_Buffer(object):
     """Replay buffer to store past experiences that the agent can then use for training data"""
 
-    def __init__(self, buffer_size, batch_size, seed, device, state_extractor, state_producer):
-        self.memory = deque(maxlen=buffer_size)
-        self.batch_size = batch_size
-        self.experience = namedtuple("Experience", field_names=[
+    def __init__(
+            self, buffer_size, batch_size, seed, device, state_extractor, state_producer,
+            sample_order=['state', 'action', 'reward', 'next_state', 'done']
+    ):
+        # do not change order!
+        names_for_stored = [
             "state_picture",
             "state_vector",
             "action",
+            "log_prob",
             "reward",
             "next_state_picture",
             "next_state_vector",
             "done"
-        ])
+        ]
+        assert len(set(sample_order) - set(names_for_stored)) == 0, "You have mistake in sample_order"
+        self._sample_order = sample_order
+        self.memory = deque(maxlen=buffer_size)
+        self.batch_size = batch_size
+        self.experience = namedtuple("Experience", field_names=names_for_stored)
         self.seed = random.seed(seed)
         self.device = device
         self._state_extractor = state_extractor
         self._state_producer = state_producer
 
-    def add_experience(self, states, actions, rewards, next_states, dones):
+    def add_experience(self, states, actions, rewards, next_states, dones, log_probs=None):
         """Adds experience(s) into the replay buffer"""
         if type(dones) == list:
             assert type(dones[0]) != list, "A done shouldn't be a list"
-            for state, action, reward, next_state, done in zip(states, actions, rewards, next_states, dones):
-                self._add_single_experience(state, action, reward, next_state, done)
+            if log_probs is None:
+                log_probs = [None for _ in range(dones)]
+            for state, action, reward, next_state, done, log_prob \
+                    in zip(states, actions, rewards, next_states, dones, log_probs):
+                self._add_single_experience(state, action, reward, next_state, done, log_prob)
         else:
-            self._add_single_experience(states, actions, rewards, next_states, dones)
+            self._add_single_experience(states, actions, rewards, next_states, dones, log_probs)
 
-    def _add_single_experience(self, state, action, reward, next_state, done):
+    def _add_single_experience(self, state, action, reward, next_state, done, log_prob):
         state_picture, state_vector = self._state_extractor(state)
         next_state_picture, next_state_vector = self._state_extractor(next_state)
 
@@ -63,42 +74,39 @@ class Torch_Separated_Replay_Buffer(object):
             state_picture,
             state_vector,
             action,
+            log_prob,
             reward,
             next_state_picture,
             next_state_vector,
             done
         ))
 
-        # from pympler import asizeof
-        # from sys import getsizeof
-        # print(f'buffer len is {len(self.memory)} and it take {asizeof.asizeof(self.memory) / 1024 / 1024} MB')
-        # print(f'buffer len is {len(self.memory)} and it take {len(self.memory) * asizeof.asizeof(self.memory[0]) / 1024**2} MB')
-        #
-        # if state_vector is not None:
-        #     byte_per_exp = state_picture.nbytes + state_vector.nbytes + action.nbytes + getsizeof(reward) + next_state_picture.nbytes + next_state_vector.nbytes + getsizeof(done)
-        # else:
-        #     byte_per_exp = state_picture.nbytes + action.nbytes + getsizeof(
-        #         reward) + next_state_picture.nbytes + getsizeof(done)
-        # print(f'bytes per exp : {byte_per_exp}')
-        # print(f'getsizeof(self.memory) : {getsizeof(self.memory)}')
-        # # TOPEST way :)
-        # print(f'buffer len is {len(self.memory)} and it take {(getsizeof(self.memory) + len(self.memory) * byte_per_exp) / 1024 ** 2} MB')
+    def _prepare_row_of_samples(self, experiences, attribute_name) -> torch.Tensor:
+        if attribute_name == 'state':
+            return torch.from_numpy(np.array([
+                self._state_producer(e.state_picture, e.state_vector)
+                for e in experiences
+            ], dtype=np.float32)).to(self.device)
+        if attribute_name == 'next_state':
+            return torch.from_numpy(np.array([
+                self._state_producer(e.next_state_picture, e.next_state_vector)
+                for e in experiences
+            ], dtype=np.float32)).to(self.device)
+        if attribute_name == 'action':
+            return torch.from_numpy(np.array([e.action for e in experiences], dtype=np.float32)).to(self.device)
+        if attribute_name == 'reward':
+            return torch.from_numpy(np.array([[e.reward] for e in experiences], dtype=np.float32)).to(self.device)
+        if attribute_name == 'done':
+            return torch.from_numpy(np.array([[e.done] for e in experiences], dtype=np.float32)).to(self.device)
+        if attribute_name == 'log_prob':
+            return torch.from_numpy(np.array([[e.log_prob] for e in experiences], dtype=np.float32)).to(self.device)
 
     def sample(self, num_experiences=None):
         """Draws a random sample of experience from the replay buffer"""
         experiences = self.pick_experiences(num_experiences)
         batch = (
-            torch.from_numpy(np.array([
-                self._state_producer(e.state_picture, e.state_vector)
-                for e in experiences
-            ], dtype=np.float32)).to(self.device),
-            torch.from_numpy(np.array([e.action for e in experiences], dtype=np.float32)).to(self.device),
-            torch.from_numpy(np.array([[e.reward] for e in experiences], dtype=np.float32)).to(self.device),
-            torch.from_numpy(np.array([
-                self._state_producer(e.next_state_picture, e.next_state_vector)
-                for e in experiences
-            ], dtype=np.float32)).to(self.device),
-            torch.from_numpy(np.array([[e.done] for e in experiences], dtype=np.float32)).to(self.device),
+            self._prepare_row_of_samples(experiences, name)
+            for name in self._sample_order
         )
 
         # print(f"exp state_picture.shape: {experiences[0].state_picture.shape}")
@@ -116,3 +124,6 @@ class Torch_Separated_Replay_Buffer(object):
 
     def __len__(self):
         return len(self.memory)
+
+    def clean_all_buffer(self):
+        self.memory.clear()

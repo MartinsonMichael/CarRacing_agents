@@ -48,9 +48,6 @@ class PictureProcessor(nn.Module):
 
     def forward(self, state, return_stats: bool = False):
         if not return_stats:
-            # x = F.leaky_relu(self._conv1(state))
-            # x = F.leaky_relu(self._conv2(x))
-            # x = F.leaky_relu(self._conv3(x))
             x = self._conv1(state)
             x = self._conv2(x)
             x = self._conv3(x)
@@ -78,9 +75,9 @@ class PictureProcessor(nn.Module):
         ).shape[1]
 
 
-class NewStateLayer(nn.Module):
+class StateLayer(nn.Module):
     def __init__(self, state_description: Union[dict, spaces.Box], hidden_size, device):
-        super(NewStateLayer, self).__init__()
+        super(StateLayer, self).__init__()
         self._device = device
 
         self._state_layer_out_size = 0
@@ -201,7 +198,7 @@ class QNet(nn.Module):
         super(QNet, self).__init__()
         self._device = device
 
-        self._state_layer = NewStateLayer(state_description, hidden_size, device)
+        self._state_layer = StateLayer(state_description, hidden_size, device)
 
         self._dense_a = nn.Linear(in_features=action_size, out_features=hidden_size).to(self._device)
         torch.nn.init.xavier_uniform_(self._dense_a.weight)
@@ -244,18 +241,24 @@ class QNet(nn.Module):
 
 
 class Policy(nn.Module):
-    def __init__(self, state_description: Dict[str, Any], action_size, hidden_size, device):
+    def __init__(
+            self, state_description: Dict[str, Any], action_size, hidden_size, device,
+            double_action_size_on_output=True
+    ):
         super(Policy, self).__init__()
         self._device = device
         self._action_size = action_size
 
-        self._state_layer = NewStateLayer(state_description, hidden_size, device)
+        self._state_layer = StateLayer(state_description, hidden_size, device)
 
         self._dense2 = nn.Linear(in_features=self._state_layer.get_out_shape_for_in(), out_features=hidden_size).to(self._device)
         torch.nn.init.xavier_uniform_(self._dense2.weight)
         torch.nn.init.constant_(self._dense2.bias, 0)
 
-        self._head = nn.Linear(in_features=hidden_size, out_features=2 * action_size).to(self._device)
+        self._head = nn.Linear(
+            in_features=hidden_size,
+            out_features=2 * action_size if double_action_size_on_output else action_size
+        ).to(self._device)
         torch.nn.init.xavier_uniform_(self._head.weight)
         torch.nn.init.constant_(self._head.bias, 0)
 
