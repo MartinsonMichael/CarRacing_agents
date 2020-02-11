@@ -139,10 +139,10 @@ class StateLayer(nn.Module):
     #
     #     raise ValueError("state should be Dict['picture' : tensor or None, 'vector' : tensor or None]")
 
-    def forward_picture(self, state: torch.FloatTensor, return_stats: bool = False):
+    def forward_picture(self, state: torch.Tensor, return_stats: bool = False):
         return self._picture_layer(state, return_stats)
 
-    def forward_vector(self, state: torch.FloatTensor, return_stats: bool = False):
+    def forward_vector(self, state: torch.Tensor, return_stats: bool = False):
         if return_stats:
             return self._vector_layer(state), {}
         else:
@@ -177,7 +177,7 @@ class StateLayer(nn.Module):
             raise ValueError('add dict to StateLayer!')
             # return self.forward_dict(state)
 
-        if isinstance(state, torch.FloatTensor):
+        if isinstance(state, (torch.FloatTensor, torch.Tensor)):
             if len(state.shape) == 4:
                 return self.forward_picture(state, return_stats)
             if len(state.shape) == 2:
