@@ -68,7 +68,7 @@ def main(args):
             time_step += 1
             # Running policy_old:
             action = ppo.select_action(state, memory)
-            state, reward, done, _ = env.step(action)
+            state, reward, done, info = env.step(action)
 
             # Saving reward and is_terminals:
             memory.rewards.append(reward)
@@ -82,7 +82,7 @@ def main(args):
             running_reward += reward
             if render:
                 env.render()
-            if done:
+            if done or info.get('was_reset', False) or info.get('need_reset', False):
                 break
 
         avg_length += t

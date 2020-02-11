@@ -21,7 +21,7 @@
     "vector_env_features": ["track_line", "track_polygon"]
   },
   "reward": {
-    "track_checkpoint_expanding": 150,
+    "track_checkpoint_expanding": 50,
 
     "is_collided": 0.0,
     "is_finish": 0.01,
