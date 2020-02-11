@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<annotations>
+  <version>1.1</version>
+  <meta>
+    <task>
+      <id>143</id>
+      <name>mmd_CarRacing</name>
+      <size>1</size>
+      <mode>annotation</mode>
+      <overlap>0</overlap>
+      <bugtracker></bugtracker>
+      <flipped>False</flipped>
+      <created>2019-12-02 16:59:23.715995+03:00</created>
+      <updated>2019-12-16 15:56:51.378168+03:00</updated>
+      <start_frame>0</start_frame>
+      <stop_frame>0</stop_frame>
+      <frame_filter></frame_filter>
+      <labels>
+        <label>
+          <name>track_line</name>
+          <attributes>
+            <attribute>
+              <name>index</name>
+              <mutable>False</mutable>
+              <input_type>number</input_type>
+              <default_value>0</default_value>
+              <values>0
+100</values>
+            </attribute>
+          </attributes>
+        </label>
+        <label>
+          <name>cross_road</name>
+          <attributes>
+          </attributes>
+        </label>
+        <label>
+          <name>not_road</name>
+          <attributes>
+          </attributes>
+        </label>
+        <label>
+          <name>track</name>
+          <attributes>
+            <attribute>
+              <name>index</name>
+              <mutable>False</mutable>
+              <input_type>number</input_type>
+              <default_value>0</default_value>
+              <values>0
+100</values>
+            </attribute>
+          </attributes>
+        </label>
+      </labels>
+      <segments>
+        <segment>
+          <id>143</id>
+          <start>0</start>
+          <stop>0</stop>
+          <url>http://10.55.229.87:8181/?id=143</url>
+        </segment>
+      </segments>
+      <owner>
+        <username>cds</username>
+        <email></email>
+      </owner>
+    </task>
+    <dumped>2020-01-09 16:21:13.056102+03:00</dumped>
+  </meta>
+  <image id="0" name="background_image.jpg" width="2704" height="1520">
+    <polygon label="track" occluded="0" points="733.30,940.80;729.70,825.20;1213.10,828.40;1214.00,933.80;1214.60,1031.30;1213.70,1153.80;1121.30,1153.80;1118.20,1072.20;1097.80,1014.30;1049.40,971.40;971.70,943.70">
+      <attribute name="index">90</attribute>
+    </polygon>
+    <polygon label="not_road" occluded="0" points="1122.25,1520.00;1125.60,1090.80;1077.00,999.70;1005.60,954.60;933.69,942.95;552.82,944.28;50.84,936.26;0.00,935.90;0.00,1520.00">
+    </polygon>
+    <polyline label="track_line" occluded="0" points="823.42,885.39;956.73,885.39;1084.64,899.81;1144.09,961.06;1162.10,1022.31;1163.90,1101.57">
+      <attribute name="index">90</attribute>
+    </polyline>
+    <polygon label="not_road" occluded="0" points="1293.57,1520.00;1291.33,1064.66;1308.82,1007.35;1338.66,975.61;1392.94,945.66;1764.85,941.96;2704.00,948.24;2704.00,1520.00">
+    </polygon>
+    <polygon label="not_road" occluded="0" points="1291.40,0.00;1296.82,620.15;1322.43,674.35;1355.15,709.87;1402.81,725.76;1817.79,728.56;2704.00,725.57;2704.00,0.00">
+    </polygon>
+    <polygon label="not_road" occluded="0" points="1107.09,0.00;1105.04,624.35;1084.85,680.43;1047.84,717.44;987.27,726.41;535.28,723.05;0.00,715.20;0.00,0.00">
+    </polygon>
+    <polygon label="cross_road" occluded="0" points="1380.75,734.22;1383.09,933.61;1336.36,960.09;1301.31,995.92;1282.62,1036.42;1117.50,1034.08;1097.25,991.24;1075.44,971.77;1050.52,953.86;1053.63,728.77;1084.01,700.73;1102.70,672.69;1112.05,640.75;1284.95,639.97;1304.43,675.80;1328.57,698.39;1351.94,720.98">
+    </polygon>
+    <polyline label="track_line" occluded="0" points="2552.84,791.17;1394.96,794.07;1278.73,815.77;1207.84,861.58;1163.70,957.30;1165.70,1085.20;1167.60,1307.30;1169.74,1427.75">
+      <attribute name="index">32</attribute>
+    </polyline>
+    <polygon label="track" occluded="0" points="2704.00,736.38;1368.27,736.04;1087.31,733.80;1084.51,981.89;1105.60,1005.22;1125.00,1044.25;1129.60,1129.37;1126.68,1520.00;1208.70,1520.00;1205.30,985.00;1398.00,832.00;2704.00,824.64">
+      <attribute name="index">32</attribute>
+    </polygon>
+    <polyline label="track_line" occluded="0" points="2555.93,789.57;1443.48,783.76;1331.07,767.48;1273.12,724.65;1244.24,645.96;1244.82,561.27;1246.57,94.19">
+      <attribute name="index">31</attribute>
+    </polyline>
+    <polygon label="track" occluded="0" points="2704.00,741.09;1389.58,737.72;1335.74,708.56;1303.22,670.43;1285.27,633.42;1286.17,0.00;1207.10,0.00;1204.74,831.26;1902.36,834.63;2704.00,830.36">
+      <attribute name="index">31</attribute>
+    </polygon>
+    <polyline label="track_line" occluded="0" points="2512.73,790.52;183.24,782.70">
+      <attribute name="index">30</attribute>
+    </polyline>
+    <polygon label="track" occluded="0" points="2704.00,832.00;0.00,839.74;0.00,730.40;2704.00,735.24">
+      <attribute name="index">30</attribute>
+    </polygon>
+    <polyline label="track_line" occluded="0" points="1154.16,121.84;1165.32,713.49;1200.21,781.03;1274.45,850.52;1394.17,884.29;1645.90,885.96;2173.37,882.34;2535.34,883.45">
+      <attribute name="index">22</attribute>
+    </polyline>
+    <polygon label="track" occluded="0" points="1107.83,0.00;1211.20,0.00;1210.70,647.10;1406.20,831.40;2704.00,829.56;2704.00,945.20;2698.99,935.51;1405.01,928.08;1110.60,932.10;1112.20,629.94;1111.39,426.44">
+      <attribute name="index">22</attribute>
+    </polygon>
+    <polygon label="track" occluded="0" points="1207.65,1520.00;1202.80,1012.06;1022.90,831.50;0.00,830.37;0.00,731.85;1044.69,733.47;1080.22,704.39;1320.86,697.93;1322.48,972.49;1286.94,1009.64;1280.48,1041.94;1286.94,1520.00">
+      <attribute name="index">2</attribute>
+    </polygon>
+    <polygon label="track" occluded="0" points="1204.51,1520.00;1199.40,826.20;1370.60,831.00;2704.00,835.10;2704.00,936.28;2280.14,934.35;2065.01,928.53;1388.63,936.28;1336.30,957.60;1293.66,1011.87;1282.04,1056.44;1283.97,1520.00">
+      <attribute name="index">1</attribute>
+    </polygon>
+    <polyline label="track_line" occluded="0" points="1249.09,1455.69;1245.21,1124.28;1254.90,976.98;1332.42,897.52;1535.92,891.71;2117.34,893.65;2592.17,891.71">
+      <attribute name="index">1</attribute>
+    </polyline>
+    <polyline label="track_line" occluded="0" points="1153.25,100.59;1161.35,636.47;1134.15,729.64;1057.19,785.77;818.76,789.82;115.06,784.04">
+      <attribute name="index">21</attribute>
+    </polyline>
+    <polygon label="track" occluded="0" points="1104.21,0.00;1109.79,640.65;1081.88,713.21;1020.48,735.54;889.31,738.33;0.00,735.54;0.00,829.03;1024.39,834.61;1188.49,835.45;1188.49,835.45;1209.98,834.05;1207.19,574.23;1201.61,0.00">
+      <attribute name="index">21</attribute>
+    </polygon>
+    <polyline label="track_line" occluded="0" points="1154.16,118.21;1162.81,1436.59">
+      <attribute name="index">20</attribute>
+    </polyline>
+    <polygon label="track" occluded="0" points="1125.70,1520.00;1209.84,1520.00;1206.39,0.00;1109.86,0.00;1112.86,648.08;1125.17,1070.08">
+      <attribute name="index">20</attribute>
+    </polygon>
+    <polyline label="track_line" occluded="0" points="129.09,870.61;921.69,881.78;1086.90,899.00;1154.90,960.20;1169.51,1057.32;1166.16,1317.15;1167.28,1412.31">
+      <attribute name="index">11</attribute>
+    </polyline>
+    <polyline label="track_line" occluded="0" points="126.30,876.20;2540.36,884.57">
+      <attribute name="index">10</attribute>
+    </polyline>
+    <polygon label="track" occluded="0" points="0.00,828.47;1213.00,827.60;1209.00,988.90;1209.40,1520.00;1127.93,1520.00;1128.10,1055.90;1091.80,991.20;1047.40,952.60;956.20,927.90;0.00,923.64">
+      <attribute name="index">11</attribute>
+    </polygon>
+    <polygon label="track" occluded="0" points="0.00,923.36;2704.00,937.31;2704.00,831.26;0.00,825.68">
+      <attribute name="index">10</attribute>
+    </polygon>
+    <polyline label="track_line" occluded="0" points="1246.82,1426.27;1241.23,1152.77;1241.23,954.62;1199.37,845.78;1079.37,787.17;741.68,789.96;105.37,784.38">
+      <attribute name="index">2</attribute>
+    </polyline>
+    <polyline label="track_line" occluded="0" points="1244.83,1431.82;1244.83,98.22">
+      <attribute name="index">0</attribute>
+    </polyline>
+    <polygon label="track" occluded="0" points="1211.60,1510.44;1203.30,1032.09;1207.71,498.23;1207.45,0.94;1286.05,1.46;1286.31,632.34;1299.54,670.73;1293.57,1010.04;1281.90,1037.80;1281.38,1517.70;1209.27,1518.74">
+      <attribute name="index">0</attribute>
+    </polygon>
+  </image>
+</annotations>

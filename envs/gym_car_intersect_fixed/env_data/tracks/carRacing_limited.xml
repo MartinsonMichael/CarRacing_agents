@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<annotations>
+  <version>1.1</version>
+  <meta>
+    <task>
+      <id>143</id>
+      <name>mmd_CarRacing</name>
+      <size>1</size>
+      <mode>annotation</mode>
+      <overlap>0</overlap>
+      <bugtracker></bugtracker>
+      <flipped>False</flipped>
+      <created>2019-12-02 16:59:23.715995+03:00</created>
+      <updated>2019-12-12 13:41:27.194852+03:00</updated>
+      <start_frame>0</start_frame>
+      <stop_frame>0</stop_frame>
+      <frame_filter></frame_filter>
+      <labels>
+        <label>
+          <name>track_line</name>
+          <attributes>
+            <attribute>
+              <name>index</name>
+              <mutable>False</mutable>
+              <input_type>number</input_type>
+              <default_value>0</default_value>
+              <values>0
+100</values>
+            </attribute>
+          </attributes>
+        </label>
+        <label>
+          <name>cross_road</name>
+          <attributes>
+          </attributes>
+        </label>
+        <label>
+          <name>not_road</name>
+          <attributes>
+          </attributes>
+        </label>
+        <label>
+          <name>track</name>
+          <attributes>
+            <attribute>
+              <name>index</name>
+              <mutable>False</mutable>
+              <input_type>number</input_type>
+              <default_value>0</default_value>
+              <values>0
+100</values>
+            </attribute>
+          </attributes>
+        </label>
+      </labels>
+      <segments>
+        <segment>
+          <id>143</id>
+          <start>0</start>
+          <stop>0</stop>
+          <url>http://10.55.229.87:8181/?id=143</url>
+        </segment>
+      </segments>
+      <owner>
+        <username>cds</username>
+        <email></email>
+      </owner>
+    </task>
+    <dumped>2019-12-12 13:41:33.080466+03:00</dumped>
+  </meta>
+  <image id="0" name="background_image.jpg" width="2704" height="1520">
+    <polyline label="track_line" occluded="0" points="823.42,885.39;956.73,885.39;1084.64,899.81;1144.09,961.06;1162.10,1022.31;1163.90,1101.57">
+      <attribute name="index">90</attribute>
+    </polyline>
+    <polygon label="track" occluded="0" points="733.35,932.23;729.75,827.75;1230.56,824.14;1225.15,1036.72;1207.14,1031.31;1207.14,1153.82;1127.87,1153.82;1126.07,1052.93;1111.66,1007.90;1061.22,957.45;990.96,939.44">
+      <attribute name="index">90</attribute>
+    </polygon>
+    <polygon label="not_road" occluded="0" points="1293.57,1520.00;1291.33,1064.66;1308.82,1007.35;1338.66,975.61;1392.94,945.66;1764.85,941.96;2704.00,948.24;2704.00,1520.00">
+    </polygon>
+    <polygon label="not_road" occluded="0" points="1291.40,0.00;1296.82,620.15;1322.43,674.35;1355.15,709.87;1402.81,725.76;1817.79,728.56;2704.00,725.57;2704.00,0.00">
+    </polygon>
+    <polygon label="not_road" occluded="0" points="1107.09,0.00;1105.04,624.35;1084.85,680.43;1047.84,717.44;987.27,726.41;535.28,723.05;0.00,715.20;0.00,0.00">
+    </polygon>
+    <polygon label="not_road" occluded="0" points="1122.25,1520.00;1118.12,1053.32;1089.85,995.45;1006.70,945.00;933.69,942.95;552.82,944.28;50.84,936.26;0.00,935.90;0.00,1520.00">
+    </polygon>
+    <polygon label="cross_road" occluded="0" points="1380.75,734.22;1383.09,933.61;1336.36,960.09;1301.31,995.92;1282.62,1036.42;1117.50,1034.08;1097.25,991.24;1075.44,971.77;1050.52,953.86;1053.63,728.77;1084.01,700.73;1102.70,672.69;1112.05,640.75;1284.95,639.97;1304.43,675.80;1328.57,698.39;1351.94,720.98">
+    </polygon>
+
+  </image>
+</annotations>

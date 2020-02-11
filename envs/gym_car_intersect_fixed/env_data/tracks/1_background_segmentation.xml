@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<annotations>
+  <version>1.1</version>
+  <meta>
+    <task>
+      <id>1</id>
+      <name>background_segmentation</name>
+      <size>1</size>
+      <mode>annotation</mode>
+      <overlap>0</overlap>
+      <bugtracker></bugtracker>
+      <created>2019-10-23 19:24:57.758096+00:00</created>
+      <updated>2019-10-23 20:51:40.188622+00:00</updated>
+      <start_frame>0</start_frame>
+      <stop_frame>0</stop_frame>
+      <frame_filter></frame_filter>
+      <z_order>False</z_order>
+      <labels>
+        <label>
+          <name>road1</name>
+          <attributes>
+          </attributes>
+        </label>
+        <label>
+          <name>road2</name>
+          <attributes>
+          </attributes>
+        </label>
+        <label>
+          <name>road_cross</name>
+          <attributes>
+          </attributes>
+        </label>
+        <label>
+          <name>not_road</name>
+          <attributes>
+          </attributes>
+        </label>
+        <label>
+          <name>car_track</name>
+          <attributes>
+          </attributes>
+        </label>
+      </labels>
+      <segments>
+        <segment>
+          <id>1</id>
+          <start>0</start>
+          <stop>0</stop>
+          <url>http://localhost:8080/?id=1</url>
+        </segment>
+      </segments>
+      <owner>
+        <username>admin</username>
+        <email>mmartinson@yandex.ru</email>
+      </owner>
+      <assignee></assignee>
+    </task>
+    <dumped>2019-10-23 20:52:36.183555+00:00</dumped>
+  </meta>
+  <image id="0" name="background_image.jpg" width="2704" height="1520">
+    <polyline label="car_track" occluded="0" points="1151.93,7.42;1154.72,375.52;1157.51,680.00;1160.30,956.29;1165.88,1508.87">
+    </polyline>
+    <polyline label="car_track" occluded="0" points="2690.23,778.24;2081.83,783.82;1562.74,786.61;1345.30,789.10;1233.40,808.40;1167.80,874.20;1163.20,962.40;1169.20,1349.40;1166.44,1506.64">
+    </polyline>
+    <polygon label="road2" occluded="0" points="1130.65,1516.55;1203.63,1517.42;1202.76,1023.97;1117.62,1022.23;1126.31,1039.61;1133.26,1083.04">
+    </polygon>
+    <polyline label="car_track" occluded="0" points="16.68,878.83;569.53,886.30;1014.06,886.30;1335.31,882.57;1798.51,878.83;2687.55,886.30">
+    </polyline>
+    <polygon label="road2" occluded="0" points="1381.34,831.28;1381.34,738.42;2700.98,739.09;2703.13,831.01">
+    </polygon>
+    <polygon label="road2" occluded="0" points="1202.63,640.52;1113.06,640.52;1117.73,612.48;1113.76,459.82;1111.89,1.31;1202.55,1.31">
+    </polygon>
+    <polyline label="car_track" occluded="0" points="16.68,882.57;543.39,886.30;1007.70,884.90;1155.90,863.50;1222.00,790.00;1242.70,691.70;1245.66,542.64;1245.66,299.83;1249.39,90.65;1253.13,12.20">
+    </polyline>
+    <polygon label="not_road" occluded="0" points="1283.47,1512.55;1281.14,1093.93;1285.79,1031.13;1315.70,980.20;1365.40,942.40;1423.90,927.00;1660.23,928.80;2378.86,928.80;2703.70,932.60;2704.00,1520.00">
+    </polygon>
+    <polyline label="car_track" occluded="0" points="1248.03,1505.92;1241.54,1222.73;1241.54,1056.28;1241.54,937.39;1222.10,848.70;1168.00,790.40;1077.20,786.10;945.38,783.90;664.36,783.90;268.76,786.06;7.19,779.58">
+    </polyline>
+    <polygon label="road_cross" occluded="0" points="1283.94,1016.40;1311.98,978.24;1345.47,946.30;1377.40,934.62;1375.85,737.57;1346.17,721.99;1308.01,684.60;1287.76,646.44;1113.29,644.88;1101.61,682.27;1083.69,710.31;1059.63,724.33;1057.21,956.43;1090.00,979.02;1100.05,995.37;1116.49,1017.96">
+    </polygon>
+    <polyline label="car_track" occluded="0" points="1154.72,10.21;1160.30,629.77;1149.14,738.61;1098.90,785.77;995.64,794.43;752.84,797.22;2.11,788.84">
+    </polyline>
+    <polygon label="road1" occluded="0" points="1205.43,1516.59;1280.98,1518.15;1281.70,1022.00;1205.12,1023.33">
+    </polygon>
+    <polyline label="car_track" occluded="0" points="28.68,880.32;627.91,882.91;998.86,882.91;1094.85,895.88;1138.95,945.17;1164.89,1007.43;1167.48,1150.10;1167.22,1512.75">
+    </polyline>
+    <polyline label="car_track" occluded="0" points="2682.78,774.13;1470.44,787.53;1321.60,781.55;1264.30,750.00;1244.80,693.00;1246.06,559.79;1239.36,10.56">
+    </polyline>
+    <polygon label="road1" occluded="0" points="1204.30,640.70;1287.30,641.30;1283.39,630.10;1283.10,463.80;1278.71,3.46;1204.74,4.75;1205.38,550.64">
+    </polygon>
+    <polygon label="road1" occluded="0" points="1379.98,932.09;1379.98,832.48;1481.08,830.36;2702.30,832.97;2703.50,931.70;1458.72,923.93;1419.83,926.05;1380.16,937.27">
+    </polygon>
+    <polyline label="car_track" occluded="0" points="1248.03,1506.57;1248.03,1277.43;1248.03,1087.19;1245.86,961.81;1248.03,862.37;1284.78,801.84;1353.95,782.39;1539.00,782.00;2691.20,782.60">
+    </polyline>
+    <polygon label="not_road" occluded="0" points="1107.83,7.14;1110.62,556.93;1113.42,614.98;1108.11,654.05;1095.00,689.21;1074.34,713.49;1034.44,731.91;980.85,737.77;808.38,737.77;291.52,736.66;2.39,733.59;1.00,2.11">
+    </polygon>
+    <polyline label="car_track" occluded="0" points="2692.07,781.48;1486.44,784.82;1252.01,788.17;696.08,784.82;2.84,788.17">
+    </polyline>
+    <polygon label="not_road" occluded="0" points="1284.54,3.62;1286.04,626.32;1305.30,672.32;1348.09,719.40;1385.54,738.66;1489.32,736.52;1489.32,736.52;2702.09,737.16;2702.63,0.94">
+    </polygon>
+    <polyline label="car_track" occluded="0" points="1151.93,15.79;1160.30,562.79;1160.30,730.24;1182.63,819.54;1247.90,876.00;1366.82,886.52;2061.73,886.52;2695.25,886.52">
+    </polyline>
+    <polygon label="not_road" occluded="0" points="1127.18,1515.57;1129.51,1080.67;1119.80,1030.10;1079.10,978.20;1019.50,936.00;813.22,934.15;603.91,934.15;429.48,934.15;108.54,927.17;3.88,927.17;1.55,1515.57">
+    </polygon>
+    <polyline label="car_track" occluded="0" points="1245.33,1501.60;1243.46,1193.17;1249.40,979.00;1247.38,703.33;1251.00,518.00;1248.50,265.00;1244.90,72.80;1243.10,9.20">
+    </polyline>
+    <polygon label="road2" occluded="0" points="1055.00,832.90;1053.60,952.70;1024.00,933.70;5.07,922.30;1.88,835.08;988.75,835.08">
+    </polygon>
+    <polygon label="road1" occluded="0" points="1057.80,724.00;1054.50,828.80;2.65,828.75;1.04,739.93;1021.90,737.30;1047.59,730.24">
+    </polygon>
+  </image>
+</annotations>

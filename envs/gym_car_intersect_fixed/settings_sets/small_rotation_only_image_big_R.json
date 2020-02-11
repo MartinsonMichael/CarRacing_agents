@@ -1,0 +1,43 @@
+{
+  "name": "Basic, small rotation",
+  "cars_path": "envs/gym_car_intersect_fixed/env_data/cars",
+  "background_path": "envs/gym_car_intersect_fixed/env_data/tracks/background_image.jpg",
+  "annotation_path": "envs/gym_car_intersect_fixed/env_data/tracks/CarRacing_full_2.xml",
+  "agent_tracks" : ["90"],
+  "agent_image_indexes": [0],
+  "bot_number" : 0,
+  "bots_tracks": [],
+  "image_scale": {
+    "back_image_scale_factor": 0.25,
+    "car_image_scale_factor": 0.22
+  },
+  "steer_policy": {
+    "angle_steer": false,
+    "angle_steer_multiplication": 5.0
+  },
+  "state_config": {
+    "picture": true,
+    "vector_car_features": []
+  },
+  "reward": {
+    "is_collided": 0.0,
+    "is_finish": 1,
+    "is_out_of_track": -1,
+    "is_out_of_map": -1,
+    "is_out_of_road": -1,
+
+    "idleness__punish_if_action_radius_less_then": 0.3,
+    "idleness__punish_value": 0.0,
+
+    "new_tiles_count": 0.5,
+    "speed_per_point": 0.0001,
+    "if_speed_more_then_threshold": 0.00001,
+    "speed_threshold": 0.05,
+    "time_per_point": 0.0,
+    "time_per_tick": 0.0
+  },
+  "done": {
+    "true_flags_to_done": ["is_out_of_road", "is_out_of_map", "is_out_of_track", "is_finish"],
+    "false_flags_to_done" : []
+  }
+}
