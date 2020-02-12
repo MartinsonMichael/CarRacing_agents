@@ -83,6 +83,7 @@ def main(args):
             if render:
                 env.render()
             if done or info.get('was_reset', False) or info.get('need_reset', False):
+                print(f"done episode, finish : {info.get('is_finish', 0)}")
                 break
 
         avg_length += t

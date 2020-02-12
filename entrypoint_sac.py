@@ -1,6 +1,8 @@
 import argparse
+import json
 import os
 import sys
+import time
 from os.path import dirname, abspath
 import tensorflow as tf
 
@@ -15,76 +17,43 @@ sys.path.append(dirname(dirname(abspath(__file__))))
 
 def create_config(args):
     config = Config()
-    config.seed = 1
     config.environment = None
 
     mode = get_state_type_from_settings_path(args.env_settings)
     env_creator = get_EnvCreator_by_settings(args.env_settings)
     config.environment = env_creator(args.env_settings)()
-    config.env_settings = args.env_settings
-    config.mode = mode
-
-    config.high_temperature = args.high_temperature
-    config.num_episodes_to_run = 15000
-    config.file_to_save_data_results = 'result_cars'
-    config.file_to_save_results_graph = 'graph_cars'
-    config.show_solution_score = True
-    config.visualise_individual_results = False
-    config.visualise_overall_agent_results = True
-    config.standard_deviation_results = 1.0
-    config.runs_per_agent = 1
-    config.device = args.device
-    config.overwrite_existing_results_file = False
-    config.randomise_random_seed = True
-    config.save_model = True
-    config.max_episode_steps = 300
-    config.random_replay_prefill_ration = args.start_buffer_random_ratio
-
+    config.name = args.name
     config.hyperparameters = {
-        "Actor_Critic_Agents": {
-            "Actor": {
-                "learning_rate": 3e-4,
-                "linear_hidden_units": [20, 20],
-                "final_layer_activation": None,
-                "batch_norm": False,
-                "tau": 0.005,
-                "gradient_clipping_norm": 0.005,
-                "initialiser": "Xavier"
-            },
-            "Critic": {
-                "learning_rate": 3e-4,
-                "linear_hidden_units": [20, 20],
-                "final_layer_activation": None,
-                "batch_norm": False,
-                "buffer_size": 125000,
-                "tau": 0.005,
-                "gradient_clipping_norm": 0.01,
-                "initialiser": "Xavier"
-            },
+        "agent_class": "SAC",
+        "name": args.name,
+        "mode": mode,
+        "seed": 12,
+        "env_settings_file_path": args.env_settings,
+        "high_temperature": args.high_temperature,
+        "num_episodes_to_run": 15*10**3,
+        "device": args.device,
+        "max_episode_steps": 300,
+        "random_replay_prefill_ration": args.start_buffer_random_ratio,
+        "env_settings": json.load(open(args.env_settings)),
 
-            "save_frequency_episode": 500,
-            "min_steps_before_learning": 50000,
-            "batch_size": 64,
-            "discount_rate": 0.99,
-            "mu": 0.0,  # for O-H noise
-            "theta": 0.15,  # for O-H noise
-            "sigma": 0.25,  # for O-H noise
-            "action_noise_std": 0.2,  # for TD3
-            "action_noise_clipping_range": 0.5,  # for TD3
-            "update_every_n_steps": 20,
-            "learning_updates_per_learning_session": 10,
-            "automatically_tune_entropy_hyperparameter": True,
-            "entropy_term_weight": None,
-            "add_extra_noise": True,
-            "do_evaluation_iterations": False,
-            "clip_rewards": False,
+        "Actor": {
+            "learning_rate": 3e-4,
+            "gradient_clipping_norm": 0.005,
+        },
+        "Critic": {
+            "learning_rate": 3e-4,
+            "gradient_clipping_norm": 0.01,
+            "tau": 0.95
+        },
 
-            # "mode_to_use": "normal",
-            # "rlkit_mode_parameters": {
-            #     "explanation_steps_per_step": 1000,
-            #     "update_steps_per_step": 1000,
-            # }
-        }
+        "buffer_size": 125000,
+        "save_frequency_episode": 500,
+        "min_steps_before_learning": 500,
+        "batch_size": 64,
+        "discount_rate": 0.99,
+
+        "update_every_n_steps": 20,
+        "learning_updates_per_learning_session": 10,
     }
     return config
 
@@ -94,31 +63,23 @@ def main(args):
     if not os.path.exists(os.path.join('logs', agent_title)):
         os.makedirs(os.path.join('logs', agent_title))
     tf_writer = tf.summary.create_file_writer(os.path.join('logs', agent_title))
-    agent_config = create_config(args)
-    agent_config.name = agent_title
+    config = create_config(args)
 
-    # random.randint(0, 2 ** 32 - 2)
-    agent_config.seed = 42
-
-    agent_config.hyperparameters = agent_config.hyperparameters['Actor_Critic_Agents']
-    print("AGENT NAME: {}".format('SAC'))
-
-    agent = SAC(agent_config, name=args.name, tf_writer=tf_writer)
+    agent = SAC(config, tf_writer=tf_writer)
 
     if args.load != 'none':
         agent.load(args.load)
 
-    print(agent.hyperparameters)
-    print("RANDOM SEED ", agent_config.seed)
-
     if args.eval:
         print('Eval mode [where wont be any Training!]')
-
         agent.step_with_huge_stats()
-
         return
 
-    game_scores, rolling_scores, time_taken = agent.run_n_episodes(visualize=False)
+    print()
+    print('hyperparameters:\n', agent.hyperparameters, '\n\nStart in 5 seconds...')
+    time.sleep(5.0)
+
+    time_taken = agent.run_n_episodes(visualize=False)
     print("Time taken: {}".format(time_taken), flush=True)
 
 

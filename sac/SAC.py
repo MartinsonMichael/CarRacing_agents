@@ -13,10 +13,7 @@ from envs.common_envs_utils.env_state_utils import \
     get_state_combiner_by_settings_file, \
     from_image_vector_to_combined_state
 
-from sac.Base_Agent import Base_Agent
-from sac.OU_Noise import OU_Noise
-
-from common_agents_utils import Torch_Separated_Replay_Buffer
+from common_agents_utils import Torch_Separated_Replay_Buffer, Config
 from common_agents_utils import QNet, Policy
 
 LOG_SIG_MAX = 2
@@ -25,32 +22,32 @@ TRAINING_EPISODES_PER_EVAL_EPISODE = 10
 EPSILON = 1e-6
 
 
-class SAC(Base_Agent):
+class SAC():
     """Soft Actor-Critic model based on the 2018 paper https://arxiv.org/abs/1812.05905 and on this github implementation
       https://github.com/pranz24/pytorch-soft-actor-critic. It is an actor-critic algorithm where the agent is also trained
       to maximise the entropy of their actions as well as their cumulative reward"""
     agent_name = "SAC"
 
-    def __init__(self, config, name, tf_writer=None):
-        Base_Agent.__init__(self, config)
-        self.name = name
+    def __init__(self, config: Config, tf_writer=None):
+        # Base_Agent.__init__(self, config)
+        self.name = config.name
         self.tf_writer = tf_writer
-        assert self.action_types == "CONTINUOUS", "Action types must be continuous. Use SAC Discrete instead for " \
-                                                  "discrete actions "
-        assert self.config.hyperparameters["Actor"]["final_layer_activation"] != "Softmax", "Final actor layer must " \
-                                                                                            "not be softmax "
+        self.environment = config.environment
+        self.action_size = config.environment.action_space.shape[0]
+        self.device = config.hyperparameters['device']
+
         self.hyperparameters = config.hyperparameters
 
         self.folder_save_path = os.path.join('model_saves', self.name)
 
         self.critic_local = QNet(
-            state_description=self.config.environment.observation_space,
+            state_description=config.environment.observation_space,
             action_size=self.action_size,
             hidden_size=256,
             device=self.device,
         )
         self.critic_local_2 = QNet(
-            state_description=self.config.environment.observation_space,
+            state_description=config.environment.observation_space,
             action_size=self.action_size,
             hidden_size=256,
             device=self.device,
@@ -68,31 +65,31 @@ class SAC(Base_Agent):
         )
 
         self.critic_target = QNet(
-            state_description=self.config.environment.observation_space,
+            state_description=config.environment.observation_space,
             action_size=self.action_size,
             hidden_size=256,
             device=self.device,
         )
         self.critic_target_2 = QNet(
-            state_description=self.config.environment.observation_space,
+            state_description=config.environment.observation_space,
             action_size=self.action_size,
             hidden_size=256,
             device=self.device,
         )
-        Base_Agent.copy_model_over(self.critic_local, self.critic_target)
-        Base_Agent.copy_model_over(self.critic_local_2, self.critic_target_2)
+        SAC.copy_model_over(self.critic_local, self.critic_target)
+        SAC.copy_model_over(self.critic_local_2, self.critic_target_2)
 
         self.memory = Torch_Separated_Replay_Buffer(
-            self.hyperparameters["Critic"]["buffer_size"],
+            self.hyperparameters["buffer_size"],
             self.hyperparameters["batch_size"],
-            self.config.seed,
+            self.hyperparameters["seed"],
             device=self.device,
-            state_extractor=get_state_combiner_by_settings_file(self.config.env_settings),
+            state_extractor=get_state_combiner_by_settings_file(self.hyperparameters['env_settings_file_path']),
             state_producer=from_image_vector_to_combined_state,
         )
 
         self.actor_local = Policy(
-            state_description=self.config.environment.observation_space,
+            state_description=config.environment.observation_space,
             action_size=self.action_size,
             hidden_size=256,
             device=self.device,
@@ -101,49 +98,61 @@ class SAC(Base_Agent):
             self.actor_local.parameters(),
             lr=self.hyperparameters["Actor"]["learning_rate"], eps=1e-4
         )
-        self.automatic_entropy_tuning = self.hyperparameters["automatically_tune_entropy_hyperparameter"]
-        if self.automatic_entropy_tuning:
-            self.target_entropy = -torch.prod(torch.Tensor(self.environment.action_space.shape).to(
-                self.device)).item()  # heuristic value from the paper
-            self.log_alpha = torch.zeros(1, requires_grad=True, device=self.device)
-            self.alpha = self.log_alpha.exp()
-            self.alpha_optim = Adam([self.log_alpha], lr=self.hyperparameters["Actor"]["learning_rate"], eps=1e-4)
-        else:
-            self.alpha = self.hyperparameters["entropy_term_weight"]
 
-        self.add_extra_noise = self.hyperparameters["add_extra_noise"]
-        if self.add_extra_noise:
-            self.noise = OU_Noise(self.action_size, self.config.seed, self.hyperparameters["mu"],
-                                  self.hyperparameters["theta"], self.hyperparameters["sigma"])
+        self.target_entropy = -torch.prod(torch.Tensor(self.environment.action_space.shape).to(self.device)).item()  # heuristic value from the paper
+        self.log_alpha = torch.zeros(1, requires_grad=True, device=self.device)
+        self.alpha = self.log_alpha.exp()
+        self.alpha_optim = Adam([self.log_alpha], lr=self.hyperparameters["Actor"]["learning_rate"], eps=1e-4)
 
-        self.do_evaluation_iterations = self.hyperparameters["do_evaluation_iterations"]
         self._game_stats = {}
         self._last_episode_save_count = 0
         self._current_run_global_steps = 0
+        self.episode_number = 0
+        self.global_step_number = 0
 
-    def save_result(self):
-        """Saves the result of an episode of the game. Overriding the method in Base Agent that does this because we only
-        want to keep track of the results during the evaluation episodes"""
-        if self.episode_number == 1 or not self.do_evaluation_iterations:
-            self.game_full_episode_scores.extend([self.total_episode_score_so_far])
-            self.rolling_results.append(np.mean(self.game_full_episode_scores[-1 * self.rolling_score_window:]))
-            self.save_max_result_seen()
+    def run_n_episodes(self, visualize=True):
+        """Runs game to completion n times and then summarises results and saves model (if asked to)"""
+        num_episodes = self.hyperparameters['num_episodes_to_run']
+        start = time.time()
 
-        elif (self.episode_number - 1) % TRAINING_EPISODES_PER_EVAL_EPISODE == 0:
-            self.game_full_episode_scores.extend(
-                [self.total_episode_score_so_far for _ in range(TRAINING_EPISODES_PER_EVAL_EPISODE)])
-            self.rolling_results.extend(
-                [np.mean(self.game_full_episode_scores[-1 * self.rolling_score_window:]) for _ in
-                 range(TRAINING_EPISODES_PER_EVAL_EPISODE)])
-            self.save_max_result_seen()
+        for _ in range(num_episodes):
+            self.reset_game()
+            self.step(visualize if self.episode_number % 5 == 0 else False)
+            self.episode_number += 1
+
+        time_taken = time.time() - start
+        print(f'Time taken : {time_taken}')
+        return time_taken
 
     def reset_game(self):
         """Resets the game information so we are ready to play a new episode"""
         # np.random.seed(int(round(time.time() * 1000)) % 2**31)
-        Base_Agent.reset_game(self)
-        if self.add_extra_noise:
-            self.noise.reset()
+        """Resets the game informatenvsion so we are ready to play a new episode"""
+
+        self.environment.seed(
+            (int(time.time() * 10 ** 5) % 10 ** 5) * 10 ** 5 + int(time.time() * 10 ** 5) % 10 ** 5
+        )
+        self.state = self.environment.reset()
+        self.next_state = None
+        self.action = None
+        self.reward = None
+        self.done = False
+        self.total_episode_score_so_far = 0
+        self.episode_states = []
+        self.episode_rewards = []
+        self.episode_actions = []
+        self.episode_next_states = []
+        self.episode_dones = []
+        self.episode_desired_goals = []
+        self.episode_achieved_goals = []
+        self.episode_observations = []
         self._game_stats = {}
+
+    def conduct_action(self, action):
+        """Conducts an action in the environment"""
+        self.next_state, self.reward, self.done, self.info = self.environment.step(action)
+        self.update_stats_due_to_step_info(self.info, self.reward, self.done)
+        self.total_episode_score_so_far += self.reward
 
     def step(self, visualize=False):
         self._last_episode_save_count += 1
@@ -151,29 +160,26 @@ class SAC(Base_Agent):
             self.step_with_huge_stats()
 
         """Runs an episode on the game, saving the experience and running a learning step if appropriate"""
-        eval_ep = self.episode_number % TRAINING_EPISODES_PER_EVAL_EPISODE == 0 and self.do_evaluation_iterations
         self.episode_step_number_val = 0
         while not self.done:
             self.episode_step_number_val += 1
-            self.action = self.pick_action(eval_ep)
+            self.action = self.pick_action(False)
             self.conduct_action(self.action)
 
             if self.time_for_critic_and_actor_to_learn():
                 for _ in range(self.hyperparameters["learning_updates_per_learning_session"]):
                     self.learn()
-            # mask = False if self.episode_step_number_val >= self.config.max_episode_steps else self.done
+
             mask = self.done
-            if not eval_ep:
-                # self.save_experience(experience=(self.state, self.action, self.reward, self.next_state, mask))
-                self.memory.add_experience(
-                    self.state, self.action, self.reward, self.next_state, mask
-                )
+            self.memory.add_experience(
+                self.state, self.action, self.reward, self.next_state, mask
+            )
             self.state = self.next_state
             self.global_step_number += 1
             self._current_run_global_steps += 1
             print(f'global steps : {self.global_step_number}')
 
-            if self.episode_step_number_val > self.config.max_episode_steps + 10:
+            if self.episode_step_number_val > self.hyperparameters['max_episode_steps'] + 10:
                 break
             if self.info.get('need_reset', False) or self.info.get('was_reset', False):
                 break
@@ -181,9 +187,7 @@ class SAC(Base_Agent):
         if self.tf_writer is not None:
             self.create_tf_charts()
 
-        print(self.total_episode_score_so_far)
-        if eval_ep:
-            self.print_summary_of_latest_evaluation_episode()
+        print(f"score : {self.total_episode_score_so_far}")
         self.episode_number += 1
 
         if visualize and self._current_run_global_steps > self.hyperparameters["min_steps_before_learning"]:
@@ -191,7 +195,7 @@ class SAC(Base_Agent):
             episode_visualizer(
                 env=self.environment,
                 action_picker=lambda state: self.actor_pick_action(state, eval=True),
-                name=self.config.name,
+                name=self.name,
             )
 
         if self._last_episode_save_count >= self.hyperparameters['save_frequency_episode']:
@@ -270,7 +274,7 @@ class SAC(Base_Agent):
 
             if info.get('need_reset', False) or info.get('was_reset', False):
                 break
-            if local_step_number > self.config.max_episode_steps + 10:
+            if local_step_number > self.hyperparameters['max_episode_steps'] + 10:
                 break
 
         with self.tf_writer.as_default():
@@ -306,7 +310,6 @@ class SAC(Base_Agent):
                     data=np.median(np.array(value)),
                     step=self.episode_number,
                 )
-
 
         print(f'Total reward : {total_reward}')
         print('Huge Eval End.')
@@ -373,12 +376,6 @@ class SAC(Base_Agent):
         if self._current_run_global_steps < self.hyperparameters['min_steps_before_learning']:
             return
         with self.tf_writer.as_default():
-            tf.summary.scalar(
-                name='rolling score',
-                data=np.array(self.game_full_episode_scores[-7:]).mean(),
-                step=self.episode_number
-            )
-            tf.summary.scalar(name='score', data=self.game_full_episode_scores[-1], step=self.episode_number)
             for name, value in self._game_stats.items():
                 if 'loss' in name and self.episode_step_number_val > 0:
                     value /= self.episode_step_number_val
@@ -396,15 +393,13 @@ class SAC(Base_Agent):
             action = self.actor_pick_action(state=state, eval=True)
         else:
             if self._current_run_global_steps < self.hyperparameters["min_steps_before_learning"]:
-                if self._current_run_global_steps < self.config.random_replay_prefill_ration * self.hyperparameters["min_steps_before_learning"]:
+                if self._current_run_global_steps < self.hyperparameters['random_replay_prefill_ration'] * self.hyperparameters["min_steps_before_learning"]:
                     action = np.random.uniform(-1, 1, self.environment.action_space.shape)
                 else:
                     action = self.actor_pick_action(state=state, eval=False)
                 print("Picking random action ", action)
             else:
                 action = self.actor_pick_action(state=state)
-        if self.add_extra_noise:
-            action += self.noise.sample()
         return action
 
     def actor_pick_action(self, state=None, eval=False):
@@ -456,16 +451,17 @@ class SAC(Base_Agent):
                 self._current_run_global_steps % self.hyperparameters["update_every_n_steps"] == 0
         )
 
+    def enough_experiences_to_learn_from(self):
+        """Boolean indicated whether there are enough experiences in the memory buffer to learn from"""
+        return len(self.memory) > self.hyperparameters["batch_size"]
+
     def learn(self):
         """Runs a learning iteration for the actor, both critics and (if specified) the temperature parameter"""
         state_batch, action_batch, reward_batch, next_state_batch, mask_batch = self.sample_experiences()
         qf1_loss, qf2_loss = self.calculate_critic_losses(state_batch, action_batch, reward_batch, next_state_batch,
                                                           mask_batch)
         policy_loss, log_pi = self.calculate_actor_loss(state_batch)
-        if self.automatic_entropy_tuning:
-            alpha_loss = self.calculate_entropy_tuning_loss(log_pi)
-        else:
-            alpha_loss = None
+        alpha_loss = self.calculate_entropy_tuning_loss(log_pi)
         self.update_all_parameters(qf1_loss, qf2_loss, policy_loss, alpha_loss)
 
     def sample_experiences(self):
@@ -552,7 +548,7 @@ class SAC(Base_Agent):
         self.soft_update_of_target_network(self.critic_local_2, self.critic_target_2,
                                            self.hyperparameters["Critic"]["tau"])
         if alpha_loss is not None:
-            if self.config.high_temperature:
+            if self.hyperparameters['high_temperature']:
                 if self.global_step_number < 500:
                     self.alpha = torch.from_numpy(np.array([1.0], dtype=np.float32)).to(self.device)
                 elif self.global_step_number < 10000:
@@ -573,9 +569,33 @@ class SAC(Base_Agent):
                 self.alpha = self.log_alpha.exp()
         self.alpha = torch.clamp(self.alpha, 0.0, 4.0)
 
+    def take_optimisation_step(self, optimizer, network, loss, clipping_norm=None, retain_graph=False):
+        """Takes an optimisation step by calculating gradients given the loss and then updating the parameters"""
+        if not isinstance(network, list):
+            network = [network]
+        optimizer.zero_grad()
+        loss.backward(retain_graph=retain_graph)
+        if clipping_norm is not None:
+            for net in network:
+                torch.nn.utils.clip_grad_norm_(net.parameters(), clipping_norm)
+        optimizer.step()
+
+    def soft_update_of_target_network(self, local_model, target_model, tau):
+        """Updates the target network in the direction of the local network but by taking a step size
+        less than one so the target network's parameter values trail the local networks. This helps stabilise training"""
+        for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
+            target_param.data.copy_(tau*local_param.data + (1.0-tau)*target_param.data)
+
     def print_summary_of_latest_evaluation_episode(self):
         """Prints a summary of the latest episode"""
         print(" ")
         print("----------------------------")
         print("Episode score {} ".format(self.total_episode_score_so_far))
         print("----------------------------")
+
+
+    @staticmethod
+    def copy_model_over(from_model, to_model):
+        """Copies model parameters from from_model to to_model"""
+        for to_model, from_model in zip(to_model.parameters(), from_model.parameters()):
+            to_model.data.copy_(from_model.data.clone())

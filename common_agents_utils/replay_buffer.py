@@ -13,6 +13,21 @@ class Torch_Separated_Replay_Buffer(object):
     ):
         # do not change order!
         names_for_stored = [
+            "state",
+            "action",
+            "log_prob",
+            "reward",
+            "next_state",
+            "done"
+        ]
+        assert len(set(sample_order) - set(names_for_stored)) == 0, \
+            "You have mistake in sample_order\n"\
+            f"must be some of {set(names_for_stored)}\n"\
+            f"but you pass : {set(sample_order)}"
+        self._sample_order = sample_order
+        self.memory = deque(maxlen=buffer_size)
+        self.batch_size = batch_size
+        self.experience = namedtuple("Experience", field_names=[
             "state_picture",
             "state_vector",
             "action",
@@ -21,12 +36,7 @@ class Torch_Separated_Replay_Buffer(object):
             "next_state_picture",
             "next_state_vector",
             "done"
-        ]
-        assert len(set(sample_order) - set(names_for_stored)) == 0, "You have mistake in sample_order"
-        self._sample_order = sample_order
-        self.memory = deque(maxlen=buffer_size)
-        self.batch_size = batch_size
-        self.experience = namedtuple("Experience", field_names=names_for_stored)
+        ])
         self.seed = random.seed(seed)
         self.device = device
         self._state_extractor = state_extractor
