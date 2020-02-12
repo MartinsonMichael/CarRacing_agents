@@ -24,6 +24,12 @@ def create_config(args):
     env_creator = get_EnvCreator_by_settings(args.env_settings)
     config.environment = env_creator(args.env_settings)()
     config.name = args.name
+    config.agent_class = "SAC"
+    log_tb_path = os.path.join('logs', config.agent_class, config.name)
+    if not os.path.exists(log_tb_path):
+        os.makedirs(log_tb_path)
+    config.tf_writer = tf.summary.create_file_writer(log_tb_path)
+
     config.hyperparameters = {
         "agent_class": "SAC",
         "name": args.name,
@@ -34,7 +40,7 @@ def create_config(args):
         "num_episodes_to_run": 15*10**3,
         "device": args.device,
         "max_episode_steps": 300,
-        "random_replay_prefill_ration": args.start_buffer_random_ratio,
+        "random_replay_prefill_ratio": args.start_buffer_random_ratio,
         "env_settings": json.load(open(args.env_settings)),
 
         "Actor": {
@@ -60,13 +66,9 @@ def create_config(args):
 
 
 def main(args):
-    agent_title = args.name
-    if not os.path.exists(os.path.join('logs', agent_title)):
-        os.makedirs(os.path.join('logs', agent_title))
-    tf_writer = tf.summary.create_file_writer(os.path.join('logs', agent_title))
     config = create_config(args)
 
-    agent = SAC(config, tf_writer=tf_writer)
+    agent = SAC(config)
 
     if args.load != 'none':
         agent.load(args.load)

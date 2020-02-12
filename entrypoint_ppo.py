@@ -1,116 +1,79 @@
 import argparse
+import json
 
 import gym
-import numpy as np
-import torch
+import wandb
 
-from envs import make_CarRacing_fixed_vector_features
-from ppo.PPO_continuous import PPO, Memory
+from common_agents_utils import Config
+from envs import get_state_type_from_settings_path, get_EnvCreator_by_settings
+
+from ppo.PPO_continuous import PPO
+
+
+def create_config(args):
+    config = Config()
+    config.environment = None
+
+    mode = get_state_type_from_settings_path(args.env_settings)
+    env_creator = get_EnvCreator_by_settings(args.env_settings)
+    config.environment = env_creator(args.env_settings)()
+    config.name = args.name
+    config.hyperparameters = {
+        "agent_class": "PPO",
+        "name": args.name,
+        "mode": mode,
+        "seed": 12,
+        "env_settings_file_path": args.env_settings,
+        "device": args.device,
+        "env_settings": json.load(open(args.env_settings)),
+
+        "num_episodes_to_run": 15 * 10 ** 3,
+
+        "render": False,
+        "solved_reward": 300,  # stop training if avg_reward > solved_reward
+        "log_interval": 20,  # print avg reward in the interval
+        "max_episodes": 10000,  # max training episodes
+        "max_timesteps": 1500,  # max timesteps in one episode
+
+        "update_timestep": 4000,  # update policy every n timesteps
+        "action_std": 0.5,  # constant std for action distribution (Multivariate Normal)
+        "K_epochs": 80,  # update policy for K epochs
+        "eps_clip": 0.2,  # clip parameter for PPO
+        "gamma": 0.99,  # discount factor
+        "lr": 0.0003,  # parameters for Adam optimizer
+        "betas": (0.9, 0.999),
+
+    }
+    return config
 
 
 def main(args):
-    ############## Hyperparameters ##############
-    render = False
-    solved_reward = 300  # stop training if avg_reward > solved_reward
-    log_interval = 20  # print avg reward in the interval
-    max_episodes = 10000  # max training episodes
-    max_timesteps = 1500  # max timesteps in one episode
+    config = create_config(args)
 
-    update_timestep = 4000  # update policy every n timesteps
-    action_std = 0.5  # constant std for action distribution (Multivariate Normal)
-    K_epochs = 80  # update policy for K epochs
-    eps_clip = 0.2  # clip parameter for PPO
-    gamma = 0.99  # discount factor
+    # test
+    config.environment = gym.make("BipedalWalker-v2")
 
-    lr = 0.0003  # parameters for Adam optimizer
-    betas = (0.9, 0.999)
-
-    random_seed = None
-    #############################################
-
-    # creating environment
-    # env = gym.make(env_name)
-    env = make_CarRacing_fixed_vector_features(
-        settings_path=args.env_settings,
-        name='ppo env'
-    )()
-    action_dim = env.action_space.shape[0]
-
-    if random_seed:
-        print("Random Seed: {}".format(random_seed))
-        torch.manual_seed(random_seed)
-        env.seed(random_seed)
-        np.random.seed(random_seed)
-
-    memory = Memory()
-    ppo = PPO(
-        state_description=env.observation_space,
-        action_dim=action_dim,
-        action_std=action_std,
-        lr=lr,
-        betas=betas,
-        gamma=gamma,
-        K_epochs=K_epochs,
-        eps_clip=eps_clip,
-        device=args.device
+    wandb.init(
+        notes=args.note,
+        project='PPO',
+        name=config.name,
+        config=config.hyperparameters,
     )
-    print(f'lr : {lr}, \nbetas : {betas}\n')
+    ppo_agent = PPO(config)
 
-    # logging variables
-    running_reward = 0
-    avg_length = 0
-    time_step = 0
-
-    # training loop
-    for i_episode in range(1, max_episodes + 1):
-        state = env.reset()
-        for t in range(max_timesteps):
-            time_step += 1
-            # Running policy_old:
-            action = ppo.select_action(state, memory)
-            state, reward, done, info = env.step(action)
-
-            # Saving reward and is_terminals:
-            memory.rewards.append(reward)
-            memory.is_terminals.append(done)
-
-            # update if its time
-            if time_step % update_timestep == 0:
-                ppo.update(memory)
-                memory.clear_memory()
-                time_step = 0
-            running_reward += reward
-            if render:
-                env.render()
-            if done or info.get('was_reset', False) or info.get('need_reset', False):
-                print(f"done episode, finish : {info.get('is_finish', 0)}")
-                break
-
-        avg_length += t
-
-        # stop training if avg_reward > solved_reward
-        if running_reward > (log_interval * solved_reward):
-            print("########## Solved! ##########")
-            torch.save(ppo.policy.state_dict(), './PPO_continuous_solved_{}.pth'.format('CarRacing_fixed'))
-            break
-
-        # save every 500 episodes
-        if i_episode % 500 == 0:
-            torch.save(ppo.policy.state_dict(), './PPO_continuous_{}.pth'.format('CarRacing_fixed'))
-
-        # logging
-        if i_episode % log_interval == 0:
-            avg_length = int(avg_length / log_interval)
-            running_reward = float(running_reward / log_interval)
-
-            print('Episode {} \t Avg length: {} \t Avg reward: {}'.format(i_episode, avg_length, running_reward))
-            running_reward = 0
-            avg_length = 0
+    print('Start training of PPO...')
+    ppo_agent.train()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    # parser.add_argument('--name', type=str, help='name for experiment')
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        help='just add this flag and outputs becames much more interesting'
+    )
+    parser.add_argument('--name', type=str, help='name for experiment')
+    parser.add_argument('--note', type=str, help='provude note for wandb')
     parser.add_argument(
         '--env-settings',
         type=str,
@@ -120,7 +83,13 @@ if __name__ == '__main__':
     parser.add_argument('--device', type=str, default='cpu', help="'cpu' - [default] or 'cuda:{number}'")
     args = parser.parse_args()
 
-    # if args.name is None:
-    #     raise ValueError('set name')
+    if not args.debug:
+        if args.name is None:
+            raise ValueError('set name')
 
+        if args.note is None:
+            raise ValueError('set note, it is used for wandb')
+    else:
+        args.name = 'test'
+        args.note = 'just test'
     main(args)

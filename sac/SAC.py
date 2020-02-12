@@ -31,9 +31,9 @@ class SAC:
       to maximise the entropy of their actions as well as their cumulative reward"""
     agent_name = "SAC"
 
-    def __init__(self, config: Config, tf_writer=None):
+    def __init__(self, config: Config):
         self.name = config.name
-        self.tf_writer = tf_writer
+        self.tf_writer = config.tf_writer
         self.environment = config.environment
         self.action_size = config.environment.action_space.shape[0]
         self.device = config.hyperparameters['device']

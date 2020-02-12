@@ -8,6 +8,8 @@ class Config(object):
         self.environment = None
         self.name = None
         self.hyperparameters = None
+        self.agent_class = None
+        self.tf_writer = None
 
 
 def config_to_key_value(config: Config) -> Dict[str, Union[str, int, float]]:
