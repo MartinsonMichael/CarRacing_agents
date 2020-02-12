@@ -100,7 +100,7 @@ def main(args):
         # logging
         if i_episode % log_interval == 0:
             avg_length = int(avg_length / log_interval)
-            running_reward = int((running_reward / log_interval))
+            running_reward = float(running_reward / log_interval)
 
             print('Episode {} \t Avg length: {} \t Avg reward: {}'.format(i_episode, avg_length, running_reward))
             running_reward = 0
