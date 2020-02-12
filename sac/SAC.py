@@ -2,6 +2,8 @@ import os
 import pickle
 import time
 from typing import Dict, Union, Any
+
+import wandb
 from torch.optim import Adam
 import torch
 import torch.nn.functional as F
@@ -9,6 +11,7 @@ from torch.distributions import Normal
 import numpy as np
 import tensorflow as tf
 
+from common_agents_utils.Config import config_to_key_value
 from envs.common_envs_utils.env_state_utils import \
     get_state_combiner_by_settings_file, \
     from_image_vector_to_combined_state
@@ -22,14 +25,13 @@ TRAINING_EPISODES_PER_EVAL_EPISODE = 10
 EPSILON = 1e-6
 
 
-class SAC():
+class SAC:
     """Soft Actor-Critic model based on the 2018 paper https://arxiv.org/abs/1812.05905 and on this github implementation
       https://github.com/pranz24/pytorch-soft-actor-critic. It is an actor-critic algorithm where the agent is also trained
       to maximise the entropy of their actions as well as their cumulative reward"""
     agent_name = "SAC"
 
     def __init__(self, config: Config, tf_writer=None):
-        # Base_Agent.__init__(self, config)
         self.name = config.name
         self.tf_writer = tf_writer
         self.environment = config.environment
@@ -184,8 +186,7 @@ class SAC():
             if self.info.get('need_reset', False) or self.info.get('was_reset', False):
                 break
 
-        if self.tf_writer is not None:
-            self.create_tf_charts()
+        self.log_it()
 
         print(f"score : {self.total_episode_score_so_far}")
         self.episode_number += 1
@@ -372,15 +373,25 @@ class SAC():
 
         # self._game_stats['temperature'] = self.alpha.cpu().detach().numpy()[0]
 
-    def create_tf_charts(self):
+    def log_it(self):
         if self._current_run_global_steps < self.hyperparameters['min_steps_before_learning']:
             return
-        with self.tf_writer.as_default():
-            for name, value in self._game_stats.items():
-                if 'loss' in name and self.episode_step_number_val > 0:
-                    value /= self.episode_step_number_val
-                    name = 'average ' + name
-                tf.summary.scalar(name=name, data=value, step=self.episode_number)
+
+        log_stats = {}
+
+        for name, value in self._game_stats.items():
+            if 'loss' in name and self.episode_step_number_val > 0:
+                value /= self.episode_step_number_val
+                name = 'average ' + name
+            log_stats[name] = value
+
+        if self.tf_writer is not None:
+            with self.tf_writer.as_default():
+                for name, value in log_stats.items():
+                    tf.summary.scalar(name=name, data=value, step=self.episode_number)
+
+        # WanDB logging:
+        wandb.log(row=log_stats, step=self.episode_number)
 
     def pick_action(self, eval_ep, state=None):
         """Picks an action using one of three methods: 1) Randomly if we haven't passed a certain number of steps,

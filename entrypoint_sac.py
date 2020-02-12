@@ -5,11 +5,12 @@ import sys
 import time
 from os.path import dirname, abspath
 import tensorflow as tf
+import wandb
 
 from envs.common_envs_utils.env_makers import \
     get_state_type_from_settings_path, \
     get_EnvCreator_by_settings
-from sac.Config import Config
+from common_agents_utils import Config
 from sac.SAC import SAC
 
 sys.path.append(dirname(dirname(abspath(__file__))))
@@ -77,6 +78,12 @@ def main(args):
 
     print()
     print('hyperparameters:\n', agent.hyperparameters, '\n\nStart in 5 seconds...')
+    wandb.init(
+        notes=args.note,
+        config=config.hyperparameters,
+        name=config.name,
+        project='SAC'
+    )
     time.sleep(5.0)
 
     time_taken = agent.run_n_episodes(visualize=False)
@@ -86,6 +93,7 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--name', type=str, help='name for experiment')
+    parser.add_argument('--note', type=str, help='provude note for wandb')
     parser.add_argument(
         '--env-settings',
         type=str,
@@ -104,5 +112,8 @@ if __name__ == "__main__":
 
     if args.name is None:
         raise ValueError('set name')
+
+    if args.note is None:
+        raise ValueError('set note!!!')
 
     main(args)
