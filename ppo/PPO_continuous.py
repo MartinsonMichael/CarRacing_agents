@@ -1,3 +1,4 @@
+import itertools
 import os
 import pickle
 from collections import defaultdict
@@ -64,16 +65,21 @@ class PPO:
             hidden_size=128,
             device=self.device,
         )
-        self.actor_optimizer = torch.optim.Adam(
-            self.actor.parameters(),
+        self.optimizer = torch.optim.Adam(
+            itertools.chain(self.actor.parameters(), self.critic.parameters()),
             lr=config.hyperparameters['lr'],
             betas=config.hyperparameters['betas'],
         )
-        self.critic_optimizer = torch.optim.Adam(
-            self.critic.parameters(),
-            lr=config.hyperparameters['lr'],
-            betas=config.hyperparameters['betas'],
-        )
+        # self.actor_optimizer = torch.optim.Adam(
+        #     self.actor.parameters(),
+        #     lr=config.hyperparameters['lr'],
+        #     betas=config.hyperparameters['betas'],
+        # )
+        # self.critic_optimizer = torch.optim.Adam(
+        #     self.critic.parameters(),
+        #     lr=config.hyperparameters['lr'],
+        #     betas=config.hyperparameters['betas'],
+        # )
 
         self.actor_old = Policy(
             state_description=state_description,
@@ -180,12 +186,6 @@ class PPO:
 
     def update(self):
         states, actions, rewards, log_probs, dones, next_states = self.memory.get_all()
-        # print(f'states shape : {states.shape}')
-        # print(f'action shape : {actions.shape}')
-        # print(f'rewards shape : {rewards.shape}')
-        # print(f'log_probs shape : {log_probs.shape}')
-        # print(f'dones shape : {dones.shape}')
-        # print(f'next_state shape : {next_states.shape}')
 
         discount_reward = 0
         discount_reward_batch = []
@@ -199,40 +199,58 @@ class PPO:
         ).to(self.device).detach()
         del discount_reward_batch
 
-        advantage = (
-            rewards
-            + self.hyperparameters['discount_rate'] * self.critic_old(next_states)
-            - self.critic_old(states)
-        ).detach()
-
         for _ in range(self.hyperparameters['learning_updates_per_learning_session']):
             new_action, new_log_probs, new_entropy, _ = self.get_action(states)
 
+            advantage = (
+                rewards
+                + self.hyperparameters['discount_rate'] * self.critic(next_states)
+                - self.critic(states)
+            )
             policy_ratio = torch.exp(new_log_probs - log_probs)
 
             actor_loss = -1 * torch.min(
                 policy_ratio * advantage,
                 torch.clamp(policy_ratio, 1 - self.eps_clip, 1 + self.eps_clip) * advantage
-            ) - 1e-4 * new_entropy
+            ) - 0.01 * new_entropy
             actor_loss = actor_loss.mean()
             self.mean_game_stats['actor_loss'] += actor_loss.detach().cpu().numpy()
-            self.actor_optimizer.zero_grad()
-            actor_loss.backward()
+
+            critic_loss = torch.nn.MSELoss()(self.critic(states), discount_reward)
+            self.mean_game_stats['critic_loss'] += critic_loss.detach().cpu().numpy()
+
+            loss = actor_loss + critic_loss
+            self.optimizer.zero_grad()
+            loss.backward()
+
             torch.nn.utils.clip_grad_norm_(
                 self.actor.parameters(),
                 self.hyperparameters['gradient_clipping_norm'],
             )
-            self.actor_optimizer.step()
-
-            critic_loss = torch.nn.MSELoss()(self.critic(states), discount_reward)
-            self.critic_optimizer.zero_grad()
-            self.mean_game_stats['critic_loss'] += critic_loss.detach().cpu().numpy()
-            critic_loss.backward()
             torch.nn.utils.clip_grad_norm_(
                 self.critic.parameters(),
                 self.hyperparameters['gradient_clipping_norm'],
             )
-            self.critic_optimizer.step()
+            self.optimizer.step()
+
+
+            # self.actor_optimizer.zero_grad()
+            # actor_loss.backward()
+            # torch.nn.utils.clip_grad_norm_(
+            #     self.actor.parameters(),
+            #     self.hyperparameters['gradient_clipping_norm'],
+            # )
+            # self.actor_optimizer.step()
+            #
+            # critic_loss = torch.nn.MSELoss()(self.critic(states), discount_reward)
+            # self.critic_optimizer.zero_grad()
+            # self.mean_game_stats['critic_loss'] += critic_loss.detach().cpu().numpy()
+            # critic_loss.backward()
+            # torch.nn.utils.clip_grad_norm_(
+            #     self.critic.parameters(),
+            #     self.hyperparameters['gradient_clipping_norm'],
+            # )
+            # self.critic_optimizer.step()
 
         # update old policy
         self.update_old_policy()
