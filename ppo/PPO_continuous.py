@@ -161,31 +161,19 @@ class PPO:
 
         return action.detach(), log_prob, normal.entropy(), torch.tanh(action_mean).detach()
 
-    def train(self):
-        # training loop
-        for _ in range(self.hyperparameters['num_episodes_to_run']):
-
-            self.flush_stats()
-            self.run_one_episode()
-            self.log_it()
-
-            if self.episode_number % self.hyperparameters['save_frequency_episode'] == 0:
-                self.save()
-
     def update(self):
         states, actions, rewards, log_probs, dones, next_states = self.memory.get_all()
 
-        discount_reward = 0
-        discount_reward_batch = []
+        buffer_reward = 0
+        discount_reward = []
         for cur_reward, cur_done in zip(reversed(rewards), reversed(dones)):
             if cur_done:
-                discount_reward = 0
-            discount_reward = float(cur_reward[0] + discount_reward * self.hyperparameters['discount_rate'])
-            discount_reward_batch.append([discount_reward])
+                buffer_reward = 0
+            buffer_reward = float(cur_reward[0] + buffer_reward * self.hyperparameters['discount_rate'])
+            discount_reward.append([discount_reward])
         discount_reward = torch.from_numpy(
-            np.array(discount_reward_batch[::-1], dtype=np.float32)
+            np.array(discount_reward[::-1], dtype=np.float32)
         ).to(self.device).detach()
-        del discount_reward_batch
 
         for _ in range(self.hyperparameters['learning_updates_per_learning_session']):
             new_action, new_log_probs, new_entropy, _ = self.get_action(states)
@@ -195,20 +183,19 @@ class PPO:
             advantage = (rewards + self.hyperparameters['discount_rate'] * next_state_value - state_value).detach()
             policy_ratio = torch.exp(new_log_probs - log_probs)
 
-            actor_loss = -1 * torch.min(
+            actor_loss = torch.min(
                 policy_ratio * advantage,
                 torch.clamp(policy_ratio, 1 - self.eps_clip, 1 + self.eps_clip) * advantage
-            ) - 0.01 * new_entropy
+            ) + 0.01 * new_entropy
             actor_loss = actor_loss.mean()
             self.mean_game_stats['actor_loss'] += actor_loss.detach().cpu().numpy()
 
             critic_loss = torch.nn.MSELoss()(state_value, discount_reward)
             self.mean_game_stats['critic_loss'] += critic_loss.detach().cpu().numpy()
 
-            loss = actor_loss + critic_loss
+            loss = -1 * actor_loss + critic_loss
             self.optimizer.zero_grad()
             loss.backward()
-
             torch.nn.utils.clip_grad_norm_(
                 self.actor.parameters(),
                 self.hyperparameters['gradient_clipping_norm'],
@@ -219,27 +206,22 @@ class PPO:
             )
             self.optimizer.step()
 
-
-            # self.actor_optimizer.zero_grad()
-            # actor_loss.backward()
-            # torch.nn.utils.clip_grad_norm_(
-            #     self.actor.parameters(),
-            #     self.hyperparameters['gradient_clipping_norm'],
-            # )
-            # self.actor_optimizer.step()
-            #
-            # critic_loss = torch.nn.MSELoss()(self.critic(states), discount_reward)
-            # self.critic_optimizer.zero_grad()
-            # self.mean_game_stats['critic_loss'] += critic_loss.detach().cpu().numpy()
-            # critic_loss.backward()
-            # torch.nn.utils.clip_grad_norm_(
-            #     self.critic.parameters(),
-            #     self.hyperparameters['gradient_clipping_norm'],
-            # )
-            # self.critic_optimizer.step()
-
         # update old policy
         self.update_old_policy()
+
+    def train(self):
+        # training loop
+        for _ in range(self.hyperparameters['num_episodes_to_run']):
+
+            self.flush_stats()
+            self.run_one_episode()
+            self.log_it()
+
+            self.update()
+            self.memory.clean_all_buffer()
+
+            if self.episode_number % self.hyperparameters['save_frequency_episode'] == 0:
+                self.save()
 
     def run_one_episode(self):
         state = self.env.reset()
@@ -268,9 +250,9 @@ class PPO:
             state = next_state
 
             # update if its time
-            if self.global_step_number % self.hyperparameters['update_every_n_steps'] == 0:
-                self.update()
-                self.memory.clean_all_buffer()
+            # if self.global_step_number % self.hyperparameters['update_every_n_steps'] == 0:
+            #     self.update()
+            #     self.memory.clean_all_buffer()
 
             if done \
                     or info.get('was_reset', False) \
