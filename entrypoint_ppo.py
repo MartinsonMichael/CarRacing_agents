@@ -31,13 +31,13 @@ def create_config(args):
         "env_settings": json.load(open(args.env_settings)),
 
         "num_envs": 4,
-        "save_frequency_episode": 2,
+        "save_frequency_episode": 500,
 
         "num_episodes_to_run": 15 * 10 ** 3,
         "max_episode_len": 1500,
 
-        "update_every_n_steps": 4000,
-        "learning_updates_per_learning_session": 80,
+        "update_every_n_steps": 500,
+        "learning_updates_per_learning_session": 50,
 
         "discount_rate": 0.99,
         "eps_clip": 0.2,  # clip parameter for PPO
