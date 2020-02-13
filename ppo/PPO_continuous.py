@@ -70,16 +70,6 @@ class PPO:
             lr=config.hyperparameters['lr'],
             betas=config.hyperparameters['betas'],
         )
-        # self.actor_optimizer = torch.optim.Adam(
-        #     self.actor.parameters(),
-        #     lr=config.hyperparameters['lr'],
-        #     betas=config.hyperparameters['betas'],
-        # )
-        # self.critic_optimizer = torch.optim.Adam(
-        #     self.critic.parameters(),
-        #     lr=config.hyperparameters['lr'],
-        #     betas=config.hyperparameters['betas'],
-        # )
 
         self.actor_old = Policy(
             state_description=state_description,
@@ -133,9 +123,8 @@ class PPO:
         os.makedirs(current_save_path)
 
         torch.save(self.actor.state_dict(), os.path.join(current_save_path, 'actor'))
-        torch.save(self.actor_optimizer.state_dict(), os.path.join(current_save_path, 'actor_optimizer'))
         torch.save(self.critic.state_dict(), os.path.join(current_save_path, 'critic'))
-        torch.save(self.critic_optimizer.state_dict(), os.path.join(current_save_path, 'critic_optimizer'))
+        torch.save(self.optimizer.state_dict(), os.path.join(current_save_path, 'optimizer'))
 
         pickle.dump((
             self.global_step_number,
@@ -146,9 +135,8 @@ class PPO:
     def load(self, folder):
 
         self.actor.load_state_dict(torch.load(os.path.join(folder, 'actor')))
-        self.actor_optimizer.load_state_dict(torch.load(os.path.join(folder, 'actor_optimizer')))
         self.critic.load_state_dict(torch.load(os.path.join(folder, 'critic')))
-        self.critic_optimizer.load_state_dict(torch.load(os.path.join(folder, 'critic_optimizer')))
+        self.optimizer.load_state_dict(torch.load(os.path.join(folder, 'optimizer')))
         self.update_old_policy()
 
         self.global_step_number, self.episode_number = pickle.load(
@@ -202,11 +190,9 @@ class PPO:
         for _ in range(self.hyperparameters['learning_updates_per_learning_session']):
             new_action, new_log_probs, new_entropy, _ = self.get_action(states)
 
-            advantage = (
-                rewards
-                + self.hyperparameters['discount_rate'] * self.critic(next_states)
-                - self.critic(states)
-            )
+            state_value = self.critic(states)
+            next_state_value = self.critic(next_states)
+            advantage = (rewards + self.hyperparameters['discount_rate'] * next_state_value - state_value).detach()
             policy_ratio = torch.exp(new_log_probs - log_probs)
 
             actor_loss = -1 * torch.min(
@@ -216,7 +202,7 @@ class PPO:
             actor_loss = actor_loss.mean()
             self.mean_game_stats['actor_loss'] += actor_loss.detach().cpu().numpy()
 
-            critic_loss = torch.nn.MSELoss()(self.critic(states), discount_reward)
+            critic_loss = torch.nn.MSELoss()(state_value, discount_reward)
             self.mean_game_stats['critic_loss'] += critic_loss.detach().cpu().numpy()
 
             loss = actor_loss + critic_loss
