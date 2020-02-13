@@ -22,7 +22,7 @@ def create_config(args):
 
     mode = get_state_type_from_settings_path(args.env_settings)
     env_creator = get_EnvCreator_by_settings(args.env_settings)
-    config.environment = env_creator(args.env_settings)()
+    config.environment_make_function = env_creator(args.env_settings)
     config.name = args.name
     config.agent_class = "SAC"
     log_tb_path = os.path.join('logs', config.agent_class, config.name)

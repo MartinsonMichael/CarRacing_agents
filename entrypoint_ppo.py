@@ -6,6 +6,7 @@ import wandb
 
 from common_agents_utils import Config
 from envs import get_state_type_from_settings_path, get_EnvCreator_by_settings
+from envs.common_envs_utils.extended_env_wrappers import ObservationToFloat32
 
 from ppo.PPO_continuous import PPO
 
@@ -16,8 +17,10 @@ def create_config(args):
 
     mode = get_state_type_from_settings_path(args.env_settings)
     env_creator = get_EnvCreator_by_settings(args.env_settings)
-    config.environment = env_creator(args.env_settings)()
+    config.environment_make_function = env_creator(args.env_settings)
     config.name = args.name
+    config.debug = args.debug
+
     config.hyperparameters = {
         "agent_class": "PPO",
         "name": args.name,
@@ -27,20 +30,22 @@ def create_config(args):
         "device": args.device,
         "env_settings": json.load(open(args.env_settings)),
 
+        "num_envs": 4,
+        "save_frequency_episode": 2,
+
         "num_episodes_to_run": 15 * 10 ** 3,
         "max_episode_len": 1500,
-        "log_interval": 20,
 
         "update_every_n_steps": 4000,
         "learning_updates_per_learning_session": 80,
-        "save_frequency_episode": 500,
 
-        "action_std": 0.5,  # constant std for action distribution (Multivariate Normal)
+        "discount_rate": 0.99,
         "eps_clip": 0.2,  # clip parameter for PPO
-        "gamma": 0.99,  # discount factor
-        "lr": 0.0003,  # parameters for Adam optimizer
-        "betas": (0.9, 0.999),
 
+        # parameters for Adam optimizer
+        "lr": 0.0003,
+        "gradient_clipping_norm": 1.0,
+        "betas": (0.9, 0.999),
     }
     return config
 
@@ -48,15 +53,18 @@ def create_config(args):
 def main(args):
     config = create_config(args)
 
+    # if config.debug:
     # test
-    config.environment = gym.make("BipedalWalker-v2")
+    # config.environment_make_function = lambda: ObservationToFloat32(gym.make("BipedalWalker-v2"))
+    config.environment_make_function = lambda: ObservationToFloat32(gym.make("LunarLanderContinuous-v2"))
 
-    wandb.init(
-        notes=args.note,
-        project='PPO',
-        name=config.name,
-        config=config.hyperparameters,
-    )
+    if not config.debug:
+        wandb.init(
+            notes=args.note,
+            project='PPO',
+            name=config.name,
+            config=config.hyperparameters,
+        )
     ppo_agent = PPO(config)
 
     print('Start training of PPO...')
@@ -67,6 +75,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--debug',
+        default=False,
         action='store_true',
         help='just add this flag and outputs becames much more interesting'
     )

@@ -245,7 +245,7 @@ class QNet(nn.Module):
             return x, stats
 
 
-class AdvantageNet(nn.Module):
+class ValueNet(nn.Module):
     """
         Torch architecture, predict advantage from state.
 
@@ -254,7 +254,7 @@ class AdvantageNet(nn.Module):
     def __init__(self, state_description: Union[spaces.Dict, spaces.Box], action_size, hidden_size, device):
         assert isinstance(state_description, (spaces.Dict, spaces.Box)), \
             "state_description must be spaces.Dict or spaces.Box"
-        super(AdvantageNet, self).__init__()
+        super(ValueNet, self).__init__()
         self._device = device
 
         self._state_layer = StateLayer(state_description, hidden_size, device)

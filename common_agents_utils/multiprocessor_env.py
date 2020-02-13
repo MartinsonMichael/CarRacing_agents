@@ -325,6 +325,8 @@ def _worker(remote, parent_remote, env_fn_wrapper):
             elif cmd == 'reset':
                 observation = env.reset()
                 remote.send(observation)
+            elif cmd == 'seed':
+                env.seed(data)
             elif cmd == 'render':
                 remote.send(env.render(*data[0], **data[1]))
             elif cmd == 'close':
@@ -419,6 +421,10 @@ class SubprocVecEnv_tf2(VecEnv):
             remote.send(('reset', None))
         obs = [remote.recv() for remote in target_remotes]
         return _flatten_obs(obs, self.observation_space)
+
+    def seed(self, seed):
+        for index, remote in enumerate(self.remotes):
+            remote.send(('seed', seed + index))
 
     def close(self):
         if self.closed:

@@ -5,11 +5,12 @@ class Config(object):
     """Object to hold the config requirements for an agent/game"""
 
     def __init__(self):
-        self.environment = None
-        self.name = None
-        self.hyperparameters = None
-        self.agent_class = None
+        self.environment_make_function = None
+        self.name: str = ""
+        self.hyperparameters: Dict[str, Any] = {}
+        self.agent_class: str = ""
         self.tf_writer = None
+        self.debug: bool = False
 
 
 def config_to_key_value(config: Config) -> Dict[str, Union[str, int, float]]:

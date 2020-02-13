@@ -109,7 +109,7 @@ class Torch_Separated_Replay_Buffer(object):
         if attribute_name == 'done':
             return torch.from_numpy(np.array([[e.done] for e in experiences], dtype=np.float32)).to(self.device)
         if attribute_name == 'log_prob':
-            return torch.from_numpy(np.array([[e.log_prob] for e in experiences], dtype=np.float32)).to(self.device)
+            return torch.from_numpy(np.array([e.log_prob for e in experiences], dtype=np.float32)).to(self.device)
 
     def sample(self, num_experiences=None):
         """Draws a random sample of experience from the replay buffer"""
@@ -137,3 +137,10 @@ class Torch_Separated_Replay_Buffer(object):
 
     def clean_all_buffer(self):
         self.memory.clear()
+
+    def get_all(self):
+        batch = (
+            self._prepare_row_of_samples(self.memory, name)
+            for name in self._sample_order
+        )
+        return batch

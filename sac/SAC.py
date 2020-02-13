@@ -34,8 +34,8 @@ class SAC:
     def __init__(self, config: Config):
         self.name = config.name
         self.tf_writer = config.tf_writer
-        self.environment = config.environment
-        self.action_size = config.environment.action_space.shape[0]
+        self.environment = config.environment_make_function()
+        self.action_size = self.environment.action_space.shape[0]
         self.device = config.hyperparameters['device']
 
         self.hyperparameters = config.hyperparameters
@@ -43,13 +43,13 @@ class SAC:
         self.folder_save_path = os.path.join('model_saves', 'SAC', self.name)
 
         self.critic_local = QNet(
-            state_description=config.environment.observation_space,
+            state_description=self.environment.observation_space,
             action_size=self.action_size,
             hidden_size=256,
             device=self.device,
         )
         self.critic_local_2 = QNet(
-            state_description=config.environment.observation_space,
+            state_description=self.environment.observation_space,
             action_size=self.action_size,
             hidden_size=256,
             device=self.device,
@@ -67,13 +67,13 @@ class SAC:
         )
 
         self.critic_target = QNet(
-            state_description=config.environment.observation_space,
+            state_description=self.environment.observation_space,
             action_size=self.action_size,
             hidden_size=256,
             device=self.device,
         )
         self.critic_target_2 = QNet(
-            state_description=config.environment.observation_space,
+            state_description=self.environment.observation_space,
             action_size=self.action_size,
             hidden_size=256,
             device=self.device,
@@ -91,7 +91,7 @@ class SAC:
         )
 
         self.actor_local = Policy(
-            state_description=config.environment.observation_space,
+            state_description=self.environment.observation_space,
             action_size=self.action_size,
             hidden_size=256,
             device=self.device,

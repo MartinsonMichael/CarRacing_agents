@@ -5,7 +5,16 @@ import gym
 import numpy as np
 import collections
 
-import torch
+
+class ObservationToFloat32(gym.ObservationWrapper):
+    def __init__(self, env):
+        super().__init__(env)
+        self.observation_space.dtype = np.float32
+
+    def observation(self, observation: np.ndarray):
+        if not isinstance(observation, np.ndarray):
+            raise ValueError(f'what is it? type : {type(observation)} body : {observation}, expect np.ndarray')
+        return observation.astype(np.float32)
 
 
 class OriginalStateKeeper(gym.ObservationWrapper):
