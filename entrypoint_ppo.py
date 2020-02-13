@@ -36,8 +36,8 @@ def create_config(args):
         "num_episodes_to_run": 15 * 10 ** 3,
         "max_episode_len": 1500,
 
-        "update_every_n_steps": 500,
-        "learning_updates_per_learning_session": 50,
+        "update_every_n_steps": 4000,
+        "learning_updates_per_learning_session": 80,
 
         "discount_rate": 0.99,
         "eps_clip": 0.2,  # clip parameter for PPO
@@ -55,8 +55,8 @@ def main(args):
 
     # if config.debug:
     # test
-    # config.environment_make_function = lambda: ObservationToFloat32(gym.make("BipedalWalker-v2"))
-    config.environment_make_function = lambda: ObservationToFloat32(gym.make("LunarLanderContinuous-v2"))
+    config.environment_make_function = lambda: ObservationToFloat32(gym.make("BipedalWalker-v2"))
+    # config.environment_make_function = lambda: ObservationToFloat32(gym.make("LunarLanderContinuous-v2"))
 
     if not config.debug:
         wandb.init(

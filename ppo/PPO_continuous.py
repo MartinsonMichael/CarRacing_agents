@@ -189,12 +189,14 @@ class PPO:
 
         discount_reward = 0
         discount_reward_batch = []
-        for cur_reward, cur_done in zip(rewards, dones):
+        for cur_reward, cur_done in zip(reversed(rewards), reversed(dones)):
             if cur_done:
                 discount_reward = 0
             discount_reward = float(cur_reward[0] + discount_reward * self.hyperparameters['discount_rate'])
             discount_reward_batch.append([discount_reward])
-        discount_reward = torch.from_numpy(np.array(discount_reward_batch, dtype=np.float32)).to(self.device).detach()
+        discount_reward = torch.from_numpy(
+            np.array(discount_reward_batch[::-1], dtype=np.float32)
+        ).to(self.device).detach()
         del discount_reward_batch
 
         advantage = (
@@ -211,7 +213,8 @@ class PPO:
             actor_loss = -1 * torch.min(
                 policy_ratio * advantage,
                 torch.clamp(policy_ratio, 1 - self.eps_clip, 1 + self.eps_clip) * advantage
-            ).mean()
+            ) - 1e-4 * new_entropy
+            actor_loss = actor_loss.mean()
             self.mean_game_stats['actor_loss'] += actor_loss.detach().cpu().numpy()
             self.actor_optimizer.zero_grad()
             actor_loss.backward()
