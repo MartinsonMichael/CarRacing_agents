@@ -1,3 +1,9 @@
+import os
+import pickle
+from collections import defaultdict
+from typing import Dict, Union
+import time
+
 import tensorflow as tf
 import torch
 import torch.nn as nn
@@ -79,12 +85,12 @@ class ActorCritic(nn.Module):
 
 class PPO:
     def __init__(self, config: Config):
+        self.name = config.name
         self.hyperparameters = config.hyperparameters
         self.lr = config.hyperparameters['lr']
         self.betas = config.hyperparameters['betas']
         self.gamma = config.hyperparameters['gamma']
         self.eps_clip = config.hyperparameters['eps_clip']
-        self.K_epochs = config.hyperparameters['K_epochs']
         self.device = config.hyperparameters['device']
 
         self.env = config.environment
@@ -118,7 +124,12 @@ class PPO:
         
         self.MseLoss = nn.MSELoss()
 
+        self.folder_save_path = os.path.join('model_saves', 'PPO', self.name)
         self.episode_number = 0
+        self.global_step_number = 0
+        self.current_game_stats = None
+        self.mean_game_stats = None
+        self.flush_stats()
         self.tf_writer = config.tf_writer
     
     def select_action(self, state, memory):
@@ -143,9 +154,9 @@ class PPO:
         old_states = torch.squeeze(torch.stack(memory.states).to(self.device), 1).detach()
         old_actions = torch.squeeze(torch.stack(memory.actions).to(self.device), 1).detach()
         old_logprobs = torch.squeeze(torch.stack(memory.logprobs), 1).to(self.device).detach()
-        
+
         # Optimize policy for K epochs:
-        for _ in range(self.K_epochs):
+        for _ in range(self.hyperparameters['learning_updates_per_learning_session']):
             # Evaluating old actions and values :
             logprobs, state_values, dist_entropy = self.policy.evaluate(old_states, old_actions)
             
@@ -153,7 +164,9 @@ class PPO:
             ratios = torch.exp(logprobs - old_logprobs.detach())
 
             # Finding Surrogate Loss:
-            advantages = rewards - state_values.detach()   
+            advantages = rewards - state_values.detach()
+            self.mean_game_stats['mean_advantage'] += float(advantages.detach().cpu().numpy().mean())
+
             surr1 = ratios * advantages
             surr2 = torch.clamp(ratios, 1-self.eps_clip, 1+self.eps_clip) * advantages
             loss = -torch.min(surr1, surr2) + 0.5*self.MseLoss(state_values, rewards) - 0.01*dist_entropy
@@ -162,56 +175,105 @@ class PPO:
             self.optimizer.zero_grad()
             loss.mean().backward()
             self.optimizer.step()
-            
+            self.mean_game_stats['mean_loss'] += float(loss.detach().cpu().numpy().mean())
+
         # Copy new weights into old policy:
         self.policy_old.load_state_dict(self.policy.state_dict())
 
+    def update_current_game_stats(self, reward, done, info):
+        self.current_game_stats['reward'] += reward
+        self.current_game_stats['env_steps'] += 1.0
+
+        if not done:
+            return
+
+        self.current_game_stats['finish'] = int(info.get('is_finish', -1))
+        self.current_game_stats['track_progress'] = info.get('track_progress', -1)
+
+    def flush_stats(self):
+        self.current_game_stats = defaultdict(float, {})
+        self.mean_game_stats = defaultdict(float, {})
+
+    def save(self):
+        current_save_path = os.path.join(
+            self.folder_save_path,
+            f"{self.name}_episode_{self.episode_number}_time_{time.time()}"
+        )
+        os.makedirs(current_save_path)
+
+        torch.save(self.policy.state_dict(), os.path.join(current_save_path, 'policy'))
+        torch.save(self.policy_old.state_dict(), os.path.join(current_save_path, 'policy_old'))
+
+        torch.save(self.optimizer.state_dict(), os.path.join(current_save_path, 'optimizer'))
+
+        pickle.dump((
+            self.global_step_number,
+            self.episode_number,
+
+        ), open(os.path.join(current_save_path, 'stats.pkl'), 'wb'))
+
+    def load(self, folder):
+
+        self.policy.load_state_dict(torch.load(os.path.join(folder, 'policy')))
+        self.policy_old.load_state_dict(torch.load(os.path.join(folder, 'policy_old')))
+        self.optimizer.load_state_dict(torch.load(os.path.join(folder, 'optimizer')))
+
+        self.global_step_number, self.episode_number = pickle.load(
+            open(os.path.join(folder, 'stats.pkl'), 'rb')
+        )
+
     def train(self):
-        running_reward = 0
-        avg_length = 0
-        time_step = 0
-
         # training loop
-        for i_episode in range(1, self.hyperparameters['max_episodes'] + 1):
-            state = self.env.reset()
-            for t in range(self.hyperparameters['max_timesteps']):
-                time_step += 1
-                # Running policy_old:
-                action = self.select_action(state, self.memory)
-                state, reward, done, info = self.env.step(action)
+        for _ in range(self.hyperparameters['num_episodes_to_run']):
 
-                # Saving reward and is_terminals:
-                self.memory.rewards.append(reward)
-                self.memory.is_terminals.append(done)
+            self.run_one_episode()
+            self.log_it()
 
-                # update if its time
-                if time_step % self.hyperparameters['update_timestep'] == 0:
-                    self.update(self.memory)
-                    self.memory.clear_memory()
-                    time_step = 0
-                running_reward += reward
+            if self.episode_number % self.hyperparameters['save_frequency_episode'] == 0:
+                self.save()
 
-                if done or info.get('was_reset', False) or info.get('need_reset', False):
-                    print(f"done episode, finish : {info.get('is_finish', 0)}")
-                    self.episode_number += 1
-                    break
+    def run_one_episode(self):
+        self.flush_stats()
+        state = self.env.reset()
+        done = False
+        self.episode_number += 1
+        total_reward = 0
+        episode_len = 0
+        while not done:
+            # Running policy_old:
+            action = self.select_action(state, self.memory)
+            state, reward, done, info = self.env.step(action)
+            self.global_step_number += 1
+            self.update_current_game_stats(reward, done, info)
 
-            avg_length += t
+            total_reward += reward
+            episode_len += 1
 
-            # # save every 500 episodes
-            # if i_episode % 500 == 0:
-            #     torch.save(ppo.policy.state_dict(), './PPO_continuous_{}.pth'.format('CarRacing_fixed'))
+            # Saving reward and is_terminals:
+            self.memory.rewards.append(reward)
+            self.memory.is_terminals.append(done)
 
-            # logging
-            if i_episode % self.hyperparameters['log_interval'] == 0:
-                avg_length = int(avg_length / self.hyperparameters['log_interval'])
-                running_reward = float(running_reward / self.hyperparameters['log_interval'])
+            # update if its time
+            if self.global_step_number % self.hyperparameters['update_every_n_steps'] == 0:
+                self.update(self.memory)
+                self.memory.clear_memory()
 
-                print('Episode {} \t Avg length: {} \t Avg reward: {}'.format(i_episode, avg_length, running_reward))
-                running_reward = 0
-                avg_length = 0
+            if done \
+                    or info.get('was_reset', False) \
+                    or info.get('need_reset', False) \
+                    or episode_len > self.hyperparameters['max_episode_len']:
+                print(f"R : {round(total_reward, 4)}\tTime : {episode_len}")
+                break
 
-    def log_it(self, stats):
+    def log_it(self):
+
+        stats = self.current_game_stats
+        if self.current_game_stats.get('env_steps', 0) != 0:
+            stats.update({
+                name: value / self.current_game_stats['env_steps']
+                for name, value in self.mean_game_stats.items()
+            })
+
         if self.tf_writer is not None:
             with self.tf_writer.as_default():
                 for name, value in stats.items():

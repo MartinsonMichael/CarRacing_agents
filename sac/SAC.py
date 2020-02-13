@@ -40,7 +40,7 @@ class SAC:
 
         self.hyperparameters = config.hyperparameters
 
-        self.folder_save_path = os.path.join('model_saves', self.name)
+        self.folder_save_path = os.path.join('model_saves', 'SAC', self.name)
 
         self.critic_local = QNet(
             state_description=config.environment.observation_space,
