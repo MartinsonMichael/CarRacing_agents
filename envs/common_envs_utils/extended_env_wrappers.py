@@ -17,6 +17,15 @@ class ObservationToFloat32(gym.ObservationWrapper):
         return observation.astype(np.float32)
 
 
+class RewardDivider(gym.RewardWrapper):
+    def __init__(self, env, ratio):
+        super().__init__(env)
+        self._reward_ratio = ratio
+
+    def reward(self, reward):
+        return reward / self._reward_ratio
+
+
 class OriginalStateKeeper(gym.ObservationWrapper):
     """save state"""
 

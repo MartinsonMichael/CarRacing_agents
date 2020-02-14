@@ -14,6 +14,25 @@ def get_activated_ratio(x: Union[torch.Tensor, torch.FloatTensor]) -> float:
     return (x.detach() > 0).cpu().numpy().sum() / torch.prod(torch.tensor(x.size())).cpu().numpy()
 
 
+def _make_it_batched_torch_tensor(x, device) -> Union[torch.FloatTensor, torch.Tensor]:
+    if isinstance(x, (torch.FloatTensor, torch.Tensor, torch.cuda.FloatTensor)):
+        if len(x.shape) == 2 or len(x.shape) == 4:
+            return x.to(device)
+        else:
+            return x.unsqueeze_(0).to(device)
+    if isinstance(x, np.ndarray):
+        if len(x.shape) == 2 or len(x.shape) == 4:
+            return torch.from_numpy(x.astype(np.float32)).to(device)
+        else:
+            return torch.from_numpy(np.array([x]).astype(np.float32)).to(device)
+
+    print('state trouble')
+    print(f'state type: {type(x)}')
+    print(x)
+
+    raise ValueError('add dict!')
+
+
 class PictureProcessor(nn.Module):
     def __init__(self, in_channels=3, device='cpu'):
         super(PictureProcessor, self).__init__()
@@ -148,30 +167,12 @@ class StateLayer(nn.Module):
         else:
             return self._vector_layer(state)
 
-    def _make_it_torch_tensor(self, x):
-        if isinstance(x, (torch.FloatTensor, torch.Tensor, torch.cuda.FloatTensor)):
-            if len(x.shape) == 2 or len(x.shape) == 4:
-                return x.to(self._device)
-            else:
-                return x.unsqueeze_(0).to(self._device)
-        if isinstance(x, np.ndarray):
-            if len(x.shape) == 2 or len(x.shape) == 4:
-                return torch.from_numpy(x.astype(np.float32)).to(self._device)
-            else:
-                return torch.from_numpy(np.array([x]).astype(np.float32)).to(self._device)
-
-        print('state trouble')
-        print(f'state type: {type(x)}')
-        print(x)
-
-        raise ValueError('add dict!')
-
     def forward(
             self,
             state: Union[Dict[str, torch.FloatTensor], torch.FloatTensor],
             return_stats: bool = False,
     ):
-        state = self._make_it_torch_tensor(state)
+        state = _make_it_batched_torch_tensor(state, self._device)
 
         if isinstance(state, dict):
             raise ValueError('add dict to StateLayer!')

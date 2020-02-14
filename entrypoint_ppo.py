@@ -6,7 +6,7 @@ import wandb
 
 from common_agents_utils import Config
 from envs import get_state_type_from_settings_path, get_EnvCreator_by_settings
-from envs.common_envs_utils.extended_env_wrappers import ObservationToFloat32
+from envs.common_envs_utils.extended_env_wrappers import ObservationToFloat32, RewardDivider
 
 from ppo.PPO_continuous import PPO
 
@@ -37,7 +37,7 @@ def create_config(args):
         "max_episode_len": 1500,
 
         "update_every_n_steps": 4000,
-        "learning_updates_per_learning_session": 80,
+        "learning_updates_per_learning_session": 2,
 
         "discount_rate": 0.99,
         "eps_clip": 0.2,  # clip parameter for PPO
@@ -55,8 +55,14 @@ def main(args):
 
     # if config.debug:
     # test
-    config.environment_make_function = lambda: ObservationToFloat32(gym.make("BipedalWalker-v2"))
-    # config.environment_make_function = lambda: ObservationToFloat32(gym.make("LunarLanderContinuous-v2"))
+    # config.environment_make_function = lambda: RewardDivider(
+    #     ObservationToFloat32(gym.make("BipedalWalker-v2")),
+    #     ratio=100,
+    # )
+    config.environment_make_function = lambda: RewardDivider(
+        ObservationToFloat32(gym.make("LunarLanderContinuous-v2")),
+        ratio=100,
+    )
 
     if not config.debug:
         wandb.init(

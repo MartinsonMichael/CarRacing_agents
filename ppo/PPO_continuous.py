@@ -13,6 +13,7 @@ from torch.distributions import MultivariateNormal, Normal
 import numpy as np
 
 from common_agents_utils import Policy, ValueNet, Config, SubprocVecEnv_tf2, Torch_Separated_Replay_Buffer
+from common_agents_utils.utils_continues import _make_it_batched_torch_tensor
 from envs.common_envs_utils.env_state_utils import get_state_combiner_by_settings_file, \
     from_image_vector_to_combined_state
 
@@ -143,23 +144,30 @@ class PPO:
             open(os.path.join(folder, 'stats.pkl'), 'rb')
         )
 
-    def get_action(self, state):
+    def get_action(self, state, evaluate=False) -> np.ndarray:
+        actor_out = self.actor(state)
+        action_mean, action_std = actor_out[:, self.action_size:], actor_out[:, :self.action_size]
+
+        if evaluate:
+            return torch.tanh(action_mean).detach().cpu().numpy()
+
+        normal = Normal(action_mean, action_std.exp())
+
+        return torch.tanh(normal.sample()).detach().cpu().numpy()
+
+    def estimate_action(self, state: np.ndarray, action: Union[torch.FloatTensor, np.ndarray]) \
+            -> Tuple[torch.FloatTensor, torch.FloatTensor]:
+        """Compute logprobs of action and entropy"""
+        action = _make_it_batched_torch_tensor(action, self.device).detach()
         actor_out = self.actor(state)
         action_mean, action_std = actor_out[:, self.action_size:], actor_out[:, :self.action_size]
 
         normal = Normal(action_mean, action_std.exp())
-        x_t = normal.rsample()
-        # print('x_t', x_t)
-        action = torch.tanh(x_t)
-        # print(f'action : {action}')
-        log_prob = normal.log_prob(x_t)
-        # print(f'1 log_prob : {log_prob}')
-        log_prob -= torch.log(1 - action.pow(2.0) + 1e-6)
-        # print(f'2 log_prob : {log_prob}')
+        log_prob = normal.log_prob(torch.tanh(action.detach()))
+        log_prob -= torch.log(1 + 1e-6 - action.pow(2))
         log_prob = log_prob.sum(1, keepdim=True)
-        # print(f'3 log_prob : {log_prob}')
 
-        return action.detach(), log_prob, normal.entropy(), torch.tanh(action_mean).detach()
+        return log_prob, normal.entropy()
 
     def update(self):
         states, actions, rewards, log_probs, dones, next_states = self.memory.get_all()
@@ -170,30 +178,31 @@ class PPO:
             if cur_done:
                 buffer_reward = 0
             buffer_reward = float(cur_reward[0] + buffer_reward * self.hyperparameters['discount_rate'])
-            discount_reward.append([discount_reward])
+            discount_reward.append([buffer_reward])
         discount_reward = torch.from_numpy(
             np.array(discount_reward[::-1], dtype=np.float32)
         ).to(self.device).detach()
 
         for _ in range(self.hyperparameters['learning_updates_per_learning_session']):
-            new_action, new_log_probs, new_entropy, _ = self.get_action(states)
+            print('upd step')
+            new_log_probs, new_entropy = self.estimate_action(states, actions)
 
             state_value = self.critic(states)
             next_state_value = self.critic(next_states)
             advantage = (rewards + self.hyperparameters['discount_rate'] * next_state_value - state_value).detach()
             policy_ratio = torch.exp(new_log_probs - log_probs)
 
-            actor_loss = torch.min(
+            actor_loss = -1 * torch.min(
                 policy_ratio * advantage,
                 torch.clamp(policy_ratio, 1 - self.eps_clip, 1 + self.eps_clip) * advantage
-            ) + 0.01 * new_entropy
+            ) - 0.01 * new_entropy
             actor_loss = actor_loss.mean()
             self.mean_game_stats['actor_loss'] += actor_loss.detach().cpu().numpy()
 
             critic_loss = torch.nn.MSELoss()(state_value, discount_reward)
             self.mean_game_stats['critic_loss'] += critic_loss.detach().cpu().numpy()
 
-            loss = -1 * actor_loss + critic_loss
+            loss = actor_loss + critic_loss
             self.optimizer.zero_grad()
             loss.backward()
             torch.nn.utils.clip_grad_norm_(
@@ -215,10 +224,11 @@ class PPO:
 
             self.flush_stats()
             self.run_one_episode()
-            self.log_it()
 
             self.update()
             self.memory.clean_all_buffer()
+
+            self.log_it()
 
             if self.episode_number % self.hyperparameters['save_frequency_episode'] == 0:
                 self.save()
@@ -231,18 +241,15 @@ class PPO:
         episode_len = 0
         while not done:
             # Running policy_old:
-            action, log_prob, _, _ = self.get_action(state)
-            action = action.detach().cpu().numpy()[0]
+            action = self.get_action(state)[0]
+            log_prob, _ = self.estimate_action(state, action)
             log_prob = log_prob.detach().cpu().numpy()[0]
-            # print(f'action : {action}')
             next_state, reward, done, info = self.env.step(action)
             self.global_step_number += 1
             self.update_current_game_stats(reward, done, info)
 
             total_reward += reward
             episode_len += 1
-
-            # print(f'log_prob : {log_prob}')
 
             self.memory.add_experience(
                 state, action, reward, next_state, done, log_prob
