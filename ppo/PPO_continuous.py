@@ -191,7 +191,7 @@ class PPO:
             state_value = self.critic(states)
             next_state_value = self.critic(next_states)
             # advantage = (rewards + self.hyperparameters['discount_rate'] * next_state_value - state_value).detach()
-            advantage = rewards - state_value.detach()
+            advantage = discount_reward - state_value.detach()
             policy_ratio = torch.exp(new_log_probs - log_probs.detach())
 
             actor_loss = -1 * torch.min(
