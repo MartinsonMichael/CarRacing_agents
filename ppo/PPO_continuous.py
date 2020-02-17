@@ -171,6 +171,7 @@ class PPO:
         return log_prob, normal.entropy()
 
     def update(self):
+        print('update')
         states, actions, rewards, log_probs, dones, next_states = self.memory.get_all()
 
         buffer_reward = 0
@@ -185,7 +186,6 @@ class PPO:
         ).to(self.device).detach()
 
         for _ in range(self.hyperparameters['learning_updates_per_learning_session']):
-            print('upd step')
             new_log_probs, new_entropy = self.estimate_action(states, actions)
 
             state_value = self.critic(states)
