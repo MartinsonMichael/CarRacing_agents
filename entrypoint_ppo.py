@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 
 import gym
 import wandb
@@ -20,6 +21,10 @@ def create_config(args):
     config.environment_make_function = env_creator(args.env_settings)
     config.name = args.name
     config.debug = args.debug
+    log_tb_path = os.path.join('logs', config.agent_class, config.name)
+    if not os.path.exists(log_tb_path):
+        os.makedirs(log_tb_path)
+    config.tf_writer = tf.summary.create_file_writer(log_tb_path)
 
     config.hyperparameters = {
         "agent_class": "PPO",
