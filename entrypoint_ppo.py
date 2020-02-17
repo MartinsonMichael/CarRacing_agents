@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import tensorflow as tf
 
 import gym
 import wandb
