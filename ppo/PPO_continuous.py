@@ -185,6 +185,8 @@ class PPO:
             np.array(discount_reward[::-1], dtype=np.float32)
         ).to(self.device).detach()
 
+        discount_reward = (discount_reward - discount_reward.mean()) / (discount_reward.std() + 1e-5)
+
         for _ in range(self.hyperparameters['learning_updates_per_learning_session']):
             new_log_probs, new_entropy = self.estimate_action(states, actions)
 
