@@ -86,6 +86,7 @@ class PPO:
             device=self.device,
         )
         self.update_old_policy()
+        self.mse = nn.MSELoss()
 
 
         self.MseLoss = nn.MSELoss()
@@ -189,30 +190,31 @@ class PPO:
 
             state_value = self.critic(states)
             next_state_value = self.critic(next_states)
-            advantage = (rewards + self.hyperparameters['discount_rate'] * next_state_value - state_value).detach()
-            policy_ratio = torch.exp(new_log_probs - log_probs)
+            # advantage = (rewards + self.hyperparameters['discount_rate'] * next_state_value - state_value).detach()
+            advantage = rewards - state_value.detach()
+            policy_ratio = torch.exp(new_log_probs - log_probs.detach())
 
             actor_loss = -1 * torch.min(
                 policy_ratio * advantage,
                 torch.clamp(policy_ratio, 1 - self.eps_clip, 1 + self.eps_clip) * advantage
             ) - 0.01 * new_entropy
-            actor_loss = actor_loss.mean()
-            self.mean_game_stats['actor_loss'] += actor_loss.detach().cpu().numpy()
+            # actor_loss = actor_loss.mean()
+            self.mean_game_stats['actor_loss'] += actor_loss.detach().cpu().numpy().mean()
 
-            critic_loss = torch.nn.MSELoss()(state_value, discount_reward)
-            self.mean_game_stats['critic_loss'] += critic_loss.detach().cpu().numpy()
+            critic_loss = torch.pow(state_value - discount_reward, 2)
+            self.mean_game_stats['critic_loss'] += critic_loss.detach().cpu().numpy().mean()
 
-            loss = actor_loss + critic_loss
+            loss = (actor_loss + 0.5 * critic_loss).mean()
             self.optimizer.zero_grad()
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(
-                self.actor.parameters(),
-                self.hyperparameters['gradient_clipping_norm'],
-            )
-            torch.nn.utils.clip_grad_norm_(
-                self.critic.parameters(),
-                self.hyperparameters['gradient_clipping_norm'],
-            )
+            # torch.nn.utils.clip_grad_norm_(
+            #     self.actor.parameters(),
+            #     self.hyperparameters['gradient_clipping_norm'],
+            # )
+            # torch.nn.utils.clip_grad_norm_(
+            #     self.critic.parameters(),
+            #     self.hyperparameters['gradient_clipping_norm'],
+            # )
             self.optimizer.step()
 
         # update old policy
@@ -225,8 +227,8 @@ class PPO:
             self.flush_stats()
             self.run_one_episode()
 
-            self.update()
-            self.memory.clean_all_buffer()
+            # self.update()
+            # self.memory.clean_all_buffer()
 
             self.log_it()
 
@@ -257,9 +259,9 @@ class PPO:
             state = next_state
 
             # update if its time
-            # if self.global_step_number % self.hyperparameters['update_every_n_steps'] == 0:
-            #     self.update()
-            #     self.memory.clean_all_buffer()
+            if self.global_step_number % self.hyperparameters['update_every_n_steps'] == 0:
+                self.update()
+                self.memory.clean_all_buffer()
 
             if done \
                     or info.get('was_reset', False) \
