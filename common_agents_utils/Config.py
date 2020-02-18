@@ -6,6 +6,7 @@ class Config(object):
 
     def __init__(self):
         self.environment_make_function = None
+        self.test_environment_make_function = None
         self.name: str = ""
         self.hyperparameters: Dict[str, Any] = {}
         self.agent_class: str = ""

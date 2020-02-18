@@ -4,6 +4,7 @@ import os
 import tensorflow as tf
 
 import gym
+import gym.wrappers.monitor
 import wandb
 
 from common_agents_utils import Config
@@ -62,6 +63,10 @@ def main(args):
     # if config.debug:
     # test
     config.environment_make_function = lambda: ObservationToFloat32(gym.make("LunarLanderContinuous-v2"))
+    config.test_environment_make_function = lambda: gym.Monitor(
+        config.environment_make_function(),
+        directory='save_animation_folder',
+    )
 
     if not config.debug:
         wandb.init(

@@ -27,7 +27,7 @@ class PPO:
         self.eps_clip = config.hyperparameters['eps_clip']
         self.device = config.hyperparameters['device']
 
-        self.test_env = config.test_environment_make_function()
+        self.test_env = config.environment_make_function()
         self.action_size = self.test_env.action_space.shape[0]
         # self.env = SubprocVecEnv_tf2([
         #     config.environment_make_function for _ in range(config.hyperparameters['num_envs'])
@@ -227,39 +227,9 @@ class PPO:
         # update old policy
         self.update_old_policy()
 
-    def eval(self):
-        state = self.test_env.reset()
-        done = False
-        total_reward = 0
-        episode_len = 0
-        while not done:
-            # Running policy_old:
-            action = self.get_action(state)[0]
-
-            next_state, reward, done, info = self.env.step(action)
-            self.global_step_number += 1
-
-            total_reward += reward
-            episode_len += 1
-
-            state = next_state
-
-            if done \
-                    or info.get('need_reset', False) \
-                    or episode_len > self.hyperparameters['max_episode_len']:
-                if info.get('need_reset', False):
-                    print('Was made panic env reset...')
-                    raise ValueError
-                print('End of eval episode')
-                print(f"Episode :{self.episode_number} R : {round(total_reward, 4)}\tTime : {episode_len}")
-                break
-
     def train(self):
         # training loop
-        for index in range(self.hyperparameters['num_episodes_to_run']):
-
-            if index % 5 == 0:
-                self.eval()
+        for _ in range(self.hyperparameters['num_episodes_to_run']):
 
             attempt = 0
             while True:

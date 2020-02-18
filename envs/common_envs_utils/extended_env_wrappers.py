@@ -6,6 +6,20 @@ import numpy as np
 import collections
 
 
+class VisualizerWrapper(gym.Wrapper):
+    def __init__(self, env, folder):
+        super().__init__(env)
+        self.folder = folder
+        self.ims = []
+
+    def observation(self, observation):
+        self.ims.append(self.render(mode='rgb_array'))
+        return observation
+
+    def reset(self):
+        self.ims = []
+
+
 class ObservationToFloat32(gym.ObservationWrapper):
     def __init__(self, env):
         super().__init__(env)
