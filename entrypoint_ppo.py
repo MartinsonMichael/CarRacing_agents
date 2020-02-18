@@ -63,6 +63,7 @@ def main(args):
     # if config.debug:
     # test
     config.environment_make_function = lambda: ObservationToFloat32(gym.make("LunarLanderContinuous-v2"))
+    config.test_environment_make_function = config.environment_make_function
     # config.test_environment_make_function = lambda: VisualizerWrapper(
     #     ObservationToFloat32(gym.make("LunarLanderContinuous-v2"))
     # )
