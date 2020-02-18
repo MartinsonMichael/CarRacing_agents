@@ -105,9 +105,6 @@ class PPO_ICM:
             self.test_env.seed(config.hyperparameters['seed'])
             np.random.seed(config.hyperparameters['seed'])
 
-    def update_old_policy(self):
-        self.actor_old.load_state_dict(self.actor.state_dict())
-        self.critic_old.load_state_dict(self.critic.state_dict())
 
     def update_current_game_stats(self, reward, done, info):
         self.current_game_stats['reward'] += reward
@@ -166,7 +163,7 @@ class PPO_ICM:
             -> Tuple[torch.FloatTensor, torch.FloatTensor]:
         """Compute logprobs of action and entropy"""
         action = _make_it_batched_torch_tensor(action, self.device).detach()
-        actor_out = self.actor(state)
+        actor_out = self.actor(self._state_encoder(state))
         action_mean, action_std = actor_out[:, self.action_size:], actor_out[:, :self.action_size]
 
         normal = Normal(action_mean, action_std.exp())
@@ -179,29 +176,6 @@ class PPO_ICM:
     def update(self):
         print('update')
         states, actions, rewards, log_probs, dones, next_states = self.memory.get_all()
-
-        for _ in range(20):
-            state_encoded = self._state_encoder(states)
-            next_state_encoded = self._state_encoder(next_states)
-            predicted_actions = self._inverse_dynamic_model(state_encoded, next_state_encoded)
-            predicted_next_states = self._forward_dynamic_model(state_encoded, actions)
-            icm_loss = self.mse(predicted_actions, actions) + self.mse(predicted_next_states, next_state_encoded)
-
-            self._icm_optimizer.zero_grad()
-            icm_loss.backward()
-            self._icm_optimizer.step()
-
-        # update ICM
-        for _ in range(20):
-            state_encoded = self._state_encoder(states)
-            next_state_encoded = self._state_encoder(next_states)
-            predicted_actions = self._inverse_dynamic_model(state_encoded, next_state_encoded)
-            predicted_next_states = self._forward_dynamic_model(state_encoded, actions)
-            icm_loss = self.mse(predicted_actions, actions) + self.mse(predicted_next_states, next_state_encoded)
-
-            self._icm_optimizer.zero_grad()
-            icm_loss.backward()
-            self._icm_optimizer.step()
 
         buffer_reward = 0
         discount_reward = []
@@ -217,9 +191,15 @@ class PPO_ICM:
         discount_reward = (discount_reward - discount_reward.mean()) / (discount_reward.std() + 1e-5)
 
         for _ in range(self.hyperparameters['learning_updates_per_learning_session']):
+            state_encoded = self._state_encoder(states)
+            next_state_encoded = self._state_encoder(next_states)
+            predicted_actions = self._inverse_dynamic_model(state_encoded, next_state_encoded)
+            predicted_next_states = self._forward_dynamic_model(state_encoded, actions)
+            icm_loss = self.mse(predicted_actions, actions) + self.mse(predicted_next_states, next_state_encoded)
+
             new_log_probs, new_entropy = self.estimate_action(states, actions)
 
-            state_value = self.critic(states)
+            state_value = self.critic(state_encoded.detach())
             # next_state_value = self.critic(next_states)
             # advantage = (rewards + self.hyperparameters['discount_rate'] * next_state_value - state_value).detach()
             advantage = discount_reward - state_value.detach()
@@ -238,50 +218,55 @@ class PPO_ICM:
             self.optimizer.zero_grad()
             loss.mean().backward()
             torch.nn.utils.clip_grad_norm_(
-                self.actor.parameters(),
-                self.hyperparameters['gradient_clipping_norm'],
-            )
-            torch.nn.utils.clip_grad_norm_(
-                self.critic.parameters(),
+                itertools.chain(self.actor.parameters(), self.critic.parameters()),
                 self.hyperparameters['gradient_clipping_norm'],
             )
             self.optimizer.step()
 
-        # update old policy
-        self.update_old_policy()
+            self._icm_optimizer.zero_grad()
+            icm_loss.backward()
+            torch.nn.utils.clip_grad_norm_(
+                itertools.chain(
+                    self._state_encoder.parameters(),
+                    self._forward_dynamic_model.parameters(),
+                    self._inverse_dynamic_model.parameters(),
+                ),
+                1.0,
+            )
+            self._icm_optimizer.step()
 
     def train(self):
         # training loop
         for _ in range(self.hyperparameters['num_episodes_to_run']):
 
-            attempt = 0
-            while True:
-                try:
-                    # try На случай подения среды, у меня стандартный bipedal walker падает переодически :(
-                    self.flush_stats()
-                    self.run_one_episode()
+            # attempt = 0
+            # while True:
+            #     try:
+            # try На случай подения среды, у меня стандартный bipedal walker падает переодически :(
+            self.flush_stats()
+            self.run_one_episode()
 
-                    self.log_it()
-                    break
-                except:
-                    self.memory.clean_all_buffer()
-                    print()
-                    print(f'env fail')
-                    print(f'restart...   attempt {attempt}')
-                    attempt += 1
-                    if attempt >= 5:
-                        print(f'khm, bad')
-                        print('recreating env...')
-                        self._config.hyperparameters['seed'] = self._config.hyperparameters['seed'] + 1
-                        self.create_env(self._config)
-                    if attempt >= 10:
-                        print(f'actually, it useless :(')
-                        print(f'end trainig...')
-                        print(f'save...')
-                        self.save()
-                        print(f'save done.')
-                        print('exiting...')
-                        exit(1)
+            self.log_it()
+                #     break
+                # except:
+                #     self.memory.clean_all_buffer()
+                #     print()
+                #     print(f'env fail')
+                #     print(f'restart...   attempt {attempt}')
+                #     attempt += 1
+                #     if attempt >= 5:
+                #         print(f'khm, bad')
+                #         print('recreating env...')
+                #         self._config.hyperparameters['seed'] = self._config.hyperparameters['seed'] + 1
+                #         self.create_env(self._config)
+                #     if attempt >= 10:
+                #         print(f'actually, it useless :(')
+                #         print(f'end trainig...')
+                #         print(f'save...')
+                #         self.save()
+                #         print(f'save done.')
+                #         print('exiting...')
+                #         exit(1)
 
             if self.episode_number % self.hyperparameters['save_frequency_episode'] == 0:
                 self.save()

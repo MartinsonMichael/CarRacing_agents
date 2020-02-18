@@ -182,7 +182,7 @@ class ActionLayer(nn.Module):
         return self._state_layer_out_size
 
     def forward(self, action, return_stat: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, dict]]:
-        x = self._dense(_make_it_batched_torch_tensor(action, self.devic))
+        x = self._dense(_make_it_batched_torch_tensor(action, self.device))
         if return_stat:
             return x, {}
         return x

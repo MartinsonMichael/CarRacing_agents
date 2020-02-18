@@ -9,6 +9,7 @@ import wandb
 from common_agents_utils import Config
 from envs import get_state_type_from_settings_path, get_EnvCreator_by_settings
 from envs.common_envs_utils.extended_env_wrappers import ObservationToFloat32, RewardDivider
+from ppo.PPO_ICM_continuous import PPO_ICM
 
 from ppo.PPO_continuous import PPO
 
@@ -45,7 +46,7 @@ def create_config(args):
 
         # parameters for Adam optimizer
         "lr": 0.0001,
-        "gradient_clipping_norm": 0.01,
+        "gradient_clipping_norm": 1.0,
         "betas": (0.9, 0.999),
     }
     return config
@@ -61,7 +62,7 @@ def main(args):
             name=config.name,
             config=config.hyperparameters,
         )
-    ppo_agent = PPO(config)
+    ppo_agent = PPO_ICM(config)
 
     if args.load != 'none':
         print(f'load from {args.load}')

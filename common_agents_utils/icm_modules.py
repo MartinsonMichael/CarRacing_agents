@@ -52,7 +52,7 @@ class StateEncoder(nn.Module):
         ).to(device)
         self.head = nn.Linear(int(hidden_max / 4), encoded_size).to(device)
 
-    def forward(self, state, next_state, return_stats: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, dict]]:
+    def forward(self, state, return_stats: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, dict]]:
         x = F.relu(self._state(state))
         x = F.relu(self._dense_1(x))
         x = F.relu(self._dense_2(x))
