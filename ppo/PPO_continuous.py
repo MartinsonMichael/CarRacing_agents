@@ -287,10 +287,10 @@ class PPO:
                 self.update()
                 self.memory.clean_all_buffer()
 
-            print(info)
+            if info.get('was_reset', False):
+
 
             if done \
-                    or info.get('was_reset', False) \
                     or info.get('need_reset', False) \
                     or episode_len > self.hyperparameters['max_episode_len']:
                 print(f"Episode :{self.episode_number} R : {round(total_reward, 4)}\tTime : {episode_len}")
