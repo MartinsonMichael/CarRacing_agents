@@ -288,7 +288,8 @@ class PPO:
                 self.memory.clean_all_buffer()
 
             if info.get('was_reset', False):
-
+                self.env.reset()
+                break
 
             if done \
                     or info.get('need_reset', False) \
