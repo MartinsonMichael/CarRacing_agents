@@ -245,6 +245,7 @@ class PPO:
                     if attempt >= 10:
                         print(f'khm, bad')
                         print('recreating env...')
+                        self._config.hyperparameters['seed'] = self._config.hyperparameters['seed'] + 1
                         self.create_env(self._config)
                     if attempt >= 20:
                         print(f'actually, it useless :(')
