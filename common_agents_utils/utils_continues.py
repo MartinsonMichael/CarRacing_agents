@@ -333,3 +333,19 @@ class Policy(nn.Module):
             }
             x = self._head(x)
             return x, stats
+
+
+class InverseDynamicModel(nn.Module):
+    def __init__(self, state_description: Union[spaces.Dict, spaces.Box], action_size, hidden_size, device):
+        super(InverseDynamicModel, self).__init__()
+
+        self._state = StateLayer(state_description, hidden_size, device)
+        self._next_state = StateLayer(state_description, hidden_size, device)
+        self._dense_1 = nn.Linear(
+            in_features=self._state.get_out_shape_for_in() + self._next_state.get_out_shape_for_in(),
+            out_features=hidden_size,
+        )
+        # self.head =
+
+    def forward(self, state, next_state) -> torch.FloatTensor:
+        pass

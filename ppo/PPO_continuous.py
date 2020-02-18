@@ -173,6 +173,12 @@ class PPO:
 
         return log_prob, normal.entropy()
 
+    def create_ICP(self):
+        raise NotImplemented
+
+    def update_ICM(self):
+        raise NotImplemented
+
     def update(self):
         print('update')
         states, actions, rewards, log_probs, dones, _ = self.memory.get_all()
