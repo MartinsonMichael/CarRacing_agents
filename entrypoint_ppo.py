@@ -40,10 +40,10 @@ def create_config(args):
         "save_frequency_episode": 500,
 
         "num_episodes_to_run": 15 * 10 ** 3,
-        "max_episode_len": 500,
+        "max_episode_len": 1500,
 
-        "update_every_n_steps": 1500,
-        "learning_updates_per_learning_session": 30,
+        "update_every_n_steps": 4000,
+        "learning_updates_per_learning_session": 80,
 
         "discount_rate": 0.99,
         "eps_clip": 0.2,  # clip parameter for PPO
