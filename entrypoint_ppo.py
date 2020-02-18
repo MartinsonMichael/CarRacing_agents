@@ -61,14 +61,15 @@ def main(args):
 
     # if config.debug:
     # test
+    config.environment_make_function = lambda: ObservationToFloat32(gym.make("BipedalWalker-v2"))
     # config.environment_make_function = lambda: RewardDivider(
     #     ObservationToFloat32(gym.make("BipedalWalker-v2")),
     #     ratio=100,
     # )
-    config.environment_make_function = lambda: RewardDivider(
-        ObservationToFloat32(gym.make("LunarLanderContinuous-v2")),
-        ratio=100,
-    )
+    # config.environment_make_function = lambda: RewardDivider(
+    #     ObservationToFloat32(gym.make("LunarLanderContinuous-v2")),
+    #     ratio=100,
+    # )
 
     if not config.debug:
         wandb.init(

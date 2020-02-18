@@ -88,7 +88,6 @@ class PPO:
         self.update_old_policy()
         self.mse = nn.MSELoss()
 
-
         self.MseLoss = nn.MSELoss()
 
         self.folder_save_path = os.path.join('model_saves', 'PPO', self.name)
@@ -225,13 +224,14 @@ class PPO:
         # training loop
         for _ in range(self.hyperparameters['num_episodes_to_run']):
 
-            self.flush_stats()
-            self.run_one_episode()
+            try:
+                # try На случай подения среды, у меня стандартный bipedal walker падает переодически :(
+                self.flush_stats()
+                self.run_one_episode()
 
-            # self.update()
-            # self.memory.clean_all_buffer()
-
-            self.log_it()
+                self.log_it()
+            except:
+                self.memory.clean_all_buffer()
 
             if self.episode_number % self.hyperparameters['save_frequency_episode'] == 0:
                 self.save()
