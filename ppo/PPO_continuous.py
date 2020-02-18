@@ -180,18 +180,6 @@ class PPO:
         print('update')
         states, actions, rewards, log_probs, dones, next_states = self.memory.get_all()
 
-        # update ICM
-        for _ in range(20):
-            state_encoded = self._state_encoder(states)
-            next_state_encoded = self._state_encoder(next_states)
-            predicted_actions = self._inverse_dynamic_model(state_encoded, next_state_encoded)
-            predicted_next_states = self._forward_dynamic_model(state_encoded, actions)
-            icm_loss = self.mse(predicted_actions, actions) + self.mse(predicted_next_states, next_state_encoded)
-
-            self._icm_optimizer.zero_grad()
-            icm_loss.backward()
-            self._icm_optimizer.step()
-
         buffer_reward = 0
         discount_reward = []
         for cur_reward, cur_done in zip(reversed(rewards), reversed(dones)):
