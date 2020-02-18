@@ -38,10 +38,10 @@ def create_config(args):
         "env_settings": json.load(open(args.env_settings)),
 
         "num_envs": 4,
-        "save_frequency_episode": 500,
+        "save_frequency_episode": 30,
 
         "num_episodes_to_run": 15 * 10 ** 3,
-        "max_episode_len": 350,
+        "max_episode_len": 450,
 
         "update_every_n_steps": 3000,
         "learning_updates_per_learning_session": 60,
@@ -63,9 +63,9 @@ def main(args):
     # if config.debug:
     # test
     config.environment_make_function = lambda: ObservationToFloat32(gym.make("LunarLanderContinuous-v2"))
-    config.test_environment_make_function = lambda: VisualizerWrapper(
-        ObservationToFloat32(gym.make("LunarLanderContinuous-v2"))
-    )
+    # config.test_environment_make_function = lambda: VisualizerWrapper(
+    #     ObservationToFloat32(gym.make("LunarLanderContinuous-v2"))
+    # )
 
     # config.test_environment_make_function = lambda: gym.wrappers.Monitor(
     #     ObservationToFloat32(gym.make("LunarLanderContinuous-v2")),
