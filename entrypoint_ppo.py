@@ -46,11 +46,11 @@ def create_config(args):
         "learning_updates_per_learning_session": 60,
 
         "discount_rate": 0.99,
-        "eps_clip": 0.2,  # clip parameter for PPO
+        "eps_clip": 0.1,  # clip parameter for PPO
 
         # parameters for Adam optimizer
         "lr": 0.001,
-        "gradient_clipping_norm": 1.0,
+        "gradient_clipping_norm": 0.1,
         "betas": (0.9, 0.999),
     }
     return config
@@ -61,6 +61,7 @@ def main(args):
 
     # if config.debug:
     # test
+    config.environment_make_function = lambda: ObservationToFloat32(gym.make("LunarLanderContinuous-v2"))
 
     if not config.debug:
         wandb.init(

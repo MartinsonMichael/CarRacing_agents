@@ -114,8 +114,10 @@ class PPO:
         if not done:
             return
 
-        self.current_game_stats['finish'] = int(info.get('is_finish', -1))
-        self.current_game_stats['track_progress'] = info.get('track_progress', -1)
+        if 'is_finish' in info.keys():
+            self.current_game_stats['finish'] = info['is_finish']
+        if 'track_progress' in info.keys():
+            self.current_game_stats['track_progress'] = info['track_progress']
 
     def flush_stats(self):
         self.current_game_stats = defaultdict(float, {})
