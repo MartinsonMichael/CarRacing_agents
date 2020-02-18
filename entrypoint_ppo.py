@@ -51,7 +51,7 @@ def create_config(args):
 
         # parameters for Adam optimizer
         "lr": 0.001,
-        "gradient_clipping_norm": 0.05,
+        "gradient_clipping_norm": 0.2,
         "betas": (0.9, 0.999),
     }
     return config
@@ -63,12 +63,16 @@ def main(args):
     # if config.debug:
     # test
     config.environment_make_function = lambda: ObservationToFloat32(gym.make("LunarLanderContinuous-v2"))
-    config.test_environment_make_function = lambda: gym.wrappers.Monitor(
-        ObservationToFloat32(gym.make("LunarLanderContinuous-v2")),
-        directory='save_animation_folder',
-        mode='evaluation',
-        force=True,
+    config.test_environment_make_function = lambda: VisualizerWrapper(
+        ObservationToFloat32(gym.make("LunarLanderContinuous-v2"))
     )
+
+    # config.test_environment_make_function = lambda: gym.wrappers.Monitor(
+    #     ObservationToFloat32(gym.make("LunarLanderContinuous-v2")),
+    #     directory='save_animation_folder',
+    #     mode='evaluation',
+    #     force=True,
+    # )
 
     if not config.debug:
         wandb.init(

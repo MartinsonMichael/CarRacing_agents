@@ -258,7 +258,7 @@ class PPO:
         # training loop
         for index in range(self.hyperparameters['num_episodes_to_run']):
 
-            if index % 50 == 0:
+            if index % 10 == 0:
                 self.eval()
 
             attempt = 0

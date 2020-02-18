@@ -15,21 +15,19 @@ class VisualizerWrapper(gym.Wrapper):
         super().__init__(env)
         self.ims = []
 
-    def observation(self, observation):
-        try:
-            im = self.render(mode='rgb_array')
-            print(np.array(im).shape)
-            self.ims.append(im)
-        except:
-            print('ha, classic...')
-        return observation
-
     def step(self, action):
         state, reward, done, info = self.env.step(action)
         if done and len(self.ims) > 0:
             if not os.path.exists('save_animation_folder'):
                 os.makedirs('save_animation_folder')
-            save_as_mp4(self.ims, f'save_animation_folder/animation_{str(time.time())}')
+            save_as_mp4(self.ims, f'save_animation_folder/animation_{str(time.time())}.mp4')
+            self.ims = []
+        try:
+            im = self.env.render(mode='rgb_array')
+            self.ims.append(im)
+        except:
+            print('ha, classic...')
+
         return state, reward, done, info
 
     def reset(self):
