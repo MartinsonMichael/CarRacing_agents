@@ -287,6 +287,8 @@ class PPO:
                 self.update()
                 self.memory.clean_all_buffer()
 
+            print(info)
+
             if done \
                     or info.get('was_reset', False) \
                     or info.get('need_reset', False) \
