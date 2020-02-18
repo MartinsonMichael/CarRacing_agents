@@ -12,14 +12,12 @@ import wandb
 from torch.distributions import MultivariateNormal, Normal
 import numpy as np
 
-from common_agents_utils import Policy, ValueNet, Config, SubprocVecEnv_tf2, Torch_Separated_Replay_Buffer, \
-    StateEncoder, EncodedForwardDynamicModel, InverseDynamicModel
+from common_agents_utils import Policy, ValueNet, Config, Torch_Separated_Replay_Buffer, StateEncoder, \
+    EncodedForwardDynamicModel, InverseDynamicModel, EncodedValueNet, EncodedPolicyNet
 from common_agents_utils.torch_gym_modules import _make_it_batched_torch_tensor
-from envs.common_envs_utils.env_state_utils import get_state_combiner_by_settings_file, \
-    from_image_vector_to_combined_state
 
 
-class PPO:
+class PPO_ICM:
     def __init__(self, config: Config):
         self.name = config.name
         self.debug = config.debug
@@ -48,42 +46,46 @@ class PPO:
         state_description = self.test_env.observation_space
         action_size = self.test_env.action_space.shape[0]
 
-        self.actor = Policy(
-            state_description=state_description,
-            action_size=action_size,
-            hidden_size=128,
+        ENCODED_STATE_SIZE = 10
+        self._state_encoder = StateEncoder(
+            state_description=self.env.observation_space,
+            encoded_size=ENCODED_STATE_SIZE,
+            hidden_size=20,
             device=self.device,
-            double_action_size_on_output=True
         )
-        self.critic = ValueNet(
-            state_description=state_description,
-            action_size=action_size,
+        self._forward_dynamic_model = EncodedForwardDynamicModel(
+            state_size=ENCODED_STATE_SIZE,
+            action_size=self.env.action_space.shape[0],
             hidden_size=128,
             device=self.device,
+        )
+        self._inverse_dynamic_model = InverseDynamicModel(
+            state_size=ENCODED_STATE_SIZE,
+            action_size=self.env.action_space.shape[0],
+            hidden_size=128,
+            device=self.device,
+        )
+        self._icm_optimizer = torch.optim.Adam(
+            itertools.chain(
+                self._state_encoder.parameters(),
+                self._forward_dynamic_model.parameters(),
+                self._inverse_dynamic_model.parameters(),
+            ),
+            lr=self._config.hyperparameters['lr'],
+            betas=self._config.hyperparameters['betas'],
+        )
+
+        self.critic = EncodedValueNet(ENCODED_STATE_SIZE, self.device)
+        self.actor = EncodedPolicyNet(
+            ENCODED_STATE_SIZE, self.env.action_space.shape[0], self.device,
+            double_action_size_on_output=True,
         )
         self.optimizer = torch.optim.Adam(
             itertools.chain(self.actor.parameters(), self.critic.parameters()),
             lr=config.hyperparameters['lr'],
             betas=config.hyperparameters['betas'],
         )
-
-        self.actor_old = Policy(
-            state_description=state_description,
-            action_size=action_size,
-            hidden_size=128,
-            device=self.device,
-            double_action_size_on_output=True
-        )
-        self.critic_old = ValueNet(
-            state_description=state_description,
-            action_size=action_size,
-            hidden_size=128,
-            device=self.device,
-        )
-        self.update_old_policy()
         self.mse = nn.MSELoss()
-
-        self.MseLoss = nn.MSELoss()
 
         self.folder_save_path = os.path.join('model_saves', 'PPO', self.name)
         self.episode_number = 0
@@ -150,7 +152,7 @@ class PPO:
         )
 
     def get_action(self, state, evaluate=False) -> np.ndarray:
-        actor_out = self.actor(state)
+        actor_out = self.actor(self._state_encoder(state))
         action_mean, action_std = actor_out[:, self.action_size:], actor_out[:, :self.action_size]
 
         if evaluate:
@@ -177,6 +179,17 @@ class PPO:
     def update(self):
         print('update')
         states, actions, rewards, log_probs, dones, next_states = self.memory.get_all()
+
+        for _ in range(20):
+            state_encoded = self._state_encoder(states)
+            next_state_encoded = self._state_encoder(next_states)
+            predicted_actions = self._inverse_dynamic_model(state_encoded, next_state_encoded)
+            predicted_next_states = self._forward_dynamic_model(state_encoded, actions)
+            icm_loss = self.mse(predicted_actions, actions) + self.mse(predicted_next_states, next_state_encoded)
+
+            self._icm_optimizer.zero_grad()
+            icm_loss.backward()
+            self._icm_optimizer.step()
 
         # update ICM
         for _ in range(20):
@@ -300,7 +313,6 @@ class PPO:
             if self.global_step_number % self.hyperparameters['update_every_n_steps'] == 0:
                 self.update()
                 self.memory.clean_all_buffer()
-
 
             if done \
                     or info.get('need_reset', False) \

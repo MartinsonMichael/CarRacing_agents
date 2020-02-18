@@ -89,7 +89,7 @@ def main():
         steps += 1
         viewer.imshow(env.get_true_picture())
 
-        if done or restart or 'need_restart' in info.keys():
+        if done or restart or info.get('need_reset', False):
             print('restart')
             break
 

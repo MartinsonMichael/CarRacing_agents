@@ -7,7 +7,8 @@ import numpy as np
 from common_agents_utils import Policy, ValueNet, Torch_Separated_Replay_Buffer
 
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = 'cuda:2'
 
 
 class Memory:
