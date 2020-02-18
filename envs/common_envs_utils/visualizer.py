@@ -37,6 +37,27 @@ def episode_visualizer(env, action_picker, name='test', folder='save_animation_f
 
 # f'./save_animation_folder/{datetime.datetime.now()}.mp4'
 
+def save_as_mp4(image_array, save_path):
+    dpi = 72.0
+    xpixels, ypixels = image_array[0].shape[:2]
+    fig = plt.figure(figsize=(ypixels / dpi, xpixels / dpi), dpi=dpi)
+    im = plt.figimage(image_array[0])
+
+    def animate(i):
+        im.set_array(image_array[i])
+        return (im,)
+
+    anim = animation.FuncAnimation(
+        fig,
+        animate,
+        frames=len(image_array),
+        interval=33,
+        repeat_delay=1,
+        repeat=True
+    )
+    anim.save(save_path)
+
+
 def plot_sequence_images(image_array, need_disaply=False, need_save=None):
     ''' Display images sequence as an animation in jupyter notebook
 

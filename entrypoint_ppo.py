@@ -9,7 +9,7 @@ import wandb
 
 from common_agents_utils import Config
 from envs import get_state_type_from_settings_path, get_EnvCreator_by_settings
-from envs.common_envs_utils.extended_env_wrappers import ObservationToFloat32, RewardDivider
+from envs.common_envs_utils.extended_env_wrappers import ObservationToFloat32, RewardDivider, VisualizerWrapper
 
 from ppo.PPO_continuous import PPO
 
@@ -64,8 +64,10 @@ def main(args):
     # test
     config.environment_make_function = lambda: ObservationToFloat32(gym.make("LunarLanderContinuous-v2"))
     config.test_environment_make_function = lambda: gym.wrappers.Monitor(
-        config.environment_make_function(),
+        ObservationToFloat32(gym.make("LunarLanderContinuous-v2")),
         directory='save_animation_folder',
+        mode='evaluation',
+        force=True,
     )
 
     if not config.debug:

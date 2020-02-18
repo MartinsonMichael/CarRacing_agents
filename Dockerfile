@@ -17,9 +17,10 @@ RUN pip3 install --upgrade pip
 COPY pip.packages /tmp/
 RUN pip3 install --trusted-host pypi.python.org -r /tmp/pip.packages
 
+RUN apt-get install ffmpeg
+
 # PUT ALL CHANGES UNDER THIS LINE
 
 RUN mkdir /src
 WORKDIR /src
 ADD . ./
-

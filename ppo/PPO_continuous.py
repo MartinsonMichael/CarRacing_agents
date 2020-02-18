@@ -228,6 +228,7 @@ class PPO:
         self.update_old_policy()
 
     def eval(self):
+        print('Start eval...')
         state = self.test_env.reset()
         done = False
         total_reward = 0
@@ -236,7 +237,7 @@ class PPO:
             # Running policy_old:
             action = self.get_action(state)[0]
 
-            next_state, reward, done, info = self.env.step(action)
+            next_state, reward, done, info = self.test_env.step(action)
             self.global_step_number += 1
 
             total_reward += reward
@@ -250,15 +251,14 @@ class PPO:
                 if info.get('need_reset', False):
                     print('Was made panic env reset...')
                     raise ValueError
-                print('End of eval episode')
-                print(f"Episode :{self.episode_number} R : {round(total_reward, 4)}\tTime : {episode_len}")
+                print(f"EVAL :{self.episode_number} R : {round(total_reward, 4)}\tTime : {episode_len}")
                 break
 
     def train(self):
         # training loop
         for index in range(self.hyperparameters['num_episodes_to_run']):
 
-            if index % 5 == 0:
+            if index % 50 == 0:
                 self.eval()
 
             attempt = 0

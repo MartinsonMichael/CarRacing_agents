@@ -1,23 +1,40 @@
+import os
 from typing import Dict
 
 import cv2
 import gym
 import numpy as np
 import collections
+import time
+
+from envs.common_envs_utils.visualizer import save_as_mp4
 
 
 class VisualizerWrapper(gym.Wrapper):
-    def __init__(self, env, folder):
+    def __init__(self, env):
         super().__init__(env)
-        self.folder = folder
         self.ims = []
 
     def observation(self, observation):
-        self.ims.append(self.render(mode='rgb_array'))
+        try:
+            im = self.render(mode='rgb_array')
+            print(np.array(im).shape)
+            self.ims.append(im)
+        except:
+            print('ha, classic...')
         return observation
+
+    def step(self, action):
+        state, reward, done, info = self.env.step(action)
+        if done and len(self.ims) > 0:
+            if not os.path.exists('save_animation_folder'):
+                os.makedirs('save_animation_folder')
+            save_as_mp4(self.ims, f'save_animation_folder/animation_{str(time.time())}')
+        return state, reward, done, info
 
     def reset(self):
         self.ims = []
+        return self.env.reset()
 
 
 class ObservationToFloat32(gym.ObservationWrapper):
