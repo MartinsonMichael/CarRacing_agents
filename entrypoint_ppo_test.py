@@ -17,9 +17,10 @@ def create_config(args):
     config = Config()
     config.environment = None
 
-    mode = get_state_type_from_settings_path(args.env_settings)
-    env_creator = get_EnvCreator_by_settings(args.env_settings)
-    config.environment_make_function = env_creator(args.env_settings)
+    config.environment_make_function = lambda: RewardDivider(
+        ObservationToFloat32(gym.make("LunarLanderContinuous-v2")),
+        ratio=100,
+    )
     config.name = args.name
     config.debug = args.debug
     log_tb_path = os.path.join('logs', config.agent_class, config.name)
@@ -30,20 +31,16 @@ def create_config(args):
     config.hyperparameters = {
         "agent_class": "PPO",
         "name": args.name,
-        "mode": mode,
         "seed": 12,
-        "env_settings_file_path": args.env_settings,
         "device": args.device,
-        "env_settings": json.load(open(args.env_settings)),
 
-        "num_envs": 4,
         "save_frequency_episode": 10,
 
-        "num_episodes_to_run": 15 * 10 ** 3,
-        "max_episode_len": 1500,
+        "num_episodes_to_run": 50 * 10 ** 3,
+        "max_episode_len": 500,
 
-        "update_every_n_steps": 4000,
-        "learning_updates_per_learning_session": 80,
+        "update_every_n_steps": 3000,
+        "learning_updates_per_learning_session": 60,
 
         "discount_rate": 0.99,
         "eps_clip": 0.2,  # clip parameter for PPO
@@ -58,18 +55,6 @@ def create_config(args):
 
 def main(args):
     config = create_config(args)
-
-    # if config.debug:
-    # test
-    config.environment_make_function = lambda: ObservationToFloat32(gym.make("BipedalWalker-v2"))
-    # config.environment_make_function = lambda: RewardDivider(
-    #     ObservationToFloat32(gym.make("BipedalWalker-v2")),
-    #     ratio=100,
-    # )
-    # config.environment_make_function = lambda: RewardDivider(
-    #     ObservationToFloat32(gym.make("LunarLanderContinuous-v2")),
-    #     ratio=100,
-    # )
 
     if not config.debug:
         wandb.init(
