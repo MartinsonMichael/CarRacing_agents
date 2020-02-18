@@ -239,15 +239,16 @@ class PPO:
                     break
                 except:
                     self.memory.clean_all_buffer()
+                    print()
                     print(f'env fail')
                     print(f'restart...   attempt {attempt}')
                     attempt += 1
-                    if attempt >= 10:
+                    if attempt >= 5:
                         print(f'khm, bad')
                         print('recreating env...')
                         self._config.hyperparameters['seed'] = self._config.hyperparameters['seed'] + 1
                         self.create_env(self._config)
-                    if attempt >= 20:
+                    if attempt >= 10:
                         print(f'actually, it useless :(')
                         print(f'end trainig...')
                         print(f'save...')
@@ -287,13 +288,13 @@ class PPO:
                 self.update()
                 self.memory.clean_all_buffer()
 
-            if info.get('was_reset', False):
-                self.env.reset()
-                break
 
             if done \
                     or info.get('need_reset', False) \
                     or episode_len > self.hyperparameters['max_episode_len']:
+                if info.get('need_reset', False):
+                    print('Was made panic env reset...')
+                    raise ValueError
                 print(f"Episode :{self.episode_number} R : {round(total_reward, 4)}\tTime : {episode_len}")
                 break
 
