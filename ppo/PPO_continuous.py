@@ -172,12 +172,12 @@ class PPO:
 
     def update(self):
         print('update')
-        states, actions, rewards, log_probs, dones, next_states = self.memory.get_all()
+        states, actions, rewards, log_probs, dones, _ = self.memory.get_all()
 
         buffer_reward = 0
         discount_reward = []
         for cur_reward, cur_done in zip(reversed(rewards), reversed(dones)):
-            if cur_done:
+            if cur_done[0] == 1:
                 buffer_reward = 0
             buffer_reward = float(cur_reward[0] + buffer_reward * self.hyperparameters['discount_rate'])
             discount_reward.append([buffer_reward])
@@ -191,24 +191,23 @@ class PPO:
             new_log_probs, new_entropy = self.estimate_action(states, actions)
 
             state_value = self.critic(states)
-            next_state_value = self.critic(next_states)
+            # next_state_value = self.critic(next_states)
             # advantage = (rewards + self.hyperparameters['discount_rate'] * next_state_value - state_value).detach()
             advantage = discount_reward - state_value.detach()
             policy_ratio = torch.exp(new_log_probs - log_probs.detach())
 
-            actor_loss = -1 * torch.min(
-                policy_ratio * advantage,
-                torch.clamp(policy_ratio, 1 - self.eps_clip, 1 + self.eps_clip) * advantage
-            ) - 0.01 * new_entropy
-            # actor_loss = actor_loss.mean()
-            self.mean_game_stats['actor_loss'] += actor_loss.detach().cpu().numpy().mean()
+            term_1 = policy_ratio * advantage
+            term_2 = torch.clamp(policy_ratio, 1 - self.eps_clip, 1 + self.eps_clip) * advantage
+            # actor_loss = -1 * torch.min(term_1, term_2) - 0.01 * new_entropy
+            # self.mean_game_stats['actor_loss'] += actor_loss.detach().cpu().numpy().mean()
 
-            critic_loss = torch.pow(state_value - discount_reward, 2)
-            self.mean_game_stats['critic_loss'] += critic_loss.detach().cpu().numpy().mean()
+            # critic_loss = torch.pow(state_value - discount_reward, 2)
+            # self.mean_game_stats['critic_loss'] += critic_loss.detach().cpu().numpy().mean()
 
-            loss = (actor_loss + 0.5 * critic_loss).mean()
+            loss = -1 * torch.min(term_1, term_2) - 0.01 * new_entropy + 0.5 * self.mse(discount_reward, state_value)
+            # loss = (actor_loss + 0.5 * critic_loss).mean()
             self.optimizer.zero_grad()
-            loss.backward()
+            loss.mean().backward()
             # torch.nn.utils.clip_grad_norm_(
             #     self.actor.parameters(),
             #     self.hyperparameters['gradient_clipping_norm'],
