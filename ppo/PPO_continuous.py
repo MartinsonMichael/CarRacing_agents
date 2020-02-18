@@ -31,22 +31,16 @@ class PPO:
         # self.env = SubprocVecEnv_tf2([
         #     config.environment_make_function for _ in range(config.hyperparameters['num_envs'])
         # ])
-        self.env = config.environment_make_function()
-
-        if config.hyperparameters.get('seed', None) is not None:
-            print("Random Seed: {}".format(config.hyperparameters['seed']))
-            torch.manual_seed(config.hyperparameters['seed'])
-            self.env.seed(config.hyperparameters['seed'])
-            self.test_env.seed(config.hyperparameters['seed'])
-            np.random.seed(config.hyperparameters['seed'])
+        self._config = config
+        self.create_env(config)
 
         self.memory = Torch_Separated_Replay_Buffer(
             buffer_size=10 ** 4,  # useless, it will be flushed frequently
             batch_size=10 ** 4,  # useless, it will be flushed frequently
             seed=0,
             device=self.device,
-            state_extractor=get_state_combiner_by_settings_file(self.hyperparameters['env_settings_file_path']),
-            state_producer=from_image_vector_to_combined_state,
+            state_extractor=lambda x: (None, x),
+            state_producer=lambda x, y: y,
             sample_order=['state', 'action', 'reward', 'log_prob', 'done', 'next_state'],
         )
 
@@ -97,6 +91,16 @@ class PPO:
         self.mean_game_stats = None
         self.flush_stats()
         self.tf_writer = config.tf_writer
+
+    def create_env(self, config):
+        self.env = config.environment_make_function()
+
+        if config.hyperparameters.get('seed', None) is not None:
+            print("Random Seed: {}".format(config.hyperparameters['seed']))
+            torch.manual_seed(config.hyperparameters['seed'])
+            self.env.seed(config.hyperparameters['seed'])
+            self.test_env.seed(config.hyperparameters['seed'])
+            np.random.seed(config.hyperparameters['seed'])
 
     def update_old_policy(self):
         self.actor_old.load_state_dict(self.actor.state_dict())
@@ -224,14 +228,32 @@ class PPO:
         # training loop
         for _ in range(self.hyperparameters['num_episodes_to_run']):
 
-            try:
-                # try На случай подения среды, у меня стандартный bipedal walker падает переодически :(
-                self.flush_stats()
-                self.run_one_episode()
+            while True:
+                attempt = 0
+                try:
+                    # try На случай подения среды, у меня стандартный bipedal walker падает переодически :(
+                    self.flush_stats()
+                    self.run_one_episode()
 
-                self.log_it()
-            except:
-                self.memory.clean_all_buffer()
+                    self.log_it()
+                    break
+                except:
+                    self.memory.clean_all_buffer()
+                    print(f'env fail')
+                    print(f'restart...   attempt {attempt}')
+                    attempt += 1
+                    if attempt >= 10:
+                        print(f'khm, bad')
+                        print('recreating env...')
+                        self.create_env(self._config)
+                    if attempt >= 20:
+                        print(f'actually, it useless :(')
+                        print(f'end trainig...')
+                        print(f'save...')
+                        self.save()
+                        print(f'save done.')
+                        print('exiting...')
+                        exit(1)
 
             if self.episode_number % self.hyperparameters['save_frequency_episode'] == 0:
                 self.save()
