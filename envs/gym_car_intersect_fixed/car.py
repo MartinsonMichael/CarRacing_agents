@@ -377,7 +377,7 @@ class DummyCar:
 
     def update_finish(self):
         self._state_data['is_finish'] = False
-        if self._is_car_closely_to(self.track['line'][-1], 0.5):
+        if self._is_car_closely_to(self.track['line'][-1], 1.0):
             self._state_data['is_finish'] = True
 
     def _update_track_point(self, hard=False):
@@ -385,7 +385,7 @@ class DummyCar:
         Move car goal point in accordance with car track progress.
         """
         for track_index in range(self._track_point, len(self.track['line']), 1):
-            if self._is_car_closely_to(self.track['line'][track_index], 0.75):
+            if self._is_car_closely_to(self.track['line'][track_index], 1.25):
                 continue
             if hard:
                 self._old_track_point = self._track_point

@@ -211,14 +211,14 @@ class PPO:
             # loss = (actor_loss + 0.5 * critic_loss).mean()
             self.optimizer.zero_grad()
             loss.mean().backward()
-            # torch.nn.utils.clip_grad_norm_(
-            #     self.actor.parameters(),
-            #     self.hyperparameters['gradient_clipping_norm'],
-            # )
-            # torch.nn.utils.clip_grad_norm_(
-            #     self.critic.parameters(),
-            #     self.hyperparameters['gradient_clipping_norm'],
-            # )
+            torch.nn.utils.clip_grad_norm_(
+                self.actor.parameters(),
+                self.hyperparameters['gradient_clipping_norm'],
+            )
+            torch.nn.utils.clip_grad_norm_(
+                self.critic.parameters(),
+                self.hyperparameters['gradient_clipping_norm'],
+            )
             self.optimizer.step()
 
         # update old policy

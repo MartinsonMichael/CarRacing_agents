@@ -52,7 +52,7 @@ def main():
     parser.add_argument(
         "--env-settings",
         type=str,
-        default='envs/gym_car_intersect_fixed/settings_sets/env_settings__basic_small_rotation.json',
+        default='envs/gym_car_intersect_fixed/settings_sets/env_settings__basic_straight_line.json',
         help="debug mode"
     )
 
