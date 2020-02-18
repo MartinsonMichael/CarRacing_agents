@@ -17,10 +17,8 @@ def create_config(args):
     config = Config()
     config.environment = None
 
-    config.environment_make_function = lambda: RewardDivider(
-        ObservationToFloat32(gym.make("LunarLanderContinuous-v2")),
-        ratio=100,
-    )
+    config.environment_make_function = lambda: ObservationToFloat32(gym.make("LunarLanderContinuous-v2"))
+    
     config.name = args.name
     config.debug = args.debug
     log_tb_path = os.path.join('logs', config.agent_class, config.name)
