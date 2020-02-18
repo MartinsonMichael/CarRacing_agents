@@ -16,7 +16,7 @@ RUN apt-get update \
 RUN pip3 install --upgrade pip
 COPY pip.packages /tmp/
 RUN pip3 install --trusted-host pypi.python.org -r /tmp/pip.packages
-
+RUN pip3 install wandb
 RUN apt-get install ffmpeg
 
 # PUT ALL CHANGES UNDER THIS LINE
