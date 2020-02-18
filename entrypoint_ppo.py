@@ -46,11 +46,11 @@ def create_config(args):
         "learning_updates_per_learning_session": 60,
 
         "discount_rate": 0.99,
-        "eps_clip": 0.1,  # clip parameter for PPO
+        "eps_clip": 0.05,
 
         # parameters for Adam optimizer
         "lr": 0.001,
-        "gradient_clipping_norm": 0.1,
+        "gradient_clipping_norm": 0.05,
         "betas": (0.9, 0.999),
     }
     return config
