@@ -228,8 +228,8 @@ class PPO:
         # training loop
         for _ in range(self.hyperparameters['num_episodes_to_run']):
 
+            attempt = 0
             while True:
-                attempt = 0
                 try:
                     # try На случай подения среды, у меня стандартный bipedal walker падает переодически :(
                     self.flush_stats()
