@@ -63,7 +63,7 @@ def main(args):
     # if config.debug:
     # test
     config.environment_make_function = lambda: ObservationToFloat32(gym.make("LunarLanderContinuous-v2"))
-    config.test_environment_make_function = lambda: gym.Monitor(
+    config.test_environment_make_function = lambda: gym.wrappers.Monitor(
         config.environment_make_function(),
         directory='save_animation_folder',
     )
