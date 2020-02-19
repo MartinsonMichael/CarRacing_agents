@@ -1,13 +1,20 @@
+import argparse
+import os
+
 import torch
 import torch.nn as nn
+import wandb
 from torch.distributions import MultivariateNormal
 import gym
 import numpy as np
+import tensorflow as tf
 
 from common_agents_utils import Policy, ValueNet, Torch_Separated_Replay_Buffer
 
 
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+from envs.common_envs_utils.extended_env_wrappers import ObservationToFloat32
+
 device = 'cuda:2'
 
 
@@ -140,16 +147,16 @@ class PPO:
         # Copy new weights into old policy:
         self.policy_old.load_state_dict(self.policy.state_dict())
         
-def main():
+def main(args):
     ############## Hyperparameters ##############
-    env_name = "BipedalWalker-v2"
+    # env_name = "BipedalWalker-v2"
     render = False
     solved_reward = 300         # stop training if avg_reward > solved_reward
     log_interval = 20           # print avg reward in the interval
     max_episodes = 10000        # max training episodes
     max_timesteps = 1500        # max timesteps in one episode
     
-    update_timestep = 4000      # update policy every n timesteps
+    update_timestep = 2000      # update policy every n timesteps
     action_std = 0.5            # constant std for action distribution (Multivariate Normal)
     K_epochs = 80               # update policy for K epochs
     eps_clip = 0.2              # clip parameter for PPO
@@ -160,10 +167,21 @@ def main():
     
     random_seed = None
     #############################################
+
+    wandb.init(
+        project='PPO',
+        name=f'origin_{args.name}',
+    )
+
+    log_tb_path = os.path.join('logs', 'PPO_Origin', args.name)
+    if not os.path.exists(log_tb_path):
+        os.makedirs(log_tb_path)
+    tf_writer = tf.summary.create_file_writer(log_tb_path)
     
     # creating environment
-    env = gym.make(env_name)
-    state_dim = env.observation_space.shape[0]
+    # env = gym.make(env_name)
+    env = ObservationToFloat32(gym.make("LunarLanderContinuous-v2"))
+    # state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
     
     if random_seed:
@@ -174,7 +192,7 @@ def main():
     
     memory = Memory()
     ppo = PPO(env.observation_space, action_dim, action_std, lr, betas, gamma, K_epochs, eps_clip)
-    print(lr,betas)
+    print(lr, betas)
     
     # logging variables
     running_reward = 0
@@ -223,9 +241,30 @@ def main():
             running_reward = int((running_reward/log_interval))
             
             print('Episode {} \t Avg length: {} \t Avg reward: {}'.format(i_episode, avg_length, running_reward))
+            log_it({'reward': running_reward}, tf_writer, i_episode)
             running_reward = 0
             avg_length = 0
 
 
+def log_it(current_game_stats, tf_writer, episode_number):
+
+    with tf_writer.as_default():
+        for name, value in current_game_stats.items():
+            tf.summary.scalar(name=name, data=value, step=episode_number)
+
+    # WanDB logging:
+    wandb.log(row=current_game_stats, step=episode_number)
+
+
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--name', type=str, help='name for experiment')
+    parser.add_argument('--device', type=str, default='cpu', help="'cpu' - [default] or 'cuda:{number}'")
+    args = parser.parse_args()
+
+    device = args.device
+
+    if args.name is None:
+        raise ValueError('set name')
+
+    main(args)
