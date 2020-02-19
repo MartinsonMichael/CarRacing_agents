@@ -3,7 +3,7 @@ import numpy as np
 from threading import Event, Thread
 import gym
 import time
-from xvfbwrapper import Xvfb
+# from xvfbwrapper import Xvfb
 
 from envs.common_envs_utils.visualizer import save_as_mp4
 
