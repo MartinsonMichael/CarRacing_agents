@@ -20,9 +20,7 @@ def create_config(args):
     config.environment = None
 
     config.environment_make_function = lambda: ObservationToFloat32(gym.make("LunarLanderContinuous-v2"))
-    config.test_environment_make_function = lambda: VisualWrapper(
-        config.environment_make_function()
-    )
+    config.test_environment_make_function = config.environment_make_function
 
     config.name = args.name
     config.debug = args.debug
