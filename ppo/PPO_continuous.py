@@ -93,6 +93,9 @@ class PPO:
         self.flush_stats()
         self.tf_writer = config.tf_writer
 
+        self.accumulated_reward_mean = None
+        self.accumulated_reward_std = None
+
     def create_env(self, config):
         self.env = config.environment_make_function()
 
@@ -191,7 +194,11 @@ class PPO:
             np.array(discount_reward[::-1], dtype=np.float32)
         ).to(self.device).detach()
 
-        discount_reward = (discount_reward - discount_reward.mean()) / (discount_reward.std() + 1e-5)
+        if self.accumulated_reward_mean is None:
+            self.accumulated_reward_mean = discount_reward.mean()
+            self.accumulated_reward_std = discount_reward.std() + 1e-5
+
+        discount_reward = (discount_reward - self.accumulated_reward_mean) / self.accumulated_reward_std
 
         for _ in range(self.hyperparameters['learning_updates_per_learning_session']):
             new_log_probs, new_entropy = self.estimate_action(states, actions)

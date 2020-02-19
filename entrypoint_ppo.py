@@ -47,11 +47,11 @@ def create_config(args):
         "learning_updates_per_learning_session": 60,
 
         "discount_rate": 0.99,
-        "eps_clip": 0.05,
+        "eps_clip": 0.2,
 
         # parameters for Adam optimizer
         "lr": 0.001,
-        "gradient_clipping_norm": 0.2,
+        "gradient_clipping_norm": 0.5,
         "betas": (0.9, 0.999),
     }
     return config
