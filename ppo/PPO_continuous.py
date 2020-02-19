@@ -331,7 +331,7 @@ class PPO:
                 if info.get('need_reset', False):
                     print('Was made panic env reset...')
                     raise ValueError
-                print(f"Episode :{self.episode_number} R : {round(total_reward, 4)}\tTime : {episode_len}")
+                # print(f"Episode :{self.episode_number} R : {round(total_reward, 4)}\tTime : {episode_len}")
                 break
 
     def log_it(self):
