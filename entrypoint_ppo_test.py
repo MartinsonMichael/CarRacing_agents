@@ -19,7 +19,10 @@ def create_config(args):
     config = Config()
     config.environment = None
 
-    config.environment_make_function = lambda: ObservationToFloat32(gym.make("LunarLanderContinuous-v2"))
+    config.environment_make_function = lambda: RewardDivider(
+        ObservationToFloat32(gym.make("LunarLanderContinuous-v2")),
+        ratio=100,
+    )
     config.test_environment_make_function = config.environment_make_function
 
     config.name = args.name
