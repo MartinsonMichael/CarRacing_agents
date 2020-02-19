@@ -197,6 +197,7 @@ class PPO:
         if self.accumulated_reward_mean is None:
             self.accumulated_reward_mean = discount_reward.mean()
             self.accumulated_reward_std = discount_reward.std() + 1e-5
+            print(f'set reward mean / std : {self.accumulated_reward_mean} / {self.accumulated_reward_std}')
 
         discount_reward = (discount_reward - self.accumulated_reward_mean) / self.accumulated_reward_std
 
@@ -265,8 +266,9 @@ class PPO:
         # training loop
         for index in range(self.hyperparameters['num_episodes_to_run']):
 
-            # if index % 10 == 0:
-            #     self.eval()
+            if self.hyperparameters.get('use_eval', False):
+                if index % 10 == 0:
+                    self.eval()
 
             attempt = 0
             while True:
@@ -279,22 +281,16 @@ class PPO:
                     break
                 except:
                     self.memory.clean_all_buffer()
-                    print()
-                    print(f'env fail')
-                    print(f'restart...   attempt {attempt}')
+                    print(f'\nenv fail\nrestart...   attempt {attempt}')
                     attempt += 1
                     if attempt >= 5:
-                        print(f'khm, bad')
-                        print('recreating env...')
+                        print(f'khm, bad\nrecreating env...')
                         self._config.hyperparameters['seed'] = self._config.hyperparameters['seed'] + 1
                         self.create_env(self._config)
                     if attempt >= 10:
-                        print(f'actually, it useless :(')
-                        print(f'end trainig...')
-                        print(f'save...')
+                        print(f'actually, it useless :(\nend training...\nsave...')
                         self.save()
-                        print(f'save done.')
-                        print('exiting...')
+                        print(f'save done.\nexiting...')
                         exit(1)
 
             if self.episode_number % self.hyperparameters['save_frequency_episode'] == 0:

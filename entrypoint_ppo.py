@@ -58,6 +58,7 @@ def create_config(args):
 
 
 def main(args):
+    raise ValueError('use test, please')
     config = create_config(args)
 
     # if config.debug:

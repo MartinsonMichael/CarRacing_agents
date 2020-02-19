@@ -7,6 +7,7 @@ import gym
 import wandb
 
 from common_agents_utils import Config
+from common_agents_utils.VisualWrapper import VisualWrapper
 from envs import get_state_type_from_settings_path, get_EnvCreator_by_settings
 from envs.common_envs_utils.extended_env_wrappers import ObservationToFloat32, RewardDivider
 from ppo.PPO_ICM_continuous import PPO_ICM
@@ -19,6 +20,9 @@ def create_config(args):
     config.environment = None
 
     config.environment_make_function = lambda: ObservationToFloat32(gym.make("LunarLanderContinuous-v2"))
+    config.test_environment_make_function = lambda: VisualWrapper(
+        config.environment_make_function()
+    )
 
     config.name = args.name
     config.debug = args.debug
@@ -34,6 +38,7 @@ def create_config(args):
         "device": args.device,
 
         "save_frequency_episode": 10,
+        "use_eval": args.use_eval,
 
         "num_episodes_to_run": 50 * 10 ** 3,
         "max_episode_len": 500,
@@ -45,7 +50,7 @@ def create_config(args):
         "eps_clip": 0.2,  # clip parameter for PPO
 
         # parameters for Adam optimizer
-        "lr": 0.0001,
+        "lr": 0.0003,
         "gradient_clipping_norm": 1.0,
         "betas": (0.9, 0.999),
     }
@@ -55,6 +60,9 @@ def create_config(args):
 def main(args):
     config = create_config(args)
 
+    if config.debug:
+        print('use DEBUG MODE')
+
     if not config.debug:
         wandb.init(
             notes=args.note,
@@ -62,7 +70,12 @@ def main(args):
             name=config.name,
             config=config.hyperparameters,
         )
-    ppo_agent = PPO_ICM(config)
+
+    if args.icm:
+        print('USE ICM')
+        ppo_agent = PPO_ICM(config)
+    else:
+        ppo_agent = PPO(config)
 
     if args.load != 'none':
         print(f'load from {args.load}')
@@ -80,25 +93,18 @@ if __name__ == '__main__':
         action='store_true',
         help='just add this flag and outputs becames much more interesting'
     )
+    parser.add_argument('--icm', action='store_true', help='use new mode')
+    parser.add_argument('--use-eval', action='store_true', help='use eval episode while training')
     parser.add_argument('--name', type=str, help='name for experiment')
     parser.add_argument('--note', type=str, help='provude note for wandb')
-    parser.add_argument(
-        '--env-settings',
-        type=str,
-        default='envs/gym_car_intersect_fixed/settings_sets/env_settings__basic_straight_line.json',
-        help='path to CarRacing env settings',
-    )
     parser.add_argument('--device', type=str, default='cpu', help="'cpu' - [default] or 'cuda:{number}'")
     parser.add_argument('--load', type=str, default='none', help="path to load model")
     args = parser.parse_args()
 
-    if not args.debug:
-        if args.name is None:
-            raise ValueError('set name')
-
-        if args.note is None:
-            raise ValueError('set note, it is used for wandb')
-    else:
+    if args.name is None:
         args.name = 'test'
-        args.note = 'just test'
+
+    if args.note is None:
+        args.note = 'no note'
+
     main(args)
