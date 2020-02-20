@@ -35,9 +35,9 @@ def create_config(args):
         "seed": 12,
         "device": args.device,
 
-        "save_frequency_episode": 10,
+        "save_frequency_episode": 500,
         "use_eval": args.use_eval,
-        "console_log_episode": 20,
+        "log_interval": 20,
 
         "num_episodes_to_run": 50 * 10 ** 3,
         "max_episode_len": 500,

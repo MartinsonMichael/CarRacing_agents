@@ -9,19 +9,16 @@ import tensorflow as tf
 import torch
 import torch.nn as nn
 import wandb
-from torch.distributions import MultivariateNormal, Normal
 import numpy as np
 
-from common_agents_utils import Policy, ValueNet, Config, SubprocVecEnv_tf2, Torch_Separated_Replay_Buffer, \
-    StateEncoder, EncodedForwardDynamicModel, InverseDynamicModel, ActorCritic
-from common_agents_utils.torch_gym_modules import make_it_batched_torch_tensor
-from envs.common_envs_utils.env_state_utils import get_state_combiner_by_settings_file, \
-    from_image_vector_to_combined_state
+from common_agents_utils import Config, Torch_Separated_Replay_Buffer, ActorCritic
+from common_agents_utils.logger import Logger
 
 
 class PPO:
     def __init__(self, config: Config):
         self.name = config.name
+        self.stat_logger: Logger = Logger(config, log_interval=config.hyperparameters.get('log_interval', 20))
         self.debug = config.debug
         self.hyperparameters = config.hyperparameters
         self.eps_clip = config.hyperparameters['eps_clip']
@@ -29,9 +26,6 @@ class PPO:
 
         self.test_env = config.test_environment_make_function()
         self.action_size = self.test_env.action_space.shape[0]
-        # self.env = SubprocVecEnv_tf2([
-        #     config.environment_make_function for _ in range(config.hyperparameters['num_envs'])
-        # ])
         self._config = config
         self.create_env(config)
 
@@ -79,7 +73,6 @@ class PPO:
         self.episode_number = 0
         self.global_step_number = 0
         self.current_game_stats = None
-        self.mean_game_stats = None
         self.flush_stats()
         self.tf_writer = config.tf_writer
 
@@ -228,7 +221,7 @@ class PPO:
             self.flush_stats()
             self.run_one_episode()
 
-            self.log_it()
+            self.stat_logger.log_it(self.current_game_stats)
                 #     break
                 # except:
                 #     self.memory.clean_all_buffer()
@@ -282,21 +275,3 @@ class PPO:
                 if self.episode_number % self.hyperparameters.get('console_log_episode', 20) == 0:
                     print(f"Episode :{self.episode_number} R : {round(total_reward, 4)}\tTime : {episode_len}")
                 break
-
-    def log_it(self):
-
-        stats = self.current_game_stats
-        if self.current_game_stats.get('env_steps', 0) != 0:
-            stats.update({
-                name: value / self.current_game_stats['env_steps']
-                for name, value in self.mean_game_stats.items()
-            })
-
-        if self.tf_writer is not None:
-            with self.tf_writer.as_default():
-                for name, value in stats.items():
-                    tf.summary.scalar(name=name, data=value, step=self.episode_number)
-
-        # WanDB logging:
-        if not self.debug:
-            wandb.log(row=stats, step=self.episode_number)
