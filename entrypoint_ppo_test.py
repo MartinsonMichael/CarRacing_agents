@@ -19,10 +19,7 @@ def create_config(args):
     config = Config()
     config.environment = None
 
-    config.environment_make_function = lambda: RewardDivider(
-        ObservationToFloat32(gym.make("LunarLanderContinuous-v2")),
-        ratio=100,
-    )
+    config.environment_make_function = lambda: ObservationToFloat32(gym.make("LunarLanderContinuous-v2"))
     config.test_environment_make_function = config.environment_make_function
 
     config.name = args.name
@@ -40,12 +37,13 @@ def create_config(args):
 
         "save_frequency_episode": 10,
         "use_eval": args.use_eval,
+        "console_log_episode": 20,
 
         "num_episodes_to_run": 50 * 10 ** 3,
         "max_episode_len": 500,
 
-        "update_every_n_steps": 3000,
-        "learning_updates_per_learning_session": 60,
+        "update_every_n_steps": 5000,
+        "learning_updates_per_learning_session": 80,
 
         "discount_rate": 0.99,
         "eps_clip": 0.2,  # clip parameter for PPO

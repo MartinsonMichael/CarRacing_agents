@@ -9,29 +9,27 @@ import gym
 import numpy as np
 import tensorflow as tf
 
-from common_agents_utils import Policy, ValueNet, Torch_Separated_Replay_Buffer
+from common_agents_utils import Policy, ValueNet, Torch_Separated_Replay_Buffer, Torch_Arbitrary_Replay_Buffer
 
-
-# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 from envs.common_envs_utils.extended_env_wrappers import ObservationToFloat32
 
 device = 'cuda:2'
 
 
-class Memory:
-    def __init__(self):
-        self.actions = []
-        self.states = []
-        self.logprobs = []
-        self.rewards = []
-        self.is_terminals = []
-    
-    def clear_memory(self):
-        del self.actions[:]
-        del self.states[:]
-        del self.logprobs[:]
-        del self.rewards[:]
-        del self.is_terminals[:]
+# class Memory:
+#     def __init__(self):
+#         self.actions = []
+#         self.states = []
+#         self.logprobs = []
+#         self.rewards = []
+#         self.is_terminals = []
+#
+#     def clear_memory(self):
+#         del self.actions[:]
+#         del self.states[:]
+#         del self.logprobs[:]
+#         del self.rewards[:]
+#         del self.is_terminals[:]
 
 
 class ActorCritic(nn.Module):
@@ -57,7 +55,7 @@ class ActorCritic(nn.Module):
     def forward(self):
         raise NotImplementedError
     
-    def act(self, state, memory):
+    def act(self, state):
         action_mean = self.actor(state)
         cov_mat = torch.diag(self.action_var).to(device)
         
@@ -65,11 +63,11 @@ class ActorCritic(nn.Module):
         action = dist.sample()
         action_logprob = dist.log_prob(action)
         
-        memory.states.append(state)
-        memory.actions.append(action)
-        memory.logprobs.append(action_logprob)
+        # memory.states.append(state)
+        # memory.actions.append(action)
+        # memory.logprobs.append(action_logprob)
         
-        return action.detach()
+        return action.detach().cpu().data.numpy().flatten(), action_logprob.detach().cpu().data.numpy().flatten()
     
     def evaluate(self, state, action):   
         action_mean = self.actor(state)
@@ -101,16 +99,18 @@ class PPO:
         self.policy_old.load_state_dict(self.policy.state_dict())
         
         self.MseLoss = nn.MSELoss()
+
     
-    def select_action(self, state, memory):
+    def select_action(self, state):
         state = torch.FloatTensor(state.reshape(1, -1)).to(device)
-        return self.policy_old.act(state, memory).cpu().data.numpy().flatten()
+        return self.policy_old.act(state)
     
-    def update(self, memory):
+    def update(self, memory: Torch_Arbitrary_Replay_Buffer):
         # Monte Carlo estimate of rewards:
+        old_states, old_actions, old_rewards, old_done, old_logprobs = memory.sample(get_all=True)
         rewards = []
         discounted_reward = 0
-        for reward, is_terminal in zip(reversed(memory.rewards), reversed(memory.is_terminals)):
+        for reward, is_terminal in zip(reversed(old_rewards), reversed(old_done)):
             if is_terminal:
                 discounted_reward = 0
             discounted_reward = reward + (self.gamma * discounted_reward)
@@ -119,13 +119,7 @@ class PPO:
         # Normalizing the rewards:
         rewards = torch.tensor(rewards).to(device)
         rewards = (rewards - rewards.mean()) / (rewards.std() + 1e-5)
-        
-        # convert list to tensor
-        old_states = torch.squeeze(torch.stack(memory.states).to(device), 1).detach()
-        old_actions = torch.squeeze(torch.stack(memory.actions).to(device), 1).detach()
-        old_logprobs = torch.squeeze(torch.stack(memory.logprobs), 1).to(device).detach()
-        
-        # Optimize policy for K epochs:
+
         for _ in range(self.K_epochs):
             # Evaluating old actions and values :
             logprobs, state_values, dist_entropy = self.policy.evaluate(old_states, old_actions)
@@ -146,7 +140,9 @@ class PPO:
             
         # Copy new weights into old policy:
         self.policy_old.load_state_dict(self.policy.state_dict())
-        
+        memory.remove_all()
+
+
 def main(args):
     ############## Hyperparameters ##############
     # env_name = "BipedalWalker-v2"
@@ -168,6 +164,12 @@ def main(args):
     random_seed = None
     #############################################
 
+    memory = Torch_Arbitrary_Replay_Buffer(
+        buffer_size=10 ** 4,
+        device=device,
+        sample_order=['state', 'action', 'reward', 'done', 'log_prob'],
+    )
+
     wandb.init(
         project='PPO',
         name=f'origin_{args.name}',
@@ -184,13 +186,12 @@ def main(args):
     # state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
     
-    if random_seed:
+    if isinstance(random_seed, int):
         print("Random Seed: {}".format(random_seed))
         torch.manual_seed(random_seed)
         env.seed(random_seed)
         np.random.seed(random_seed)
-    
-    memory = Memory()
+
     ppo = PPO(env.observation_space, action_dim, action_std, lr, betas, gamma, K_epochs, eps_clip)
     print(lr, betas)
     
@@ -205,17 +206,25 @@ def main(args):
         for t in range(max_timesteps):
             time_step +=1
             # Running policy_old:
-            action = ppo.select_action(state, memory)
-            state, reward, done, _ = env.step(action)
+            action, log_prob = ppo.select_action(state)
+            new_state, reward, done, _ = env.step(action)
             
             # Saving reward and is_terminals:
-            memory.rewards.append(reward)
-            memory.is_terminals.append(done)
+            # memory.rewards.append(reward)
+            # memory.is_terminals.append(done)
+            memory.add_experience(
+                is_single=True,
+                state=state,
+                action=action,
+                reward=reward,
+                done=done,
+                log_prob=log_prob,
+            )
+            state = new_state
             
             # update if its time
             if time_step % update_timestep == 0:
                 ppo.update(memory)
-                memory.clear_memory()
                 time_step = 0
             running_reward += reward
             if render:
@@ -224,16 +233,6 @@ def main(args):
                 break
         
         avg_length += t
-        
-        # stop training if avg_reward > solved_reward
-        if running_reward > (log_interval*solved_reward):
-            print("########## Solved! ##########")
-            torch.save(ppo.policy.state_dict(), './PPO_continuous_solved_{}.pth'.format(env_name))
-            break
-        
-        # save every 500 episodes
-        if i_episode % 500 == 0:
-            torch.save(ppo.policy.state_dict(), './PPO_continuous_{}.pth'.format(env_name))
             
         # logging
         if i_episode % log_interval == 0:

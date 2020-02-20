@@ -6,6 +6,27 @@ import torch.nn as nn
 import torch.nn.functional as F
 from gym import spaces
 
+npa = np.ndarray
+TT = torch.Tensor
+npTT = Union[npa, TT]
+
+
+def process_kwargs(tensor: TT, **kwargs) -> npTT:
+    POSSIBLE_KEYS = ['to_numpy', 'remove_batch']
+    if len(set(kwargs.keys()) - set(POSSIBLE_KEYS)) != 0:
+        raise ValueError(
+            f'process_kwargs for kwargs {kwargs} fails\n'
+            f'function expect only keys : {POSSIBLE_KEYS}'
+        )
+    if kwargs.get('remove_batch', False):
+        if tensor.shape[0] != 1:
+            raise ValueError(f'can remove batch only from tensor with shape (1, ...), you have {tensor.shape}')
+        tensor = tensor[0]
+    if kwargs.get('to_numpy', False):
+        tensor = tensor.detach().cpu().numpy()
+
+    return tensor
+
 
 def get_activated_ratio(x: Union[torch.Tensor, torch.FloatTensor]) -> float:
     if torch.prod(torch.tensor(x.size())).cpu().numpy() == 0:
@@ -13,7 +34,7 @@ def get_activated_ratio(x: Union[torch.Tensor, torch.FloatTensor]) -> float:
     return (x.detach() > 0).cpu().numpy().sum() / torch.prod(torch.tensor(x.size())).cpu().numpy()
 
 
-def _make_it_batched_torch_tensor(x, device) -> Union[torch.FloatTensor, torch.Tensor]:
+def make_it_batched_torch_tensor(x, device) -> Union[torch.FloatTensor, torch.Tensor]:
     if isinstance(x, (torch.FloatTensor, torch.Tensor, torch.cuda.FloatTensor)):
         if len(x.shape) == 2 or len(x.shape) == 4:
             return x.to(device)
@@ -151,7 +172,7 @@ class StateLayer(nn.Module):
             state: Union[Dict[str, torch.FloatTensor], torch.FloatTensor],
             return_stats: bool = False,
     ):
-        state = _make_it_batched_torch_tensor(state, self._device)
+        state = make_it_batched_torch_tensor(state, self._device)
 
         if isinstance(state, dict):
             raise ValueError('add dict to StateLayer!')
@@ -182,7 +203,7 @@ class ActionLayer(nn.Module):
         return self._state_layer_out_size
 
     def forward(self, action, return_stat: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, dict]]:
-        x = self._dense(_make_it_batched_torch_tensor(action, self.device))
+        x = self._dense(make_it_batched_torch_tensor(action, self.device))
         if return_stat:
             return x, {}
         return x

@@ -1,4 +1,4 @@
-from typing import Dict, Any, Union, Tuple
+from typing import Dict, Any, Union, Tuple, Type, Optional
 
 import numpy as np
 import torch
@@ -7,7 +7,12 @@ import torch.nn.functional as F
 from gym import spaces
 from torch.distributions import Normal
 
-from common_agents_utils.torch_gym_modules import StateLayer, get_activated_ratio
+from common_agents_utils.torch_gym_modules import StateLayer, get_activated_ratio, make_it_batched_torch_tensor, \
+    process_kwargs
+
+npa = np.ndarray
+TT = torch.Tensor
+npTT = Union[npa, TT]
 
 
 class QNet(nn.Module):
@@ -122,7 +127,7 @@ class Policy(nn.Module):
         self._device = device
         self._action_size = action_size
 
-        self._state_layer = StateLayer(state_description, hidden_size, device)
+        self._state_layer: StateLayer = StateLayer(state_description, hidden_size, device)
 
         self._dense2 = nn.Linear(in_features=self._state_layer.get_out_shape_for_in(), out_features=hidden_size).to(self._device)
         torch.nn.init.xavier_uniform_(self._dense2.weight)
@@ -153,3 +158,75 @@ class Policy(nn.Module):
             return x, stats
 
 
+class ActorCritic(nn.Module):
+    def __init__(
+            self, state_description: Union[spaces.Dict, spaces.Box], action_size: int, hidden_size: int, device: str,
+            double_action_size_on_output=True, action_std=Optional[float],
+    ):
+        assert isinstance(state_description, (spaces.Dict, spaces.Box)), \
+            "state_description must be spaces.Dict or spaces.Box"
+        super(ActorCritic, self).__init__()
+        self.double_action_size_on_output = double_action_size_on_output
+        self.action_size = action_size
+        self.action_std = action_std
+        self.device = device
+
+        if self.action_std is None and not self.double_action_size_on_output:
+            raise ValueError("provide one of 'action_std', 'double_action_size_on_output'")
+
+        self.actor = Policy(
+            state_description=state_description,
+            action_size=self.action_size,
+            device=self.device,
+            hidden_size=hidden_size,
+            double_action_size_on_output=self.double_action_size_on_output,
+        )
+        self.critic = ValueNet(
+            state_description=state_description,
+            action_size=self.action_size,
+            device=self.device,
+            hidden_size=hidden_size,
+        )
+
+    def value(self, state) -> TT:
+        return self.critic(state)
+
+    def _get_mean_std(self, state) -> Tuple[TT, TT]:
+        action_out = self.actor(state)
+        if self.double_action_size_on_output:
+            return action_out[:, self.action_size:], action_out[:, :self.action_size]
+        else:
+            return action_out, self.action_std
+
+    def sample_action(self, state, **kwargs) -> Tuple[npTT, npTT, npTT]:
+        """
+        Sample action from gauss distribution
+        Return: action, log_prob, entropy
+        """
+        distribution = Normal(*self._get_mean_std(state))
+        action = distribution.sample()
+        return \
+            process_kwargs(action.detach(), **kwargs), \
+            process_kwargs(distribution.log_prob(action), **kwargs), \
+            process_kwargs(distribution.entropy(), **kwargs),
+
+    def estimate_action(self, state, action) -> Tuple[TT, TT]:
+        """
+        Create distribution via state, and compute given action log_prob.
+        Return: action, log_prob, entropy
+        """
+        _action = make_it_batched_torch_tensor(action, self.device)
+        distribution = Normal(*self._get_mean_std(state))
+        return distribution.log_prob(_action), distribution.entropy()
+
+    def forward(self, **kwargs: Any):
+        raise NotImplemented
+
+    # def forward(self, state)\
+    #         -> Union[Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
+    #     value = self.critic(state)
+    #     action_out = self.actor(state)
+    #     if self.double_action_size_on_output:
+    #         return value, action_out[:, self.action_size:], action_out[:, :self.action_size]
+    #     else:
+    #         return value, action_out

@@ -14,7 +14,7 @@ import numpy as np
 
 from common_agents_utils import Policy, ValueNet, Config, SubprocVecEnv_tf2, Torch_Separated_Replay_Buffer, \
     StateEncoder, EncodedForwardDynamicModel, InverseDynamicModel
-from common_agents_utils.torch_gym_modules import _make_it_batched_torch_tensor
+from common_agents_utils.torch_gym_modules import make_it_batched_torch_tensor
 from envs.common_envs_utils.env_state_utils import get_state_combiner_by_settings_file, \
     from_image_vector_to_combined_state
 
@@ -165,7 +165,7 @@ class PPO:
     def estimate_action(self, state: np.ndarray, action: Union[torch.FloatTensor, np.ndarray]) \
             -> Tuple[torch.FloatTensor, torch.FloatTensor]:
         """Compute logprobs of action and entropy"""
-        action = _make_it_batched_torch_tensor(action, self.device).detach()
+        action = make_it_batched_torch_tensor(action, self.device).detach()
         actor_out = self.actor(state)
         action_mean, action_std = actor_out[:, self.action_size:], actor_out[:, :self.action_size]
 

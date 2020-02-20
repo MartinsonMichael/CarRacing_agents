@@ -13,8 +13,8 @@ from torch.distributions import MultivariateNormal, Normal
 import numpy as np
 
 from common_agents_utils import Policy, ValueNet, Config, SubprocVecEnv_tf2, Torch_Separated_Replay_Buffer, \
-    StateEncoder, EncodedForwardDynamicModel, InverseDynamicModel
-from common_agents_utils.torch_gym_modules import _make_it_batched_torch_tensor
+    StateEncoder, EncodedForwardDynamicModel, InverseDynamicModel, ActorCritic
+from common_agents_utils.torch_gym_modules import make_it_batched_torch_tensor
 from envs.common_envs_utils.env_state_utils import get_state_combiner_by_settings_file, \
     from_image_vector_to_combined_state
 
@@ -48,37 +48,27 @@ class PPO:
         state_description = self.test_env.observation_space
         action_size = self.test_env.action_space.shape[0]
 
-        self.actor = Policy(
+        self.ac: ActorCritic = ActorCritic(
             state_description=state_description,
             action_size=action_size,
             hidden_size=128,
             device=self.device,
-            double_action_size_on_output=True
-        )
-        self.critic = ValueNet(
-            state_description=state_description,
-            action_size=action_size,
-            hidden_size=128,
-            device=self.device,
+            action_std=0.5,
+            double_action_size_on_output=False,
         )
         self.optimizer = torch.optim.Adam(
-            itertools.chain(self.actor.parameters(), self.critic.parameters()),
+            self.ac.parameters(),
             lr=config.hyperparameters['lr'],
             betas=config.hyperparameters['betas'],
         )
 
-        self.actor_old = Policy(
+        self.ac_old: ActorCritic = ActorCritic(
             state_description=state_description,
             action_size=action_size,
             hidden_size=128,
             device=self.device,
-            double_action_size_on_output=True
-        )
-        self.critic_old = ValueNet(
-            state_description=state_description,
-            action_size=action_size,
-            hidden_size=128,
-            device=self.device,
+            action_std=0.5,
+            double_action_size_on_output=False,
         )
         self.update_old_policy()
         self.mse = nn.MSELoss()
@@ -107,8 +97,7 @@ class PPO:
             np.random.seed(config.hyperparameters['seed'])
 
     def update_old_policy(self):
-        self.actor_old.load_state_dict(self.actor.state_dict())
-        self.critic_old.load_state_dict(self.critic.state_dict())
+        self.ac_old.load_state_dict(self.ac.state_dict())
 
     def update_current_game_stats(self, reward, done, info):
         self.current_game_stats['reward'] += reward
@@ -133,8 +122,7 @@ class PPO:
         )
         os.makedirs(current_save_path)
 
-        torch.save(self.actor.state_dict(), os.path.join(current_save_path, 'actor'))
-        torch.save(self.critic.state_dict(), os.path.join(current_save_path, 'critic'))
+        torch.save(self.ac.state_dict(), os.path.join(current_save_path, 'ac'))
         torch.save(self.optimizer.state_dict(), os.path.join(current_save_path, 'optimizer'))
 
         pickle.dump((
@@ -154,33 +142,7 @@ class PPO:
             open(os.path.join(folder, 'stats.pkl'), 'rb')
         )
 
-    def get_action(self, state, evaluate=False) -> np.ndarray:
-        actor_out = self.actor(state)
-        action_mean, action_std = actor_out[:, self.action_size:], actor_out[:, :self.action_size]
-
-        if evaluate:
-            return torch.tanh(action_mean).detach().cpu().numpy()
-
-        normal = Normal(action_mean, action_std.exp())
-
-        return torch.tanh(normal.sample()).detach().cpu().numpy()
-
-    def estimate_action(self, state: np.ndarray, action: Union[torch.FloatTensor, np.ndarray]) \
-            -> Tuple[torch.FloatTensor, torch.FloatTensor]:
-        """Compute logprobs of action and entropy"""
-        action = _make_it_batched_torch_tensor(action, self.device).detach()
-        actor_out = self.actor(state)
-        action_mean, action_std = actor_out[:, self.action_size:], actor_out[:, :self.action_size]
-
-        normal = Normal(action_mean, action_std.exp())
-        log_prob = normal.log_prob(torch.tanh(action.detach()))
-        log_prob -= torch.log(1 + 1e-6 - action.pow(2))
-        log_prob = log_prob.sum(1, keepdim=True)
-
-        return log_prob, normal.entropy()
-
     def update(self):
-        print('update')
         states, actions, rewards, log_probs, dones, next_states = self.memory.get_all()
 
         buffer_reward = 0
@@ -189,24 +151,17 @@ class PPO:
             if cur_done[0] == 1:
                 buffer_reward = 0
             buffer_reward = float(cur_reward[0] + buffer_reward * self.hyperparameters['discount_rate'])
-            discount_reward.append([buffer_reward])
+            discount_reward.insert(0, [buffer_reward])
         discount_reward = torch.from_numpy(
-            np.array(discount_reward[::-1], dtype=np.float32)
+            np.array(discount_reward, dtype=np.float32)
         ).to(self.device).detach()
 
-        # if self.accumulated_reward_mean is None:
-        #     self.accumulated_reward_mean = discount_reward.mean()
-        #     self.accumulated_reward_std = discount_reward.std() + 1e-5
-        #     print(f'set reward mean / std : {self.accumulated_reward_mean} / {self.accumulated_reward_std}')
-        #
-        # discount_reward = (discount_reward - self.accumulated_reward_mean) / self.accumulated_reward_std
+        discount_reward = (discount_reward - discount_reward.mean()) / (discount_reward.std() + 1e-5)
 
         for _ in range(self.hyperparameters['learning_updates_per_learning_session']):
-            new_log_probs, new_entropy = self.estimate_action(states, actions)
+            new_log_probs, new_entropy = self.ac.estimate_action(states, actions)
 
-            state_value = self.critic(states)
-            # next_state_value = self.critic(next_states)
-            # advantage = (rewards + self.hyperparameters['discount_rate'] * next_state_value - state_value).detach()
+            state_value = self.ac.value(states)
             advantage = discount_reward - state_value.detach()
             policy_ratio = torch.exp(new_log_probs - log_probs.detach())
 
@@ -223,11 +178,7 @@ class PPO:
             self.optimizer.zero_grad()
             loss.mean().backward()
             torch.nn.utils.clip_grad_norm_(
-                self.actor.parameters(),
-                self.hyperparameters['gradient_clipping_norm'],
-            )
-            torch.nn.utils.clip_grad_norm_(
-                self.critic.parameters(),
+                self.ac.parameters(),
                 self.hyperparameters['gradient_clipping_norm'],
             )
             self.optimizer.step()
@@ -235,63 +186,63 @@ class PPO:
         # update old policy
         self.update_old_policy()
 
-    def eval(self):
-        print('Start eval...')
-        state = self.test_env.reset()
-        done = False
-        total_reward = 0
-        episode_len = 0
-        while not done:
-            # Running policy_old:
-            action = self.get_action(state)[0]
-
-            next_state, reward, done, info = self.test_env.step(action)
-            self.global_step_number += 1
-
-            total_reward += reward
-            episode_len += 1
-
-            state = next_state
-
-            if done \
-                    or info.get('need_reset', False) \
-                    or episode_len > self.hyperparameters['max_episode_len']:
-                if info.get('need_reset', False):
-                    print('Was made panic env reset...')
-                    raise ValueError
-                print(f"EVAL :{self.episode_number} R : {round(total_reward, 4)}\tTime : {episode_len}")
-                break
+    # def eval(self):
+    #     print('Start eval...')
+    #     state = self.test_env.reset()
+    #     done = False
+    #     total_reward = 0
+    #     episode_len = 0
+    #     while not done:
+    #         # Running policy_old:
+    #         action = self.get_action(state)[0]
+    #
+    #         next_state, reward, done, info = self.test_env.step(action)
+    #         self.global_step_number += 1
+    #
+    #         total_reward += reward
+    #         episode_len += 1
+    #
+    #         state = next_state
+    #
+    #         if done \
+    #                 or info.get('need_reset', False) \
+    #                 or episode_len > self.hyperparameters['max_episode_len']:
+    #             if info.get('need_reset', False):
+    #                 print('Was made panic env reset...')
+    #                 raise ValueError
+    #             print(f"EVAL :{self.episode_number} R : {round(total_reward, 4)}\tTime : {episode_len}")
+    #             break
 
     def train(self):
         # training loop
         for index in range(self.hyperparameters['num_episodes_to_run']):
 
-            if self.hyperparameters.get('use_eval', False):
-                if index % 10 == 0:
-                    self.eval()
+            # if self.hyperparameters.get('use_eval', False):
+            #     if index % 10 == 0:
+            #         self.eval()
 
-            attempt = 0
-            while True:
-                try:
+            # attempt = 0
+            # while True:
+            #     try:
                     # try На случай подения среды, у меня стандартный bipedal walker падает переодически :(
-                    self.flush_stats()
-                    self.run_one_episode()
+            self.flush_stats()
+            self.run_one_episode()
 
-                    self.log_it()
-                    break
-                except:
-                    self.memory.clean_all_buffer()
-                    print(f'\nenv fail\nrestart...   attempt {attempt}')
-                    attempt += 1
-                    if attempt >= 5:
-                        print(f'khm, bad\nrecreating env...')
-                        self._config.hyperparameters['seed'] = self._config.hyperparameters['seed'] + 1
-                        self.create_env(self._config)
-                    if attempt >= 10:
-                        print(f'actually, it useless :(\nend training...\nsave...')
-                        self.save()
-                        print(f'save done.\nexiting...')
-                        exit(1)
+            self.log_it()
+                #     break
+                # except:
+                #     self.memory.clean_all_buffer()
+                #     print(f'\nenv fail\nrestart...   attempt {attempt}')
+                #     attempt += 1
+                #     if attempt >= 5:
+                #         print(f'khm, bad\nrecreating env...')
+                #         self._config.hyperparameters['seed'] = self._config.hyperparameters['seed'] + 1
+                #         self.create_env(self._config)
+                #     if attempt >= 10:
+                #         print(f'actually, it useless :(\nend training...\nsave...')
+                #         self.save()
+                #         print(f'save done.\nexiting...')
+                #         exit(1)
 
             if self.episode_number % self.hyperparameters['save_frequency_episode'] == 0:
                 self.save()
@@ -304,9 +255,7 @@ class PPO:
         episode_len = 0
         while not done:
             # Running policy_old:
-            action = self.get_action(state)[0]
-            log_prob, _ = self.estimate_action(state, action)
-            log_prob = log_prob.detach().cpu().numpy()[0]
+            action, log_prob, _ = self.ac.sample_action(state, to_numpy=True, remove_batch=True)
             next_state, reward, done, info = self.env.step(action)
             self.global_step_number += 1
             self.update_current_game_stats(reward, done, info)
@@ -324,14 +273,14 @@ class PPO:
                 self.update()
                 self.memory.clean_all_buffer()
 
-
             if done \
                     or info.get('need_reset', False) \
                     or episode_len > self.hyperparameters['max_episode_len']:
                 if info.get('need_reset', False):
                     print('Was made panic env reset...')
                     raise ValueError
-                # print(f"Episode :{self.episode_number} R : {round(total_reward, 4)}\tTime : {episode_len}")
+                if self.episode_number % self.hyperparameters.get('console_log_episode', 20) == 0:
+                    print(f"Episode :{self.episode_number} R : {round(total_reward, 4)}\tTime : {episode_len}")
                 break
 
     def log_it(self):
