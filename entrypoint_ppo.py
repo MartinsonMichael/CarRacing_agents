@@ -3,13 +3,10 @@ import json
 import os
 import tensorflow as tf
 
-import gym
-import gym.wrappers.monitor
 import wandb
 
 from common_agents_utils import Config
 from envs import get_state_type_from_settings_path, get_EnvCreator_by_settings
-from envs.common_envs_utils.extended_env_wrappers import ObservationToFloat32, RewardDivider, VisualizerWrapper
 
 from ppo.PPO_continuous import PPO
 
@@ -21,9 +18,10 @@ def create_config(args):
     mode = get_state_type_from_settings_path(args.env_settings)
     env_creator = get_EnvCreator_by_settings(args.env_settings)
     config.environment_make_function = env_creator(args.env_settings)
+    config.test_environment_make_function = config.environment_make_function
     config.name = args.name
     config.debug = args.debug
-    log_tb_path = os.path.join('logs', config.agent_class, config.name)
+    log_tb_path = os.path.join('logs', 'PPO', config.name)
     if not os.path.exists(log_tb_path):
         os.makedirs(log_tb_path)
     config.tf_writer = tf.summary.create_file_writer(log_tb_path)
@@ -37,52 +35,35 @@ def create_config(args):
         "device": args.device,
         "env_settings": json.load(open(args.env_settings)),
 
-        "num_envs": 4,
-        "save_frequency_episode": 30,
+        "save_frequency_episode": 500,
+        "log_interval": 20,
 
-        "num_episodes_to_run": 15 * 10 ** 3,
-        "max_episode_len": 450,
+        "num_episodes_to_run": 50 * 10 ** 3,
+        "max_episode_len": 500,
 
-        "update_every_n_steps": 3000,
-        "learning_updates_per_learning_session": 60,
+        "update_every_n_steps": 5000,
+        "learning_updates_per_learning_session": 80,
 
         "discount_rate": 0.99,
-        "eps_clip": 0.2,
+        "eps_clip": 0.2,  # clip parameter for PPO
 
         # parameters for Adam optimizer
-        "lr": 0.001,
-        "gradient_clipping_norm": 0.5,
+        "lr": 0.0003,
+        "gradient_clipping_norm": 1.0,
         "betas": (0.9, 0.999),
     }
     return config
 
 
 def main(args):
-    raise ValueError('use test, please')
     config = create_config(args)
 
-    # if config.debug:
-    # test
-    config.environment_make_function = lambda: ObservationToFloat32(gym.make("LunarLanderContinuous-v2"))
-    config.test_environment_make_function = config.environment_make_function
-    # config.test_environment_make_function = lambda: VisualizerWrapper(
-    #     ObservationToFloat32(gym.make("LunarLanderContinuous-v2"))
-    # )
-
-    # config.test_environment_make_function = lambda: gym.wrappers.Monitor(
-    #     ObservationToFloat32(gym.make("LunarLanderContinuous-v2")),
-    #     directory='save_animation_folder',
-    #     mode='evaluation',
-    #     force=True,
-    # )
-
-    if not config.debug:
-        wandb.init(
-            notes=args.note,
-            project='PPO',
-            name=config.name,
-            config=config.hyperparameters,
-        )
+    wandb.init(
+        notes=args.note,
+        project='PPO',
+        name=config.name,
+        config=config.hyperparameters,
+    )
     ppo_agent = PPO(config)
 
     if args.load != 'none':
@@ -118,7 +99,7 @@ if __name__ == '__main__':
             raise ValueError('set name')
 
         if args.note is None:
-            raise ValueError('set note, it is used for wandb')
+            args.note = ''
     else:
         args.name = 'test'
         args.note = 'just test'

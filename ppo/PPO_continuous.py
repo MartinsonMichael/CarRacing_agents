@@ -106,7 +106,6 @@ class PPO:
 
     def flush_stats(self):
         self.current_game_stats = defaultdict(float, {})
-        self.mean_game_stats = defaultdict(float, {})
 
     def save(self):
         current_save_path = os.path.join(
@@ -126,8 +125,7 @@ class PPO:
 
     def load(self, folder):
 
-        self.actor.load_state_dict(torch.load(os.path.join(folder, 'actor')))
-        self.critic.load_state_dict(torch.load(os.path.join(folder, 'critic')))
+        self.ac.load_state_dict(torch.load(os.path.join(folder, 'ac')))
         self.optimizer.load_state_dict(torch.load(os.path.join(folder, 'optimizer')))
         self.update_old_policy()
 
@@ -272,6 +270,4 @@ class PPO:
                 if info.get('need_reset', False):
                     print('Was made panic env reset...')
                     raise ValueError
-                if self.episode_number % self.hyperparameters.get('console_log_episode', 20) == 0:
-                    print(f"Episode :{self.episode_number} R : {round(total_reward, 4)}\tTime : {episode_len}")
                 break

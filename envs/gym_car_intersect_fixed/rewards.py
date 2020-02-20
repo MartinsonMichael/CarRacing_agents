@@ -1,4 +1,5 @@
 import json
+from typing import Union, Dict, Any
 
 import numpy as np
 
@@ -10,11 +11,11 @@ class Rewarder:
 
     def __init__(self, settings):
         self._settings = settings
-        self._settings_reward = settings['reward']
-        self._settings_done = settings['done']
-        self._finish_times = 0
+        self._settings_reward: Dict[str, Union[int, float, bool]] = settings['reward']
+        self._settings_done: Dict[str, Any] = settings['done']
+        self._finish_times: int = 0
 
-    def get_step_reward(self, car_stats) -> float:
+    def get_step_reward(self, car_stats: Dict[str, Any]) -> float:
         """
         function to compute reward for current step
         :param car_stats: dist with car stats
@@ -33,16 +34,15 @@ class Rewarder:
         step_reward = 0.0
 
         step_reward += car_stats['new_tiles_count'] * self._settings_reward['new_tiles_count']
-        step_reward += (car_stats['speed'] if car_stats['speed'] > 0.2 else 0.0) * \
-                       self._settings_reward['speed_per_point']
         step_reward += car_stats['time'] * self._settings_reward['time_per_point']
         step_reward += self._settings_reward['time_per_tick']
 
-        if np.sqrt((np.array(car_stats['last_action'])**2).sum()) < \
+        if np.sqrt((np.array(car_stats['last_action']) ** 2).sum()) < \
                 self._settings_reward['idleness__punish_if_action_radius_less_then']:
             step_reward += self._settings_reward['idleness__punish_value']
 
-        step_reward += 0.0001 * np.sqrt((np.array(car_stats['last_action'])**2).sum())
+        step_reward += self._settings_reward.get('speed_multiplication_bonus', 0) * np.sqrt(
+            (np.array(car_stats['last_action']) ** 2).sum())
 
         for is_item in ['is_collided', 'is_finish', 'is_out_of_track', 'is_out_of_map', 'is_out_of_road']:
             if car_stats[is_item]:
@@ -67,7 +67,6 @@ class Rewarder:
         :return: bool, done flag for current step
         """
         done = False
-
 
         for item in self._settings_done['true_flags_to_done']:
             if car_stats[item]:
