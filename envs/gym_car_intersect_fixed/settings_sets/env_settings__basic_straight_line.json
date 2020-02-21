@@ -29,11 +29,11 @@
     "is_out_of_map": -1,
     "is_out_of_road": -1,
 
-    "idleness__punish_if_action_radius_less_then": 0.3,
+    "idleness__punish_if_action_radius_less_then": 0.0,
     "idleness__punish_value": 0.0,
 
     "new_tiles_count": 0.5,
-    "speed_multiplication_bonus": 0.0001,
+    "speed_multiplication_bonus": 0.0,
 
     "speed_per_point": 0.0,
     "if_speed_more_then_threshold": 0.0,
