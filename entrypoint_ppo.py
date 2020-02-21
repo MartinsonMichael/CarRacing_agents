@@ -39,6 +39,7 @@ def create_config(args):
         "save_frequency_episode": 500,
         "log_interval": 20,
         "animation_record_frequency": 20,
+        "record_animation": args.record_animation,
 
         "num_episodes_to_run": 50 * 10 ** 3,
         "max_episode_len": 500,
@@ -89,6 +90,7 @@ if __name__ == '__main__':
         help='just add this flag and outputs becames much more interesting'
     )
     parser.add_argument('--icm', default=False, action='store_true', help='use icm')
+    parser.add_argument('--record-animation', default=False, action='store_true', help='use icm')
     parser.add_argument('--name', type=str, help='name for experiment')
     parser.add_argument('--note', type=str, help='provude note for wandb')
     parser.add_argument(

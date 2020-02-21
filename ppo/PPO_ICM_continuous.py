@@ -241,7 +241,10 @@ class PPO_ICM:
 
     def run_one_episode(self):
         state = self.env.reset()
-        record_anim = self.episode_number % self.hyperparameters.get('animation_record_frequency', 1e6) == 0
+        record_anim = (
+            self.episode_number % self.hyperparameters.get('animation_record_frequency', 1e6) == 0 and
+            self.hyperparameters.get('record_animation', False)
+        )
         if record_anim:
             self.env.visualize_next_episode()
 
