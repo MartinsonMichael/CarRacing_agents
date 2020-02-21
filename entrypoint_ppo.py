@@ -7,6 +7,7 @@ import wandb
 
 from common_agents_utils import Config
 from envs import get_state_type_from_settings_path, get_EnvCreator_by_settings
+from ppo.PPO_ICM_continuous import PPO_ICM
 
 from ppo.PPO_continuous import PPO
 
@@ -37,6 +38,7 @@ def create_config(args):
 
         "save_frequency_episode": 500,
         "log_interval": 20,
+        "animation_record_frequency": 20,
 
         "num_episodes_to_run": 50 * 10 ** 3,
         "max_episode_len": 500,
@@ -64,7 +66,11 @@ def main(args):
         name=config.name,
         config=config.hyperparameters,
     )
-    ppo_agent = PPO(config)
+
+    if args.icm:
+        ppo_agent = PPO_ICM(config)
+    else:
+        ppo_agent = PPO(config)
 
     if args.load != 'none':
         print(f'load from {args.load}')
@@ -82,6 +88,7 @@ if __name__ == '__main__':
         action='store_true',
         help='just add this flag and outputs becames much more interesting'
     )
+    parser.add_argument('--icm', default=False, action='store_true', help='use icm')
     parser.add_argument('--name', type=str, help='name for experiment')
     parser.add_argument('--note', type=str, help='provude note for wandb')
     parser.add_argument(

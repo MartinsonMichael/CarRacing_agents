@@ -70,11 +70,12 @@ def main(args):
             config=config.hyperparameters,
         )
 
-    if args.icm:
-        print('USE ICM')
-        ppo_agent = PPO_ICM(config)
-    else:
-        ppo_agent = PPO(config)
+    ppo_agent = PPO_ICM(config)
+    # if args.icm:
+    #     print('USE ICM')
+    #     ppo_agent = PPO_ICM(config)
+    # else:
+    #     ppo_agent = PPO(config)
 
     if args.load != 'none':
         print(f'load from {args.load}')

@@ -1,21 +1,18 @@
-import itertools
 import os
 import pickle
 from collections import defaultdict
-from typing import Dict, Union, Tuple
 import time
 
-import tensorflow as tf
 import torch
 import torch.nn as nn
-import wandb
 import numpy as np
 
-from common_agents_utils import Config, Torch_Separated_Replay_Buffer, ActorCritic
+from common_agents_utils import Config, Torch_Separated_Replay_Buffer, ActorCritic, ICM
 from common_agents_utils.logger import Logger
+from envs.common_envs_utils.visualizer import save_as_mp4
 
 
-class PPO:
+class PPO_ICM:
     def __init__(self, config: Config):
         self.name = config.name
         self.stat_logger: Logger = Logger(config, log_interval=config.hyperparameters.get('log_interval', 20))
@@ -42,6 +39,12 @@ class PPO:
         state_description = self.test_env.observation_space
         action_size = self.test_env.action_space.shape[0]
 
+        self._icm: ICM = ICM(
+            state_description=state_description,
+            action_size=action_size,
+            encoded_state_size=10,
+            device=self.device,
+        )
         self.ac: ActorCritic = ActorCritic(
             state_description=state_description,
             action_size=action_size,
@@ -146,9 +149,31 @@ class PPO:
         discount_reward = torch.from_numpy(
             np.array(discount_reward, dtype=np.float32)
         ).to(self.device).detach()
-
         discount_reward = (discount_reward - discount_reward.mean()) / (discount_reward.std() + 1e-5)
 
+        self._icm.add_experience(
+            is_single=False,
+            state=states.detach().cpu().numpy(),
+            action=actions.detach().cpu().numpy(),
+            next_state=next_states.detach().cpu().numpy(),
+        )
+        intrinsic_reward: np.ndarray = self._icm.get_intrinsic_reward(
+            states, actions, next_states,
+            learn_on_this_batch=True,
+        )
+        icm_update_stat = self._icm.update(return_stat=True)
+
+        self.current_game_stats.update(icm_update_stat)
+        self.current_game_stats.update({
+            'intrinsic_reward MEAN': intrinsic_reward.mean(),
+            'intrinsic_reward MAX': intrinsic_reward.max(),
+            'discount_reward MEAN': float(discount_reward.detach().cpu().numpy().mean()),
+            'discount_reward MAX': float(discount_reward.detach().cpu().numpy().max()),
+        })
+
+        discount_reward += intrinsic_reward
+
+        sum_ppo_loss = 0.0
         for _ in range(self.hyperparameters['learning_updates_per_learning_session']):
             new_log_probs, new_entropy = self.ac.estimate_action(states, actions)
 
@@ -165,7 +190,7 @@ class PPO:
             # self.mean_game_stats['critic_loss'] += critic_loss.detach().cpu().numpy().mean()
 
             loss = -1 * torch.min(term_1, term_2) - 0.01 * new_entropy + 0.5 * self.mse(discount_reward, state_value)
-            # loss = (actor_loss + 0.5 * critic_loss).mean()
+            sum_ppo_loss += float(loss.mean().detach().cpu().numpy())
             self.optimizer.zero_grad()
             loss.mean().backward()
             torch.nn.utils.clip_grad_norm_(
@@ -174,38 +199,14 @@ class PPO:
             )
             self.optimizer.step()
 
+        self.current_game_stats.update({
+            'ppo_loss': float(sum_ppo_loss) / self.hyperparameters['learning_updates_per_learning_session'],
+        })
+
         # update old policy
         self.update_old_policy()
 
-    # def eval(self):
-    #     print('Start eval...')
-    #     state = self.test_env.reset()
-    #     done = False
-    #     total_reward = 0
-    #     episode_len = 0
-    #     while not done:
-    #         # Running policy_old:
-    #         action = self.get_action(state)[0]
-    #
-    #         next_state, reward, done, info = self.test_env.step(action)
-    #         self.global_step_number += 1
-    #
-    #         total_reward += reward
-    #         episode_len += 1
-    #
-    #         state = next_state
-    #
-    #         if done \
-    #                 or info.get('need_reset', False) \
-    #                 or episode_len > self.hyperparameters['max_episode_len']:
-    #             if info.get('need_reset', False):
-    #                 print('Was made panic env reset...')
-    #                 raise ValueError
-    #             print(f"EVAL :{self.episode_number} R : {round(total_reward, 4)}\tTime : {episode_len}")
-    #             break
-
     def train(self):
-        # training loop
         for index in range(self.hyperparameters['num_episodes_to_run']):
 
             # if self.hyperparameters.get('use_eval', False):
@@ -216,10 +217,10 @@ class PPO:
             # while True:
             #     try:
                     # try На случай подения среды, у меня стандартный bipedal walker падает переодически :(
-            self.flush_stats()
             self.run_one_episode()
 
             self.stat_logger.log_it(self.current_game_stats)
+            self.flush_stats()
                 #     break
                 # except:
                 #     self.memory.clean_all_buffer()
@@ -240,16 +241,25 @@ class PPO:
 
     def run_one_episode(self):
         state = self.env.reset()
+        record_anim = self.episode_number % self.hyperparameters.get('animation_record_frequency', 1e6) == 0
+        if record_anim:
+            self.env.visualize_next_episode()
+
         done = False
         self.episode_number += 1
         total_reward = 0
         episode_len = 0
+        images = []
+
         while not done:
             # Running policy_old:
             action, log_prob, _ = self.ac.sample_action(state, to_numpy=True, remove_batch=True)
             next_state, reward, done, info = self.env.step(action)
             self.global_step_number += 1
             self.update_current_game_stats(reward, done, info)
+
+            if record_anim:
+                images.append(self.env.get_true_picture())
 
             total_reward += reward
             episode_len += 1
@@ -267,6 +277,8 @@ class PPO:
             if done \
                     or info.get('need_reset', False) \
                     or episode_len > self.hyperparameters['max_episode_len']:
+                if record_anim:
+                    save_as_mp4(images, save_path=f'animation_PPO/{self.name}/_{time.time()}.mp4')
                 if info.get('need_reset', False):
                     print('Was made panic env reset...')
                     raise ValueError

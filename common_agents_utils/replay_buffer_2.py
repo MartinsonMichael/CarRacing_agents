@@ -40,7 +40,7 @@ class Torch_Arbitrary_Replay_Buffer(object):
     def add_experience(self, is_single=True, **kwargs):
         """Adds experience(s) into the replay buffer"""
         if not is_single:
-            for values in zip(kwargs[name] for name in self.sample_order):
+            for values in zip(*[kwargs[name] for name in self.sample_order]):
                 self._add_single_experience(**{name: value for name, value in zip(self.sample_order, values)})
         else:
             self._add_single_experience(**kwargs)

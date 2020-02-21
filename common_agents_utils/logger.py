@@ -72,6 +72,6 @@ class Logger:
     def _publish_console(self) -> None:
         print(
             f"Episode {self.episode_number}\t"
-            f"R : {round(self._stats.get('reward', None), 4)}\n"
+            f"R : {round(self._stats.get('reward', None), 4)}\t"
             f"Time : {round(self._stats.get('env_steps', None), 1)}"
         )

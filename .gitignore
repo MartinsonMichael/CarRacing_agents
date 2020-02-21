@@ -9,3 +9,4 @@ wandb/
 *__pycache__
 save_animation_folder/
 model_saves/
+animation_PPO/

@@ -266,7 +266,7 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
         if len(self.bot_cars) < self.num_bots:
             self.create_bot_car()
 
-        if not self._need_draw_picture:
+        if self._need_draw_picture:
             try:
                 self.picture_state = self.render(self._preseted_render_mode)
             except:
