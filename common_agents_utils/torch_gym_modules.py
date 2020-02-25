@@ -197,7 +197,7 @@ class ActionLayer(nn.Module):
         super(ActionLayer, self).__init__()
         self._state_layer_out_size = hidden_size
         self.device = device
-        self._dense = nn.Linear(action_size, hidden_size)
+        self._dense = nn.Linear(action_size, hidden_size).to(device)
 
     def get_out_shape_for_in(self):
         return self._state_layer_out_size
