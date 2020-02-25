@@ -171,7 +171,7 @@ class PPO_ICM:
             'discount_reward MAX': float(discount_reward.detach().cpu().numpy().max()),
         })
 
-        discount_reward += intrinsic_reward
+        discount_reward += torch.from_numpy(intrinsic_reward).to(self.device)
 
         sum_ppo_loss = 0.0
         for _ in range(self.hyperparameters['learning_updates_per_learning_session']):
