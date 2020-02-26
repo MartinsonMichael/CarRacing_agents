@@ -158,6 +158,11 @@ class ICM:
         loss = (forward_loss + inverse_loss).mean()
 
         if return_stats:
+            stat = {
+                'icm_inverse_loss': inverse_loss.detach().cpu().numpy().mean(),
+                'icm_forward_loss': forward_loss.detach().cpu().numpy().mean(),
+                'icm_full_loss': loss.detach().cpu().numpy().mean(),
+            }
             return inverse_loss.view(-1, 1).detach().cpu().numpy(), loss, {}
         else:
             return inverse_loss.view(-1, 1).detach().cpu().numpy(), loss

@@ -190,7 +190,7 @@ class PPO_ICM:
             self.optimizer.zero_grad()
             (loss.mean() + intrinsic_loss).backward(retain_graph=True)
             torch.nn.utils.clip_grad_norm_(
-                self.ac.parameters(),
+                chain(self.ac.parameters(), self._icm.parameters()),
                 self.hyperparameters['gradient_clipping_norm'],
             )
             self.optimizer.step()
