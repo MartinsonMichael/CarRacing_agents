@@ -188,7 +188,7 @@ class PPO_ICM:
             loss = -1 * torch.min(term_1, term_2) - 0.01 * new_entropy + 0.5 * self.mse(discount_reward, state_value)
             sum_ppo_loss += float(loss.mean().detach().cpu().numpy())
             self.optimizer.zero_grad()
-            (loss.mean() + intrinsic_loss).backward()
+            (loss.mean() + intrinsic_loss).backward(retain_graph=True)
             torch.nn.utils.clip_grad_norm_(
                 self.ac.parameters(),
                 self.hyperparameters['gradient_clipping_norm'],
