@@ -60,7 +60,7 @@ class ICM:
             device=self.device,
         )
         self._optimizer = torch.optim.Adam(
-            params=self._parameters(),
+            params=self.parameters(),
             lr=3e-4,
         )
         self.replay_buffer: Torch_Arbitrary_Replay_Buffer = Torch_Arbitrary_Replay_Buffer(
@@ -71,7 +71,7 @@ class ICM:
         )
         self.mse = nn.MSELoss()
 
-    def _parameters(self) -> Iterable:
+    def parameters(self) -> Iterable[TT]:
         return itertools.chain(self._encoder.parameters(), self._forward.parameters(), self._inverse.parameters())
 
     def add_experience(self, is_single=True, **kwargs) -> None:
@@ -113,7 +113,7 @@ class ICM:
         loss = (forward_loss + inverse_loss).mean()
         self._optimizer.zero_grad()
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(self._parameters(), self._clipping_gradient_norm)
+        torch.nn.utils.clip_grad_norm_(self.parameters(), self._clipping_gradient_norm)
         self._optimizer.step()
 
         if return_stats:
@@ -130,16 +130,20 @@ class ICM:
 
     def get_intrinsic_reward(
             self, state: npTT, action: npTT, next_state: npTT,
-            learn_on_this_batch=False, return_stats=False
-    ) -> NpAOrNpAStat:
+            learn_on_this_batch=False, return_stats=False):
+    # ) -> Union[Tuple[NpA, TT, StatType], Tuple[NpA, TT]]:
         if learn_on_this_batch:
             return self._update_on_batch(state, action, next_state, return_reward=True, return_stats=return_stats)
 
         encoded_state = self._encoder(state)
         encoded_next_state = self._encoder(next_state)
 
-        predicted_encoded_next_state = self._inverse(encoded_state, action)
-        inverse_loss = ((encoded_next_state - predicted_encoded_next_state)**2).mean(dim=1)
+        predicted_action = self._inverse(encoded_state, encoded_next_state)
+        inverse_loss = ((action.detach() - predicted_action)**2).mean(dim=1)
+
+        # predicted_encoded_next_state = self._forward(state, action)
+        # forward_loss = ((encoded_next_state - predicted_encoded_next_state)**2).mean(dim=1)
+        # loss =
 
         if return_stats:
             return inverse_loss.view(-1, 1).detach().cpu().numpy(), {}

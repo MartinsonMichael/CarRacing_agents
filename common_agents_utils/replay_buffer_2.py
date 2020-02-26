@@ -112,3 +112,17 @@ class Torch_Arbitrary_Replay_Buffer(object):
             self._prepare_row_of_samples(self.memory, name)
             for name in sample_order
         )
+
+    def iterate_over_N_batch(self, N: int, batch_size=None, sample_order=None):
+        if batch_size is None:
+            batch_size = self.batch_size
+        if sample_order is None:
+            sample_order = self.sample_order
+        indexes = np.arange(len(self))
+        np.random.shuffle(indexes)
+        experiences = random.sample(self.memory, k=batch_size * N)
+        for index in range(0, N, batch_size):
+            yield tuple(
+                self._prepare_row_of_samples(experiences[index:index+batch_size], name)
+                for name in sample_order
+            )

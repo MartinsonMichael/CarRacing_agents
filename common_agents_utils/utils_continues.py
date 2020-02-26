@@ -204,7 +204,7 @@ class ActorCritic(nn.Module):
         Return: action, log_prob, entropy
         """
         distribution = Normal(*self._get_mean_std(state))
-        action = distribution.sample() * 0
+        action = distribution.sample()
         return \
             process_kwargs(action.detach(), **kwargs), \
             process_kwargs(distribution.log_prob(action), **kwargs), \
