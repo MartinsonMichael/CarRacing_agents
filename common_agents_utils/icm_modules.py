@@ -129,11 +129,8 @@ class ICM:
             return stat
 
     def get_intrinsic_reward(
-            self, state: npTT, action: npTT, next_state: npTT,
-            learn_on_this_batch=False, return_stats=False):
-    # ) -> Union[Tuple[NpA, TT, StatType], Tuple[NpA, TT]]:
-        if learn_on_this_batch:
-            return self._update_on_batch(state, action, next_state, return_reward=True, return_stats=return_stats)
+            self, state: npTT, action: npTT, next_state: npTT, return_stats=False
+    ) -> Union[Tuple[NpA, StatType], NpA]:
 
         encoded_state = self._encoder(state)
         encoded_next_state = self._encoder(next_state)
@@ -141,14 +138,29 @@ class ICM:
         predicted_action = self._inverse(encoded_state, encoded_next_state)
         inverse_loss = ((action.detach() - predicted_action)**2).mean(dim=1)
 
-        # predicted_encoded_next_state = self._forward(state, action)
-        # forward_loss = ((encoded_next_state - predicted_encoded_next_state)**2).mean(dim=1)
-        # loss =
-
         if return_stats:
             return inverse_loss.view(-1, 1).detach().cpu().numpy(), {}
         else:
             return inverse_loss.view(-1, 1).detach().cpu().numpy()
+
+    def get_intrinsic_reward_with_loss(
+            self, state: npTT, action: npTT, next_state: npTT, return_stats=False
+    ) -> Union[Tuple[NpA, TT, StatType], Tuple[NpA, TT]]:
+
+        encoded_state = self._encoder(state)
+        encoded_next_state = self._encoder(next_state)
+
+        predicted_action = self._inverse(encoded_state, encoded_next_state)
+        inverse_loss = ((action.detach() - predicted_action)**2).mean(dim=1)
+
+        predicted_encoded_next_state = self._forward(state, action)
+        forward_loss = ((encoded_next_state - predicted_encoded_next_state)**2).mean(dim=1)
+        loss = (forward_loss + inverse_loss).mean()
+
+        if return_stats:
+            return inverse_loss.view(-1, 1).detach().cpu().numpy(), loss, {}
+        else:
+            return inverse_loss.view(-1, 1).detach().cpu().numpy(), loss
 
 
 class InverseDynamicModel(nn.Module):

@@ -2,6 +2,7 @@ import os
 import pickle
 from collections import defaultdict
 import time
+from itertools import chain
 
 import torch
 import torch.nn as nn
@@ -55,7 +56,7 @@ class PPO_ICM:
             double_action_size_on_output=False,
         )
         self.optimizer = torch.optim.Adam(
-            self.ac.parameters(),
+            chain(self.ac.parameters(), self._icm.parameters()),
             lr=config.hyperparameters['lr'],
             betas=config.hyperparameters['betas'],
         )
@@ -158,13 +159,12 @@ class PPO_ICM:
             action=actions.detach().cpu().numpy(),
             next_state=next_states.detach().cpu().numpy(),
         )
-        intrinsic_reward: np.ndarray = self._icm.get_intrinsic_reward(
-            states, actions, next_states,
-            learn_on_this_batch=True,
+        intrinsic_reward, intrinsic_loss = self._icm.get_intrinsic_reward_with_loss(
+            states, actions, next_states, return_stats=False
         )
-        icm_update_stat = self._icm.update(return_stat=True)
+        # icm_update_stat = self._icm.update(return_stat=True)
 
-        self.current_game_stats.update(icm_update_stat)
+        # self.current_game_stats.update(icm_update_stat)
         self.current_game_stats.update({
             'intrinsic_reward MEAN': intrinsic_reward.mean(),
             'intrinsic_reward MAX': intrinsic_reward.max(),
@@ -184,16 +184,11 @@ class PPO_ICM:
 
             term_1 = policy_ratio * advantage
             term_2 = torch.clamp(policy_ratio, 1 - self.eps_clip, 1 + self.eps_clip) * advantage
-            # actor_loss = -1 * torch.min(term_1, term_2) - 0.01 * new_entropy
-            # self.mean_game_stats['actor_loss'] += actor_loss.detach().cpu().numpy().mean()
-
-            # critic_loss = torch.pow(state_value - discount_reward, 2)
-            # self.mean_game_stats['critic_loss'] += critic_loss.detach().cpu().numpy().mean()
 
             loss = -1 * torch.min(term_1, term_2) - 0.01 * new_entropy + 0.5 * self.mse(discount_reward, state_value)
             sum_ppo_loss += float(loss.mean().detach().cpu().numpy())
             self.optimizer.zero_grad()
-            loss.mean().backward()
+            (loss.mean() + intrinsic_loss).backward()
             torch.nn.utils.clip_grad_norm_(
                 self.ac.parameters(),
                 self.hyperparameters['gradient_clipping_norm'],
@@ -210,32 +205,10 @@ class PPO_ICM:
     def train(self):
         for index in range(self.hyperparameters['num_episodes_to_run']):
 
-            # if self.hyperparameters.get('use_eval', False):
-            #     if index % 10 == 0:
-            #         self.eval()
-
-            # attempt = 0
-            # while True:
-            #     try:
-                    # try На случай подения среды, у меня стандартный bipedal walker падает переодически :(
             self.run_one_episode()
 
             self.stat_logger.log_it(self.current_game_stats)
             self.flush_stats()
-                #     break
-                # except:
-                #     self.memory.clean_all_buffer()
-                #     print(f'\nenv fail\nrestart...   attempt {attempt}')
-                #     attempt += 1
-                #     if attempt >= 5:
-                #         print(f'khm, bad\nrecreating env...')
-                #         self._config.hyperparameters['seed'] = self._config.hyperparameters['seed'] + 1
-                #         self.create_env(self._config)
-                #     if attempt >= 10:
-                #         print(f'actually, it useless :(\nend training...\nsave...')
-                #         self.save()
-                #         print(f'save done.\nexiting...')
-                #         exit(1)
 
             if self.episode_number % self.hyperparameters['save_frequency_episode'] == 0:
                 self.save()
