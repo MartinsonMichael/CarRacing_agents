@@ -176,6 +176,7 @@ class InverseDynamicModel(nn.Module):
         self.head = nn.Linear(hidden_size, action_size).to(device)
 
     def forward(self, state: npTT, next_state: npTT, return_stats: bool = False) -> TTOrTTStat:
+        assert state.shape == next_state.shape
         s = F.relu(self._state(state))
         ns = F.relu(self._next_state(next_state))
         x = F.relu(self._dense_1(torch.cat((s, ns), dim=1)))

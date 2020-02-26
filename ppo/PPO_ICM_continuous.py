@@ -160,7 +160,7 @@ class PPO_ICM:
             next_state=next_states.detach().cpu().numpy(),
         )
         intrinsic_reward, intrinsic_loss = self._icm.get_intrinsic_reward_with_loss(
-            states, actions, next_states, return_stats=False
+            state=states, action=actions, next_state=next_states, return_stats=False
         )
         # icm_update_stat = self._icm.update(return_stat=True)
 
