@@ -40,7 +40,7 @@ def create_config(args):
 
         "save_frequency_episode": 500,
         "log_interval": 20,
-        "animation_record_frequency": 20,
+        "animation_record_frequency": 100,
         "record_animation": args.record_animation,
 
         "num_episodes_to_run": 50 * 10 ** 3,

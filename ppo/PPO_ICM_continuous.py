@@ -282,7 +282,10 @@ class PPO_ICM:
                     or info.get('need_reset', False) \
                     or episode_len > self.hyperparameters['max_episode_len']:
                 if record_anim:
-                    save_as_mp4(images, save_path=f'animation_PPO/{self.name}/_{time.time()}.mp4')
+                    save_as_mp4(
+                        images,
+                        save_path=f'animation_PPO/{self.name}/_R:_{total_reward}_Time:_{episode_len}_{time.time()}.mp4'
+                    )
                 if info.get('need_reset', False):
                     print('Was made panic env reset...')
                     raise ValueError
