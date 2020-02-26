@@ -153,7 +153,7 @@ class ICM:
         predicted_action = self._inverse(encoded_state, encoded_next_state)
         inverse_loss = ((action.detach() - predicted_action)**2).mean(dim=1)
 
-        predicted_encoded_next_state = self._forward(state, action)
+        predicted_encoded_next_state = self._forward(encoded_state, action)
         forward_loss = ((encoded_next_state - predicted_encoded_next_state)**2).mean(dim=1)
         loss = (forward_loss + inverse_loss).mean()
 
@@ -227,12 +227,13 @@ class StateEncoder(nn.Module):
 
 
 class ForwardDynamicModel(nn.Module):
-    def __init__(self,
-                 state_size: int,
-                 action_size: int,
-                 hidden_size: int,
-                 device: str
-                 ):
+    def __init__(
+        self,
+        state_size: int,
+        action_size: int,
+        hidden_size: int,
+        device: str,
+    ):
         super(ForwardDynamicModel, self).__init__()
 
         self._state = nn.Linear(state_size, hidden_size).to(device)
