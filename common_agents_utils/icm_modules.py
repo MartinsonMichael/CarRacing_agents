@@ -181,6 +181,7 @@ class StateEncoder(nn.Module):
     ):
         super(StateEncoder, self).__init__()
         self._use_batch_normalize = use_batch_normalize
+        self.device = device
 
         self._state: StateLayer = StateLayer(state_description, hidden_size, device)
         hidden_max = self._state.get_out_shape_for_in()
@@ -195,7 +196,7 @@ class StateEncoder(nn.Module):
         self.head = nn.Linear(int(hidden_max / 4), encoded_size).to(device)
 
     def forward(self, state: npTT, return_stats: bool = False) -> TTOrTTStat:
-        x = make_it_batched_torch_tensor(state)
+        x = make_it_batched_torch_tensor(state, device=self.device)
         # if self._use_batch_normalize:
         #     x = nn.BatchNorm2d()(x)
         x = F.relu(self._state(x))
