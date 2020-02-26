@@ -100,7 +100,7 @@ class ICM:
             return_reward=False, return_stats=False,
     ) -> Optional[Union[StatType, NpAOrNpAStat]]:
         stat = {}
-        action_batch = make_it_batched_torch_tensor(_action_batch, self.device)
+        action_batch = make_it_batched_torch_tensor(_action_batch, self.device).detach()
         encoded_state = self._encoder(state_batch)
         encoded_next_state = self._encoder(next_state_batch)
         predicted_encoded_next_state = self._forward(encoded_state, action_batch)
