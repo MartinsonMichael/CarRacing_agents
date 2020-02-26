@@ -30,7 +30,7 @@ class ICM:
             device: str,
             buffer_size: int = 10**6,
             batch_size: int = 256,
-            update_per_step: int = 10,
+            update_per_step: int = 80,
             hidden_size: int = 40,
             clipping_gradient_norm: float = 1.0,
     ):
@@ -171,13 +171,16 @@ class InverseDynamicModel(nn.Module):
 
 
 class StateEncoder(nn.Module):
-    def __init__(self,
-                 state_description: Union[spaces.Dict, spaces.Box],
-                 encoded_size: int,
-                 hidden_size: int,
-                 device: str
-                 ):
+    def __init__(
+        self,
+        state_description: Union[spaces.Dict, spaces.Box],
+        encoded_size: int,
+        hidden_size: int,
+        device: str,
+        use_batch_normalize: bool = True,
+    ):
         super(StateEncoder, self).__init__()
+        self._use_batch_normalize = use_batch_normalize
 
         self._state: StateLayer = StateLayer(state_description, hidden_size, device)
         hidden_max = self._state.get_out_shape_for_in()
@@ -192,7 +195,10 @@ class StateEncoder(nn.Module):
         self.head = nn.Linear(int(hidden_max / 4), encoded_size).to(device)
 
     def forward(self, state: npTT, return_stats: bool = False) -> TTOrTTStat:
-        x = F.relu(self._state(state))
+        x = make_it_batched_torch_tensor(state)
+        # if self._use_batch_normalize:
+        #     x = nn.BatchNorm2d()(x)
+        x = F.relu(self._state(x))
         x = F.relu(self._dense_1(x))
         x = F.relu(self._dense_2(x))
         x = self.head(x)

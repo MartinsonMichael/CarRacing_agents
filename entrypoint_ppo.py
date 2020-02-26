@@ -27,6 +27,8 @@ def create_config(args):
         os.makedirs(log_tb_path)
     config.tf_writer = tf.summary.create_file_writer(log_tb_path)
 
+    print('MODE : ', mode)
+
     config.hyperparameters = {
         "agent_class": "PPO",
         "name": args.name,

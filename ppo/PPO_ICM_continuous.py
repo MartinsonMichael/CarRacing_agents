@@ -42,8 +42,9 @@ class PPO_ICM:
         self._icm: ICM = ICM(
             state_description=state_description,
             action_size=action_size,
-            encoded_state_size=10,
+            encoded_state_size=100,
             device=self.device,
+            batch_size=256,
         )
         self.ac: ActorCritic = ActorCritic(
             state_description=state_description,
@@ -171,7 +172,7 @@ class PPO_ICM:
             'discount_reward MAX': float(discount_reward.detach().cpu().numpy().max()),
         })
 
-        discount_reward += torch.from_numpy(intrinsic_reward).to(self.device)
+        discount_reward = torch.from_numpy(intrinsic_reward).to(self.device)
 
         sum_ppo_loss = 0.0
         for _ in range(self.hyperparameters['learning_updates_per_learning_session']):

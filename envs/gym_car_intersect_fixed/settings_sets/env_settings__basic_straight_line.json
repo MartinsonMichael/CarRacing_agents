@@ -18,7 +18,7 @@
   "state_config": {
     "picture": false,
     "vector_car_features": ["hull_position", "hull_angle", "car_speed"],
-    "vector_env_features": ["track_line", "track_polygon"]
+    "vector_env_features": []
   },
   "reward": {
     "track_checkpoint_expanding": 50,
