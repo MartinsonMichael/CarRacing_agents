@@ -162,9 +162,9 @@ class PPO_ICM:
         intrinsic_reward, intrinsic_loss = self._icm.get_intrinsic_reward_with_loss(
             state=states, action=actions, next_state=next_states, return_stats=False
         )
-        # icm_update_stat = self._icm.update(return_stat=True)
+        icm_update_stat = self._icm.update(return_stat=True)
 
-        # self.current_game_stats.update(icm_update_stat)
+        self.current_game_stats.update(icm_update_stat)
         self.current_game_stats.update({
             'intrinsic_reward MEAN': intrinsic_reward.mean(),
             'intrinsic_reward MAX': intrinsic_reward.max(),
@@ -172,7 +172,7 @@ class PPO_ICM:
             'discount_reward MAX': float(discount_reward.detach().cpu().numpy().max()),
         })
 
-        discount_reward = torch.from_numpy(intrinsic_reward).to(self.device)
+        discount_reward += torch.from_numpy(np.clip(intrinsic_reward, -3, 3)).to(self.device)
 
         sum_ppo_loss = 0.0
         for _ in range(self.hyperparameters['learning_updates_per_learning_session']):
@@ -188,11 +188,9 @@ class PPO_ICM:
             loss = -1 * torch.min(term_1, term_2) - 0.01 * new_entropy + 0.5 * self.mse(discount_reward, state_value)
             sum_ppo_loss += float(loss.mean().detach().cpu().numpy())
             self.optimizer.zero_grad()
-            (loss.mean() + intrinsic_loss).backward(retain_graph=True)
-            torch.nn.utils.clip_grad_norm_(
-                chain(self.ac.parameters(), self._icm.parameters()),
-                self.hyperparameters['gradient_clipping_norm'],
-            )
+            (loss.mean() + 0.5 * intrinsic_loss).backward(retain_graph=True)
+            torch.nn.utils.clip_grad_norm_(self.ac.parameters(), self.hyperparameters['gradient_clipping_norm'])
+            torch.nn.utils.clip_grad_norm_(self._icm.parameters(), 0.75)
             self.optimizer.step()
 
         self.current_game_stats.update({

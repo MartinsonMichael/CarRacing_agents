@@ -30,9 +30,9 @@ class ICM:
             device: str,
             buffer_size: int = 10**6,
             batch_size: int = 256,
-            update_per_step: int = 150,
+            update_per_step: int = 50,
             hidden_size: int = 40,
-            clipping_gradient_norm: float = 1.0,
+            clipping_gradient_norm: float = 0.75,
     ):
         self.device: str = device
         self.buffer_size: int = buffer_size
@@ -119,7 +119,7 @@ class ICM:
         if return_stats:
             stat['icm_forward_loss'] = float(forward_loss.detach().cpu().numpy().mean())
             stat['icm_inverse_loss'] = float(inverse_loss.detach().cpu().numpy().mean())
-            stat['icm_loss'] = float(loss.detach().cpu().numpy().mean())
+            stat['icm_full_loss'] = float(loss.detach().cpu().numpy().mean())
 
         if return_reward:
             if return_stats:
