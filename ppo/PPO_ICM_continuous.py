@@ -217,8 +217,6 @@ class PPO_ICM:
             self.episode_number % self.hyperparameters.get('animation_record_frequency', 1e6) == 0 and
             self.hyperparameters.get('record_animation', False)
         )
-        if record_anim:
-            self.env.visualize_next_episode()
 
         done = False
         self.episode_number += 1
@@ -234,7 +232,7 @@ class PPO_ICM:
             self.update_current_game_stats(reward, done, info)
 
             if record_anim:
-                images.append(self.env.get_true_picture())
+                images.append(self.env.render(full_image=True))
 
             total_reward += reward
             episode_len += 1

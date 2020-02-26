@@ -56,6 +56,10 @@ class DataSupporter:
         # index of image -> [dict of angle index -> [image] ]
         self._image_memory = {}
 
+        self.FULL_RENDER_COEFF = 0.5
+        self._render_back = None
+        self._true_image_memory = {}
+
         # print some statistics
         # print(f'count of car images: {self.car_image_count}')
         # print(f'count of track count: {self.track_count}')
@@ -158,7 +162,7 @@ class DataSupporter:
     def data(self):
         return self._data
 
-    def get_background(self):
+    def get_background(self, true_size=False):
         if self._sended_background is None:
             self._sended_background = cv2.resize(
                 self._background_image,
@@ -166,6 +170,15 @@ class DataSupporter:
                 fx=self._background_image_scale,
                 fy=self._background_image_scale,
             )
+        if true_size:
+            if self._render_back is None:
+                self._render_back = cv2.resize(
+                    self._background_image,
+                    None,
+                    fx=self.FULL_RENDER_COEFF,
+                    fy=self.FULL_RENDER_COEFF,
+                )
+            return self._render_back.copy()
         return self._sended_background.copy()
 
     def _load_car_images(self, cars_path):
@@ -202,7 +215,34 @@ class DataSupporter:
                 pass
                 # print(f'error while parsing car image source: {os.path.join(cars_path, folder)}')
 
-    def get_rotated_car_image(self, car):
+    def get_rotated_car_image(self, car, true_size=False):
+        if true_size:
+            if car.car_image.hashable_obj not in self._true_image_memory.keys():
+                self._true_image_memory[car.car_image.hashable_obj] = dict()
+            angle_index = car.angle_index
+            if angle_index in self._true_image_memory[car.car_image.hashable_obj].keys():
+                return self._true_image_memory[car.car_image.hashable_obj][angle_index]
+            masked_image = DataSupporter.rotate_image(
+                cv2.resize(
+                    car.car_image.image,
+                    None,
+                    fx=self.FULL_RENDER_COEFF,
+                    fy=self.FULL_RENDER_COEFF,
+                ),
+                car.angle_degree + 90,
+            )
+            car_mask_image = DataSupporter.rotate_image(
+                cv2.resize(
+                    car.car_image.mask,
+                    None,
+                    fx=self.FULL_RENDER_COEFF,
+                    fy=self.FULL_RENDER_COEFF,
+                ),
+                car.angle_degree + 90,
+            )
+            self._true_image_memory[car.car_image.hashable_obj][angle_index] = (masked_image, car_mask_image)
+            return self._true_image_memory[car.car_image.hashable_obj][angle_index]
+
         if car.car_image.hashable_obj not in self._image_memory.keys():
             self._image_memory[car.car_image.hashable_obj] = dict()
 

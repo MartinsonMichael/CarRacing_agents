@@ -148,9 +148,6 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
                 bot_car.destroy()
                 del bot_car
 
-    def visualize_next_episode(self):
-        self._need_draw_picture = True
-
     def reset(self, force=False):
         """
         recreate agent car and bots cars_full
@@ -336,11 +333,8 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
         self._static_env_state_cache = np.array(env_vector, dtype=np.float32)
         return self._static_env_state_cache.copy()
 
-    def get_true_picture(self) -> np.ndarray:
-        return self.picture_state
-
-    def render(self, mode='human') -> np.array:
-        background_image = self._data_loader.get_background()
+    def render(self, mode='human', full_image=False) -> np.array:
+        background_image = self._data_loader.get_background(true_size=full_image)
         background_mask = np.zeros(
             shape=(background_image.shape[0], background_image.shape[1]),
             dtype='uint8'
@@ -350,6 +344,7 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
             background_image,
             background_mask,
             self.car,
+            full_image=full_image,
         )
         # self.debug_draw_hull(background_image, self.car)
         for bot_car in self.bot_cars:
@@ -376,7 +371,7 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
             # self.debug_draw_restrictions(background_image)
         return background_image
 
-    def draw_car(self, background_image, background_mask, car: DummyCar):
+    def draw_car(self, background_image, background_mask, car: DummyCar, full_image=False):
         # check dimensions
         if background_image.shape[0] != background_mask.shape[0]:
             raise ValueError('background image and mask have different shape')
@@ -388,11 +383,14 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
             raise ValueError('car image and mask have different shape')
 
         # rotate car image and mask of car image, and compute bounds of rotated image
-        masked_image, car_mask_image = self._data_loader.get_rotated_car_image(car)
+        masked_image, car_mask_image = self._data_loader.get_rotated_car_image(car, true_size=full_image)
         bound_y, bound_x = masked_image.shape[:2]
 
         # car position in image coordinates (in pixels)
-        car_x, car_y = car.position_IMG * self._data_loader._background_image_scale
+        car_x, car_y = car.position_IMG * (
+            self._data_loader._background_image_scale
+            if not full_image else self._data_loader.FULL_RENDER_COEFF
+        )
 
         # bounds of car image on background image, MIN/MAX in a case of position near the background image boarder
         start_x = min(
@@ -445,9 +443,9 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
 
         cropped_image = (
             masked_image[
-            mask_start_y: mask_end_y,
-            mask_start_x: mask_end_x,
-            :,
+                mask_start_y: mask_end_y,
+                mask_start_x: mask_end_x,
+                :,
             ]
         )
         # back = background_image[start_y:end_y, start_x:end_x, :]
