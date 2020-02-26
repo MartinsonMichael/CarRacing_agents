@@ -30,7 +30,7 @@ class ICM:
             device: str,
             buffer_size: int = 10**6,
             batch_size: int = 256,
-            update_per_step: int = 80,
+            update_per_step: int = 150,
             hidden_size: int = 40,
             clipping_gradient_norm: float = 1.0,
     ):
