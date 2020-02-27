@@ -17,6 +17,7 @@ from common_agents_utils.logger import Logger
 
 class PPO:
     def __init__(self, config: Config):
+        raise ValueError('not in use, need update from PPO_ICM')
         self.name = config.name
         self.stat_logger: Logger = Logger(config, log_interval=config.hyperparameters.get('log_interval', 20))
         self.debug = config.debug

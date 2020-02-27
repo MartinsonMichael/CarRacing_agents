@@ -86,6 +86,8 @@ def main(args):
 
 
 if __name__ == '__main__':
+    raise ValueError('out of service')
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--debug',

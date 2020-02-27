@@ -37,6 +37,7 @@ def create_config(args):
         "env_settings_file_path": args.env_settings,
         "device": args.device,
         "env_settings": json.load(open(args.env_settings)),
+        "use_icm": args.icm,
 
         "save_frequency_episode": 500,
         "log_interval": 20,
@@ -70,10 +71,7 @@ def main(args):
         config=config.hyperparameters,
     )
 
-    if args.icm:
-        ppo_agent = PPO_ICM(config)
-    else:
-        ppo_agent = PPO(config)
+    ppo_agent = PPO_ICM(config)
 
     if args.load != 'none':
         print(f'load from {args.load}')
