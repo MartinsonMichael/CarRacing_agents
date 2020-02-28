@@ -188,7 +188,7 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
         attempts = 0
         while True:
             track = DataSupporter.do_with_points(
-                self._data_loader.peek_track(is_for_agent=False, expand_points=100),
+                self._data_loader.peek_track(is_for_agent=False, expand_points=50),
                 self._data_loader.convertIMG2PLAY,
             )
             collided_indexes = self.initial_track_check(track)
@@ -255,6 +255,11 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
 
         for index, bot_car in enumerate(self.bot_cars):
             bot_car.update_stats()
+
+            print(f'BOT {index}')
+            print(bot_car.stats)
+            print()
+
             if bot_car.stats['is_finish'] or bot_car.stats['is_out_of_road'] or bot_car.stats['is_out_of_map']:
                 bot_car.destroy()
                 del bot_car
@@ -352,6 +357,7 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
                 background_image,
                 background_mask,
                 bot_car,
+                full_image=full_image,
             )
             if mode == 'debug':
                 self.debug_draw_track(

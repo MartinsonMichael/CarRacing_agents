@@ -349,9 +349,10 @@ class DummyCar:
                         self._state_data['is_on_cross_road'] = True
                         break
 
-            if not self._state_data['is_out_of_track']:
-                if not self.track['polygon'].contains(wheel_position):
-                    self._state_data['is_out_of_track'] = True
+            if not self.is_bot:
+                if not self._state_data['is_out_of_track']:
+                    if not self.track['polygon'].contains(wheel_position):
+                        self._state_data['is_out_of_track'] = True
 
         # update track progress
         self._update_track_point()

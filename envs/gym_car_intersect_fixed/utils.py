@@ -47,11 +47,14 @@ class DataSupporter:
         # list of car images
         self._cars: List[CarImage] = []
         self._load_car_images(self._settings['cars_path'])
+
         # list of tracks
-        self._tracks: List[Dict[str, Union[np.ndarray, Polygon]]] = []
-        self._agent_track_list = []
-        self._bot_track_list = []
+        self._tracks: Dict[int, Dict[str, Union[np.ndarray, Polygon]]] = {}
+        self._bot_tracks: Dict[int, Dict[str, Union[np.ndarray, Polygon]]] = {}
+        self._agent_track_list = self._settings['agent_tracks']
+        self._bot_track_list = self._settings['bots_tracks']
         self._extract_tracks()
+        self._extract_bot_tracks()
 
         # index of image -> [dict of angle index -> [image] ]
         self._image_memory = {}
@@ -321,16 +324,22 @@ class DataSupporter:
                 print(f'skip track index index {index}')
                 continue
 
-            # fill inner indexes for preset track indexes
-            if index in self._settings['agent_tracks'] or len(self._settings['agent_tracks']) == 0:
-                self._agent_track_list.append(len(self._tracks))
-            if index in self._settings['bots_tracks'] or len(self._settings['bots_tracks']) == 0:
-                self._bot_track_list.append(len(self._tracks))
-
-            self._tracks.append({
+            self._tracks[int(index)] = {
                 'polygon': Polygon(self.convertIMG2PLAY(track_polygons[index])),
                 'line': track_line,
-            })
+            }
+
+    def _extract_bot_tracks(self):
+        """
+        Technical function for track loading.
+        """
+        for item in self._data.get_polylines(0):
+            if item['label'] != 'bot_track_line':
+                continue
+            self._bot_tracks[int(item['attributes']['index'])] = {
+                'polygon': None,
+                'line': np.array(item['points']),
+            }
 
     @staticmethod
     def _dist(pointA, pointB) -> float:
@@ -395,12 +404,14 @@ class DataSupporter:
         """
         if is_for_agent:
             index = np.random.choice(self._agent_track_list)
-        if not is_for_agent:
+            track = self._tracks[index]
+        else:
             index = np.random.choice(self._bot_track_list)
+            track = self._bot_tracks[index]
 
         if expand_points is not None:
-            return DataSupporter._expand_track(self._tracks[index], expand_points)
-        return self._tracks[index]
+            return DataSupporter._expand_track(track, expand_points)
+        return track
 
     @staticmethod
     def dist(pointA: np.array, pointB: np.array) -> float:

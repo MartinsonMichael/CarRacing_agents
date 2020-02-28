@@ -67,7 +67,7 @@ def main():
     time.sleep(3.0)
 
     viewer = SimpleImageViewer()
-    viewer.imshow(env.get_true_picture())
+    viewer.imshow(env.env.render(full_image=True))
     viewer.window.on_key_press = key_press
     viewer.window.on_key_release = key_release
     # while True:
@@ -87,7 +87,7 @@ def main():
         print(info)
 
         steps += 1
-        viewer.imshow(env.get_true_picture())
+        viewer.imshow(env.render(full_image=True))
 
         if done or restart or info.get('need_reset', False):
             print('restart')
