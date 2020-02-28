@@ -130,7 +130,7 @@ class StateLayer(nn.Module):
 
         if isinstance(state_description, (spaces.Dict, dict)):
             if 'picture' in state_description.keys() and state_description['picture'] is not None:
-                self._picture_layer = PictureProcessor(device=self._device)
+                self._picture_layer: PictureProcessor = PictureProcessor(device=self._device)
                 self._state_layer_out_size += self._picture_layer.get_out_shape_for_in(
                     state_description['picture']
                 )
@@ -144,7 +144,7 @@ class StateLayer(nn.Module):
 
         if isinstance(state_description, spaces.Box):
             if len(state_description.shape) == 3:
-                self._picture_layer = PictureProcessor(state_description.shape[0], device=self._device)
+                self._picture_layer: PictureProcessor = PictureProcessor(state_description.shape[0], device=self._device)
                 self._state_layer_out_size = self._picture_layer.get_out_shape_for_in(
                     state_description.shape
                 )

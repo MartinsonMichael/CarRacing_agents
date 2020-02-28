@@ -2,11 +2,24 @@
   "name": "Basic, straight line",
   "cars_path": "envs/gym_car_intersect_fixed/env_data/cars",
   "background_path": "envs/gym_car_intersect_fixed/env_data/tracks/background_image_1520_1520.jpg",
-  "annotation_path": "envs/gym_car_intersect_fixed/env_data/tracks/200_mmd_CarRacing_sq.xml",
-  "agent_tracks" : ["0"],
+  "annotation_path": "envs/gym_car_intersect_fixed/env_data/tracks/CarRacing_sq_extended_v2.0.xml",
+  "TRACK_USER_INFO_NOT_A_SETTINGS": {
+    "agent_track": {
+      "0": "line",
+      "1": "small rotate",
+      "2": "rotate over line"
+    },
+    "agent_image_indexes": "use just 0, it works fine",
+    "bot_track": {
+      "0": "up-down line, cross all agent tracks",
+      "1": "left-right line, cross only '2' agent track",
+      "bot_number": "just number of bot which will appear in a single moment"
+    }
+  },
+  "agent_tracks" : [1],
   "agent_image_indexes": [0],
   "bot_number" : 0,
-  "bots_tracks": [],
+  "bots_tracks": [0, 1],
   "image_scale": {
     "back_image_scale_factor": 0.12,
     "car_image_scale_factor": 0.1
@@ -16,8 +29,8 @@
     "angle_steer_multiplication": 5.0
   },
   "state_config": {
-    "picture": false,
-    "vector_car_features": ["hull_position", "hull_angle", "car_speed"],
+    "picture": true,
+    "vector_car_features": [],
     "vector_env_features": []
   },
   "reward": {
