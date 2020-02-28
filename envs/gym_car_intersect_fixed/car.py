@@ -206,8 +206,8 @@ class DummyCar:
         state = []
         self.update_stats()
         CAR_FEATURES = {
-            'hull_position', 'hull_angle', 'car_speed', 'wheels_positions', 'track_sensor',
-            'road_sensor', 'finish_sensor',
+            'hull_position', 'hull_angle', 'car_speed', 'wheels_positions',
+            'track_sensor', 'road_sensor', 'finish_sensor', 'cross_road_sensor'
         }
         if len(set(self.data_loader.car_features_list) - CAR_FEATURES) > 0:
             raise ValueError(
@@ -240,6 +240,9 @@ class DummyCar:
 
         if 'track_sensor' in self.data_loader.car_features_list:
             state.append(1.0 if self._state_data['is_out_of_track'] else 0.0)
+
+        if 'cross_road_sensor' in self.data_loader.car_features_list:
+            state.append(1.0 if self._state_data['is_on_cross_road'] else 0.0)
 
         if 'road_sensor' in self.data_loader.car_features_list:
             state.append(
