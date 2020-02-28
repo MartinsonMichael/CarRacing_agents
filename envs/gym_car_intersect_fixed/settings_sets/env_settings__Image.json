@@ -16,7 +16,7 @@
       "bot_number": "just number of bot which will appear in a single moment"
     }
   },
-  "agent_tracks" : [1],
+  "agent_tracks" : [0],
   "agent_image_indexes": [0],
   "bot_number" : 0,
   "bots_tracks": [0, 1],
