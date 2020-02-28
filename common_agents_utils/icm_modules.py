@@ -1,6 +1,6 @@
 import itertools
 from collections import defaultdict
-from typing import Dict, Any, Union, Tuple, Iterable, Optional
+from common_agents_utils.typingTypes import *
 import numpy as np
 
 import torch
@@ -10,15 +10,6 @@ from gym import spaces
 
 from common_agents_utils.replay_buffer_2 import Torch_Arbitrary_Replay_Buffer
 from common_agents_utils.torch_gym_modules import ActionLayer, StateLayer, make_it_batched_torch_tensor
-
-TT = torch.Tensor
-NpA = np.ndarray
-npTT = Union[TT, NpA]
-StatType = Dict[str, Any]
-TTStat = Tuple[TT, StatType]
-NpAStat = Tuple[NpA, StatType]
-NpAOrNpAStat = Union[NpA, NpAStat]
-TTOrTTStat = Union[TT, TTStat]
 
 
 class ICM:
@@ -158,11 +149,11 @@ class ICM:
         loss = (forward_loss + inverse_loss).mean()
 
         if return_stats:
-            stat = {
-                'icm_inverse_loss': inverse_loss.detach().cpu().numpy().mean(),
-                'icm_forward_loss': forward_loss.detach().cpu().numpy().mean(),
-                'icm_full_loss': loss.detach().cpu().numpy().mean(),
-            }
+            # stat = {
+            #     'icm_inverse_loss': inverse_loss.detach().cpu().numpy().mean(),
+            #     'icm_forward_loss': forward_loss.detach().cpu().numpy().mean(),
+            #     'icm_full_loss': loss.detach().cpu().numpy().mean(),
+            # }
             return inverse_loss.view(-1, 1).detach().cpu().numpy(), loss, {}
         else:
             return inverse_loss.view(-1, 1).detach().cpu().numpy(), loss
@@ -207,22 +198,15 @@ class StateEncoder(nn.Module):
 
         self._state: StateLayer = StateLayer(state_description, hidden_size, device)
         hidden_max = self._state.get_out_shape_for_in()
-        self._dense_1 = nn.Linear(
-            in_features=hidden_max,
+        self._dense_2 = nn.Linear(
+            in_features=int(hidden_max),
             out_features=int(hidden_max / 2),
         ).to(device)
-        self._dense_2 = nn.Linear(
-            in_features=int(hidden_max / 2),
-            out_features=int(hidden_max / 4),
-        ).to(device)
-        self.head = nn.Linear(int(hidden_max / 4), encoded_size).to(device)
+        self.head = nn.Linear(int(hidden_max / 2), encoded_size).to(device)
 
     def forward(self, state: npTT, return_stats: bool = False) -> TTOrTTStat:
         x = make_it_batched_torch_tensor(state, device=self.device)
-        # if self._use_batch_normalize:
-        #     x = nn.BatchNorm2d()(x)
         x = F.relu(self._state(x))
-        x = F.relu(self._dense_1(x))
         x = F.relu(self._dense_2(x))
         x = self.head(x)
 

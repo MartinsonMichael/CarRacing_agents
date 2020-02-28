@@ -1,14 +1,9 @@
-from typing import Dict, Any, Union, Tuple
+from common_agents_utils.typingTypes import *
 
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from gym import spaces
-
-npa = np.ndarray
-TT = torch.Tensor
-npTT = Union[npa, TT]
 
 
 def process_kwargs(tensor: TT, **kwargs) -> npTT:
@@ -115,74 +110,82 @@ class PictureProcessor(nn.Module):
 
 
 class StateLayer(nn.Module):
-    def __init__(self, state_description: Union[spaces.Dict, spaces.Box], hidden_size, device):
+    def __init__(
+            self, state_description: Union[spaces.Dict, spaces.Box],
+            hidden_size: int,
+            device: str,
+            activation_for_picture: Optional = None,
+    ):
         assert isinstance(state_description, (spaces.Dict, spaces.Box)), \
             "state_description must be spaces.Dict or spaces.Box"
         super(StateLayer, self).__init__()
         self._device = device
 
-        self._state_layer_out_size = 0
+        self.hidden_size = hidden_size
+        self.activation_for_picture = activation_for_picture
 
         self._picture_layer = None
+        self._picture_head = None
         self._vector_layer = None
 
         print(f'StateLayer -> state_description : {state_description}')
 
         if isinstance(state_description, (spaces.Dict, dict)):
-            if 'picture' in state_description.keys() and state_description['picture'] is not None:
-                self._picture_layer: PictureProcessor = PictureProcessor(device=self._device)
-                self._state_layer_out_size += self._picture_layer.get_out_shape_for_in(
-                    state_description['picture']
-                )
-
-            if 'vector' in state_description.keys() and state_description['vector'] is not None:
-                self._vector_layer = nn.Linear(in_features=state_description['vector'], out_features=hidden_size)
-                self._vector_layer.to(self._device)
-                torch.nn.init.xavier_uniform_(self._vector_layer.weight)
-                torch.nn.init.constant_(self._vector_layer.bias, 0)
-                self._state_layer_out_size += hidden_size
+            raise ValueError('State layer dont support Dict now :(')
 
         if isinstance(state_description, spaces.Box):
             if len(state_description.shape) == 3:
-                self._picture_layer: PictureProcessor = PictureProcessor(state_description.shape[0], device=self._device)
-                self._state_layer_out_size = self._picture_layer.get_out_shape_for_in(
-                    state_description.shape
-                )
+                self._init_picture_layers(state_description.shape)
+
             if len(state_description.shape) == 1:
-                self._vector_layer = nn.Linear(in_features=state_description.shape[0], out_features=hidden_size)
-                self._vector_layer.to(self._device)
-                torch.nn.init.xavier_uniform_(self._vector_layer.weight)
-                torch.nn.init.constant_(self._vector_layer.bias, 0)
-                self._state_layer_out_size += hidden_size
+                self._init_vector_layer(state_description.shape[0])
+
+    def _init_picture_layers(self, input_shape):
+        self._picture_layer: PictureProcessor = PictureProcessor(input_shape[0], device=self._device)
+        self._picture_head = nn.Linear(
+            in_features=self._picture_layer.get_out_shape_for_in(input_shape),
+            out_features=self.hidden_size,
+        )
+        self._picture_head.to(self._device)
+        torch.nn.init.xavier_uniform_(self._picture_head.weight)
+        torch.nn.init.constant_(self._picture_head.bias, 0)
+
+    def _init_vector_layer(self, input_size):
+        self._vector_layer = nn.Linear(in_features=input_size, out_features=self.hidden_size).to(self._device)
+        torch.nn.init.xavier_uniform_(self._vector_layer.weight)
+        torch.nn.init.constant_(self._vector_layer.bias, 0)
 
     def get_out_shape_for_in(self):
-        return self._state_layer_out_size
+        return self.hidden_size
 
-    def forward_picture(self, state: torch.Tensor, return_stats: bool = False):
-        return self._picture_layer(state, return_stats)
+    def forward_picture(self, state: torch.Tensor, return_stats: bool = False) -> TTOrTTStat:
+        stat = {}
+        if return_stats:
+            x, stat = self._picture_layer(state, return_stats=True)
+        else:
+            x = self._picture_layer(state, return_stats=False)
 
-    def forward_vector(self, state: torch.Tensor, return_stats: bool = False):
+        if self.activation_for_picture is not None:
+            x = self.activation_for_picture(x)
+        x = self._picture_head(x)
+
+        if return_stats:
+            return x, stat
+        return x
+
+    def forward_vector(self, state: torch.Tensor, return_stats: bool = False) -> TTOrTTStat:
         if return_stats:
             return self._vector_layer(state), {}
         else:
             return self._vector_layer(state)
 
-    def forward(
-            self,
-            state: Union[Dict[str, torch.FloatTensor], torch.FloatTensor],
-            return_stats: bool = False,
-    ):
+    def forward(self, state: npTT, return_stats: bool = False) -> TTOrTTStat:
         state = make_it_batched_torch_tensor(state, self._device)
 
-        if isinstance(state, dict):
-            raise ValueError('add dict to StateLayer!')
-            # return self.forward_dict(state)
-
-        if isinstance(state, (torch.FloatTensor, torch.Tensor)):
-            if len(state.shape) == 4:
-                return self.forward_picture(state, return_stats)
-            if len(state.shape) == 2:
-                return self.forward_vector(state, return_stats)
+        if len(state.shape) == 4:
+            return self.forward_picture(state, return_stats)
+        if len(state.shape) == 2:
+            return self.forward_vector(state, return_stats)
 
         print('state')
         print(f'state type : {type(state)}')

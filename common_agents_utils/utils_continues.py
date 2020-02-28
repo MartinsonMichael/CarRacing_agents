@@ -1,18 +1,14 @@
-from typing import Dict, Any, Union, Tuple, Type, Optional
+from common_agents_utils.typingTypes import *
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from gym import spaces
 from torch.distributions import Normal
 
-from common_agents_utils.torch_gym_modules import StateLayer, get_activated_ratio, make_it_batched_torch_tensor, \
-    process_kwargs
-
-npa = np.ndarray
-TT = torch.Tensor
-npTT = Union[npa, TT]
+from common_agents_utils.torch_gym_modules import \
+    StateLayer, \
+    get_activated_ratio, make_it_batched_torch_tensor, process_kwargs
 
 
 class QNet(nn.Module):
@@ -33,10 +29,7 @@ class QNet(nn.Module):
         torch.nn.init.xavier_uniform_(self._dense_a.weight)
         torch.nn.init.constant_(self._dense_a.bias, 0)
 
-        self._dense2 = nn.Linear(
-            in_features=hidden_size + self._state_layer.get_out_shape_for_in(),
-            out_features=hidden_size,
-        ).to(self._device)
+        self._dense2 = nn.Linear(in_features=2 * hidden_size, out_features=hidden_size).to(self._device)
         torch.nn.init.xavier_uniform_(self._dense2.weight)
         torch.nn.init.constant_(self._dense2.bias, 0)
 
@@ -75,36 +68,37 @@ class ValueNet(nn.Module):
 
         State[vector with shape of len 1 or 3] -> Advantage[single number]
     """
-    def __init__(self, state_description: Union[spaces.Dict, spaces.Box], action_size, hidden_size, device):
+    def __init__(
+            self,
+            state_description: Union[spaces.Dict, spaces.Box],
+            hidden_size: int,
+            device: str,
+    ):
         assert isinstance(state_description, (spaces.Dict, spaces.Box)), \
             "state_description must be spaces.Dict or spaces.Box"
         super(ValueNet, self).__init__()
         self._device = device
 
-        self._state_layer = StateLayer(state_description, hidden_size, device)
-
-        self._dense2 = nn.Linear(in_features=hidden_size,out_features=hidden_size).to(self._device)
-        torch.nn.init.xavier_uniform_(self._dense2.weight)
-        torch.nn.init.constant_(self._dense2.bias, 0)
+        self._state_layer = StateLayer(
+            state_description=state_description,
+            hidden_size=hidden_size,
+            device=device,
+            activation_for_picture=F.leaky_relu
+        )
 
         self._head1 = nn.Linear(in_features=hidden_size, out_features=1).to(self._device)
         torch.nn.init.xavier_uniform_(self._head1.weight)
         torch.nn.init.constant_(self._head1.bias, 0)
 
-    def forward(self, state, return_stats: bool = False):
+    def forward(self, state, return_stats: bool = False) -> TTOrTTStat:
         if not return_stats:
             x = self._state_layer(state)
-            x = F.leaky_relu(self._dense2(x))
             x = self._head1(x)
             return x
         else:
             stats = {}
             x, state_stats = self._state_layer(state, True)
             stats['state_proc'] = state_stats
-            x = F.leaky_relu(self._dense2(x))
-            stats['dense2'] = {
-                'was activated': get_activated_ratio(x),
-            }
             x = self._head1(x)
             return x, stats
 
@@ -118,8 +112,12 @@ class Policy(nn.Module):
         State[vector with shape of len 1 or 3] -> Policy[2 * actoin_size numbers (or just action_size numbers)]
     """
     def __init__(
-            self, state_description: Union[spaces.Dict, spaces.Box], action_size, hidden_size, device,
-            double_action_size_on_output=True
+            self,
+            state_description: Union[spaces.Dict, spaces.Box],
+            action_size: int,
+            hidden_size: int,
+            device: str,
+            double_action_size_on_output: bool = True,
     ):
         assert isinstance(state_description, (spaces.Dict, spaces.Box)), \
             "state_description must be spaces.Dict or spaces.Box"
@@ -127,11 +125,12 @@ class Policy(nn.Module):
         self._device = device
         self._action_size = action_size
 
-        self._state_layer: StateLayer = StateLayer(state_description, hidden_size, device)
-
-        self._dense2 = nn.Linear(in_features=self._state_layer.get_out_shape_for_in(), out_features=hidden_size).to(self._device)
-        torch.nn.init.xavier_uniform_(self._dense2.weight)
-        torch.nn.init.constant_(self._dense2.bias, 0)
+        self._state_layer: StateLayer = StateLayer(
+            state_description,
+            hidden_size,
+            device,
+            activation_for_picture=F.leaky_relu
+        )
 
         self._head = nn.Linear(
             in_features=hidden_size,
@@ -143,25 +142,25 @@ class Policy(nn.Module):
     def forward(self, state, return_stats: bool = False):
         if not return_stats:
             x = self._state_layer(state)
-            x = F.leaky_relu(self._dense2(x))
             x = self._head(x)
             return x
         else:
             stats = {}
             x, state_stats = self._state_layer(state, True)
             stats['state_proc'] = state_stats
-            x = F.leaky_relu(self._dense2(x))
-            stats['dense2'] = {
-                'was activated': get_activated_ratio(x)
-            }
             x = self._head(x)
             return x, stats
 
 
 class ActorCritic(nn.Module):
     def __init__(
-            self, state_description: Union[spaces.Dict, spaces.Box], action_size: int, hidden_size: int, device: str,
-            double_action_size_on_output=True, action_std=Optional[float],
+            self,
+            state_description: Union[spaces.Dict, spaces.Box],
+            action_size: int,
+            hidden_size: int,
+            device: str,
+            double_action_size_on_output: bool = True,
+            action_std=Optional[float],
     ):
         assert isinstance(state_description, (spaces.Dict, spaces.Box)), \
             "state_description must be spaces.Dict or spaces.Box"
@@ -174,16 +173,15 @@ class ActorCritic(nn.Module):
         if self.action_std is None and not self.double_action_size_on_output:
             raise ValueError("provide one of 'action_std', 'double_action_size_on_output'")
 
-        self.actor = Policy(
+        self.actor: Policy = Policy(
             state_description=state_description,
             action_size=self.action_size,
             device=self.device,
             hidden_size=hidden_size,
             double_action_size_on_output=self.double_action_size_on_output,
         )
-        self.critic = ValueNet(
+        self.critic: ValueNet = ValueNet(
             state_description=state_description,
-            action_size=self.action_size,
             device=self.device,
             hidden_size=hidden_size,
         )
@@ -221,12 +219,3 @@ class ActorCritic(nn.Module):
 
     def forward(self, **kwargs: Any):
         raise NotImplemented
-
-    # def forward(self, state)\
-    #         -> Union[Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
-    #     value = self.critic(state)
-    #     action_out = self.actor(state)
-    #     if self.double_action_size_on_output:
-    #         return value, action_out[:, self.action_size:], action_out[:, :self.action_size]
-    #     else:
-    #         return value, action_out
