@@ -92,10 +92,10 @@ class Torch_Arbitrary_Replay_Buffer(object):
         exp = [self._unwrap(kwargs[name]) for name in self.sample_order]
 
         if self._sample_converter.__len__() != 0:
-            exp = [self._converter(value, name) for value, name in zip(self.sample_order, exp)]
+            exp = [self._converter(value, name) for name, value in zip(self.sample_order, exp)]
 
         if self._check_type_dict.__len__() == 0:
-            for value, name in zip(self.sample_order, exp):
+            for name, value in zip(self.sample_order, exp):
                 self._type_checker(value, name)
 
         self.memory.append(self.experience(*exp))
