@@ -47,7 +47,9 @@ class PPO_ICM:
                 action_size=action_size,
                 encoded_state_size=100,
                 device=self.device,
-                batch_size=256,
+                buffer_size=10**6 if self.hyperparameters['mode'] == 'vector' else 10**5,
+                hidden_size=40 if self.hyperparameters['mode'] == 'vector' else 256,
+                batch_size=256 if self.hyperparameters['mode'] == 'vector' else 64,
             )
         else:
             self._icm = None

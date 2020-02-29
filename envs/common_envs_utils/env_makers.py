@@ -78,9 +78,6 @@ def make_CarRacing_fixed_image_features(settings_path: str, name: Optional[str] 
         if discrete_wrapper is not None:
             env = discrete_wrapper(env)
 
-        env = chainerrl.wrappers.ContinuingTimeLimit(env, max_episode_steps=300)
-        env._max_episode_steps = 300
-
         if name is not None:
             env.name = name
 

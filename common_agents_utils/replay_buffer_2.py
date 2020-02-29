@@ -1,6 +1,6 @@
 from collections import namedtuple, deque
 import random
-from typing import Tuple
+from typing import Tuple, Dict, Callable, Any, Type
 import torch
 import numpy as np
 
@@ -18,23 +18,22 @@ class Torch_Arbitrary_Replay_Buffer(object):
             self, buffer_size, device,
             sample_order=['state', 'action', 'reward', 'next_state', 'done'], **kwargs
     ):
-        self.separate_state = kwargs.get('separate_state', False)
-        if self.separate_state:
-            raise NotImplemented
-            # assert 'state_extractor' in kwargs.keys() and 'state_producer' in kwargs.keys(),\
-            #     "if separate_state=True state_extractor and state_producer should be provided"
-            # self._state_extractor = kwargs.get('state_extractor', lambda x: (None, x))
-            # self._state_producer = kwargs.get('state_producer', lambda x, y: y)
+        # self.separate_state = kwargs.get('separate_state', False)
+        # if self.separate_state:
+        #     raise NotImplemented
 
         self.sample_order = sample_order
-
         self.memory = deque(maxlen=buffer_size)
+        self.experience = namedtuple("Experience", field_names=self.sample_order)
+
+        self._auto = kwargs.get('do_it_auto', True)
+        self._auto_was_inited: bool = False
         self.batch_size = kwargs.get('batch_size', 64)
-        self.experience = namedtuple(
-            "Experience",
-            field_names=self.sample_order
-        )
         self.seed = random.seed(kwargs.get('seed', 42))
+        self._sample_converter: Dict[str, Callable[[Any], Any]] = kwargs.get('sample_converter', {})
+        self._sample_deconverter: Dict[str, Callable[[Any], Any]] = kwargs.get('sample_deconverter', {})
+        self._check_type_dict: Dict[str, Any] = kwargs.get('check_type_dict', {})
+
         self.device = device
 
     def add_experience(self, is_single=True, **kwargs):
@@ -43,7 +42,21 @@ class Torch_Arbitrary_Replay_Buffer(object):
             for values in zip(*[kwargs[name] for name in self.sample_order]):
                 self._add_single_experience(**{name: value for name, value in zip(self.sample_order, values)})
         else:
+            if self._auto and not self._auto_was_inited:
+                self._init_auto(**kwargs)
             self._add_single_experience(**kwargs)
+
+    def _init_auto(self, **kwargs) -> None:
+        self._auto_was_inited = True
+        for name, _value in kwargs.items():
+            value = self._unwrap(_value)
+            if name.startswith('state') or name.endswith('state'):
+                if len(value.shape) == 3:
+                    self._sample_converter[name] = lambda x: np.array(x * 255).astype(np.uint8)
+                    self._sample_deconverter[name] = lambda x: np.array(x).astype(np.float32) / 255
+                    self._check_type_dict[name] = np.uint8
+                if len(value.shape) == 1:
+                    self._check_type_dict[name] = np.float32
 
     def _unwrap(self, item):
         if isinstance(item, (int, float, bool, np.float32, np.bool, np.int32)):
@@ -63,10 +76,29 @@ class Torch_Arbitrary_Replay_Buffer(object):
             f'content : {item}\n'
         )
 
+    def _type_checker(self, value, name: str):
+        if name in self._check_type_dict.keys():
+            assert type(value) == self._check_type_dict[name], \
+                f"You pass value check for {name}, BUT!\n"\
+                f"it must be {self._check_type_dict[name]}\n"\
+                f"you pass {type(value)}"
+
+    def _converter(self, value, name: str):
+        if name in self._sample_converter.keys():
+            return self._sample_converter[name](value)
+        return value
+
     def _add_single_experience(self, **kwargs):
-        self.memory.append(self.experience(*[
-            self._unwrap(kwargs[name]) for name in self.sample_order
-        ]))
+        exp = [self._unwrap(kwargs[name]) for name in self.sample_order]
+
+        if self._sample_converter.__len__() != 0:
+            exp = [self._converter(value, name) for value, name in zip(self.sample_order, exp)]
+
+        if self._check_type_dict.__len__() == 0:
+            for value, name in zip(self.sample_order, exp):
+                self._type_checker(value, name)
+
+        self.memory.append(self.experience(*exp))
 
     def _prepare_row_of_samples(self, experiences, attribute_name) -> torch.Tensor:
         return torch.from_numpy(
