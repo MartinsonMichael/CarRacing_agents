@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from common_agents_utils import Config, Torch_Separated_Replay_Buffer, ActorCritic, ICM
+from common_agents_utils import Config, Torch_Separated_Replay_Buffer, ActorCritic, ICM, Torch_Arbitrary_Replay_Buffer
 from common_agents_utils.logger import Logger
 from envs.common_envs_utils.visualizer import save_as_mp4
 
@@ -28,15 +28,23 @@ class PPO_ICM:
         self._config = config
         self.create_env(config)
 
-        self.memory = Torch_Separated_Replay_Buffer(
-            buffer_size=10 ** 4,  # useless, it will be flushed frequently
-            batch_size=10 ** 4,  # useless, it will be flushed frequently
-            seed=0,
+        self.memory: Torch_Arbitrary_Replay_Buffer = Torch_Arbitrary_Replay_Buffer(
+            buffer_size=10**4,
             device=self.device,
-            state_extractor=lambda x: (None, x),
-            state_producer=lambda x, y: y,
+            batch_size=10**4,
+            seed=0,
             sample_order=['state', 'action', 'reward', 'log_prob', 'done', 'next_state'],
         )
+
+        # self.memory = Torch_Separated_Replay_Buffer(
+        #     buffer_size=10 ** 4,  # useless, it will be flushed frequently
+        #     batch_size=10 ** 4,  # useless, it will be flushed frequently
+        #     seed=0,
+        #     device=self.device,
+        #     state_extractor=lambda x: (None, x),
+        #     state_producer=lambda x, y: y,
+        #     sample_order=['state', 'action', 'reward', 'log_prob', 'done', 'next_state'],
+        # )
 
         state_description = self.test_env.observation_space
         action_size = self.test_env.action_space.shape[0]
@@ -256,7 +264,12 @@ class PPO_ICM:
             episode_len += 1
 
             self.memory.add_experience(
-                state, action, reward, next_state, done, log_prob
+                state=state,
+                action=action,
+                reward=reward,
+                next_state=next_state,
+                done=done,
+                log_prob=log_prob,
             )
             state = next_state
 
