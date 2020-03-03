@@ -122,7 +122,7 @@ class Torch_Arbitrary_Replay_Buffer(object):
 
         self.memory.append(self.experience(*exp))
 
-    def _prepare_row_of_samples(self, experiences, attribute_name) -> TT:
+    def _prepare_row_of_samples(self, experiences, attribute_name: str) -> TT:
         return torch.from_numpy(
             np.array([
                 self._deconverter(e.__getattribute__(attribute_name), attribute_name)
@@ -161,8 +161,6 @@ class Torch_Arbitrary_Replay_Buffer(object):
 
     def remove_all(self) -> None:
         self.memory.clear()
-
-    clean_all_buffer = remove_all
 
     def get_all(self, sample_order=None) -> Tuple[TT]:
         if sample_order is None:

@@ -107,13 +107,6 @@ class ICM:
         encoded_next_state = self._encoder(next_state)
 
         predicted_action = self._inverse(encoded_state, encoded_next_state)
-
-        # print('predicted_action')
-        # print(predicted_action[:10, :])
-        #
-        # print('real actions')
-        # print(_action[:10, :])
-
         inverse_loss = ((_action.detach() - predicted_action)**2).mean(dim=1)
 
         predicted_encoded_next_state = self._forward(encoded_state, _action)
@@ -136,9 +129,16 @@ class InverseDynamicModel(nn.Module):
         super(InverseDynamicModel, self).__init__()
 
         self._state = nn.Linear(state_size, hidden_size).to(device)
+        torch.nn.init.xavier_uniform_(self._state.weight)
+        torch.nn.init.constant_(self._state.bias, 0)
+
         self._next_state = nn.Linear(state_size, hidden_size).to(device)
-        self._dense_1 = nn.Linear(hidden_size * 2, hidden_size).to(device)
-        self.head = nn.Linear(hidden_size, action_size).to(device)
+        torch.nn.init.xavier_uniform_(self._next_state.weight)
+        torch.nn.init.constant_(self._next_state.bias, 0)
+
+        self.head = nn.Linear(2*hidden_size, action_size).to(device)
+        torch.nn.init.xavier_uniform_(self.head.weight)
+        torch.nn.init.constant_(self.head.bias, 0)
 
     def forward(self, state: npTT, next_state: npTT, return_stats: bool = False) -> TTOrTTStat:
         assert state.shape == next_state.shape
@@ -167,11 +167,14 @@ class StateEncoder(nn.Module):
 
         self._state: StateLayer = StateLayer(state_description, hidden_size, device)
         hidden_max = self._state.get_out_shape_for_in()
-        self._dense_2 = nn.Linear(
-            in_features=int(hidden_max),
-            out_features=int(hidden_max / 2),
-        ).to(device)
+
+        self._dense_2 = nn.Linear(int(hidden_max), int(hidden_max / 2)).to(device)
+        torch.nn.init.xavier_uniform_(self._dense_2.weight)
+        torch.nn.init.constant_(self._dense_2.bias, 0)
+
         self.head = nn.Linear(int(hidden_max / 2), encoded_size).to(device)
+        torch.nn.init.xavier_uniform_(self.head.weight)
+        torch.nn.init.constant_(self.head.bias, 0)
 
     def forward(self, state: npTT, return_stats: bool = False) -> TTOrTTStat:
         x = make_it_batched_torch_tensor(state, device=self.device)
@@ -195,12 +198,16 @@ class ForwardDynamicModel(nn.Module):
         super(ForwardDynamicModel, self).__init__()
 
         self._state = nn.Linear(state_size, hidden_size).to(device)
-        self._action: ActionLayer = ActionLayer(action_size, hidden_size, device)
+        torch.nn.init.xavier_uniform_(self._state.weight)
+        torch.nn.init.constant_(self._state.bias, 0)
 
-        self._dense_1 = nn.Linear(
-            in_features=hidden_size * 2,
-            out_features=hidden_size,
-        ).to(device)
+        self._action: ActionLayer = ActionLayer(action_size, hidden_size, device)
+        torch.nn.init.xavier_uniform_(self._action.weight)
+        torch.nn.init.constant_(self._action.bias, 0)
+
+        self._dense_1 = nn.Linear(hidden_size * 2, hidden_size).to(device)
+        torch.nn.init.xavier_uniform_(self._dense_1.weight)
+        torch.nn.init.constant_(self._dense_1.bias, 0)
         self.head = nn.Linear(hidden_size, state_size).to(device)
 
     def forward(self, state: npTT, action: npTT, return_stats: bool = False) -> TTOrTTStat:

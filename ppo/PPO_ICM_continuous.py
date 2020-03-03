@@ -55,7 +55,7 @@ class PPO_ICM:
                 action_size=action_size,
                 encoded_state_size=100,
                 device=self.device,
-                buffer_size=10**6 if self.hyperparameters['mode'] == 'vector' else 10**5,
+                buffer_size=10**6 if self.hyperparameters['mode'] == 'vector' else 5*10**4,
                 hidden_size=40 if self.hyperparameters['mode'] == 'vector' else 256,
                 batch_size=256 if self.hyperparameters['mode'] == 'vector' else 64,
             )
@@ -171,6 +171,11 @@ class PPO_ICM:
         ).to(self.device).detach()
         discount_reward = (discount_reward - discount_reward.mean()) / (discount_reward.std() + 1e-5)
 
+        self.current_game_stats.update({
+            'discount_reward MEAN': float(discount_reward.detach().cpu().numpy().mean()),
+            'discount_reward MAX': float(discount_reward.detach().cpu().numpy().max()),
+        })
+
         if self.hyperparameters['use_icm']:
             self._icm.add_experience(
                 is_single=False,
@@ -191,13 +196,6 @@ class PPO_ICM:
                 'intrinsic_reward MAX': intrinsic_reward.max(),
             })
 
-        self.current_game_stats.update({
-            'discount_reward MEAN': float(discount_reward.detach().cpu().numpy().mean()),
-            'discount_reward MAX': float(discount_reward.detach().cpu().numpy().max()),
-        })
-
-
-
         sum_ppo_loss = 0.0
         for _ in range(self.hyperparameters['learning_updates_per_learning_session']):
             new_log_probs, new_entropy = self.ac.estimate_action(states, actions)
@@ -209,7 +207,9 @@ class PPO_ICM:
             term_1 = policy_ratio * advantage
             term_2 = torch.clamp(policy_ratio, 1 - self.eps_clip, 1 + self.eps_clip) * advantage
 
-            loss = -1 * torch.min(term_1, term_2) - 0.01 * new_entropy + 0.5 * self.mse(discount_reward, state_value)
+            loss = -1 * torch.min(term_1, term_2) \
+                   - 0.01 * new_entropy \
+                   + 0.5 * torch.pow(discount_reward - state_value, 2)
             sum_ppo_loss += float(loss.mean().detach().cpu().numpy())
             self.optimizer.zero_grad()
             if self.hyperparameters['use_icm']:
@@ -218,7 +218,7 @@ class PPO_ICM:
                 loss.mean().backward()
             torch.nn.utils.clip_grad_norm_(self.ac.parameters(), self.hyperparameters['gradient_clipping_norm'])
             if self.hyperparameters['use_icm']:
-                torch.nn.utils.clip_grad_norm_(self._icm.parameters(), 0.75)
+                torch.nn.utils.clip_grad_norm_(self._icm.parameters(), 0.1)
             self.optimizer.step()
 
         self.current_game_stats.update({
@@ -278,7 +278,7 @@ class PPO_ICM:
             # update if its time
             if self.global_step_number % self.hyperparameters['update_every_n_steps'] == 0:
                 self.update()
-                self.memory.clean_all_buffer()
+                self.memory.remove_all()
 
             if done \
                     or info.get('need_reset', False) \

@@ -83,7 +83,7 @@ class ValueNet(nn.Module):
             state_description=state_description,
             hidden_size=hidden_size,
             device=device,
-            activation_for_picture=F.leaky_relu
+            activation_for_picture=None
         )
 
         self._head1 = nn.Linear(in_features=hidden_size, out_features=1).to(self._device)
@@ -130,7 +130,7 @@ class Policy(nn.Module):
             state_description,
             hidden_size,
             device,
-            activation_for_picture=F.leaky_relu
+            activation_for_picture=None,
         )
 
         self._head = nn.Linear(
@@ -143,14 +143,14 @@ class Policy(nn.Module):
     def forward(self, state, return_stats: bool = False):
         if not return_stats:
             x = F.relu(self._state_layer(state))
-            x = F.tanh(self._head(x))
+            x = torch.tanh(self._head(x))
             return x
         else:
             stats = {}
             x, state_stats = self._state_layer(state, True)
             x = F.relu(x)
             stats['state_proc'] = state_stats
-            x = F.tanh(self._head(x))
+            x = torch.tanh(self._head(x))
             return x, stats
 
 
