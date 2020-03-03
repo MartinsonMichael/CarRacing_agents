@@ -85,8 +85,7 @@ class PPO_ICM:
         self.flush_stats()
         self.tf_writer = config.tf_writer
 
-        self.accumulated_reward_mean = None
-        self.accumulated_reward_std = None
+        self.mse = nn.MSELoss()
 
     def create_env(self, config):
         self.env = config.environment_make_function()
@@ -194,15 +193,13 @@ class PPO_ICM:
             term_1 = policy_ratio * advantage
             term_2 = torch.clamp(policy_ratio, 1 - self.eps_clip, 1 + self.eps_clip) * advantage
 
-            loss = -1 * torch.min(term_1, term_2).mean() \
-                   - 0.01 * new_entropy.mean() \
-                   + 0.5 * torch.pow(discount_reward - state_value, 2).mean()
+            loss = -1 * torch.min(term_1, term_2) - 0.01 * new_entropy + 0.5 * self.mse(discount_reward, state_value)
             sum_ppo_loss += float(loss.mean().detach().cpu().numpy())
             self.optimizer.zero_grad()
             if self.hyperparameters['use_icm']:
-                (loss + 0.5 * intrinsic_loss).backward(retain_graph=True)
+                (loss.mean() + 0.5 * intrinsic_loss).backward(retain_graph=True)
             else:
-                loss.backward()
+                loss.mean().backward()
             torch.nn.utils.clip_grad_norm_(self.ac.parameters(), self.hyperparameters['gradient_clipping_norm'])
             if self.hyperparameters['use_icm']:
                 torch.nn.utils.clip_grad_norm_(self._icm.parameters(), 0.1)

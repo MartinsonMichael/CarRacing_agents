@@ -61,10 +61,10 @@ class Torch_Arbitrary_Replay_Buffer(object):
                     print(f"it treat as image (convert to uint8 and deconvert to float32)")
                     self._sample_converter[name] = lambda x: np.array(x * 255).astype(np.uint8)
                     self._sample_deconverter[name] = lambda x: np.array(x).astype(np.float32) / 255
-                    self._check_type_dict[name] = np.uint8
+                    # self._check_type_dict[name] = np.uint8
                 if len(value.shape) == 1:
                     print(f"it treat as vector (no convert, no deconvert, type float32)")
-                    self._check_type_dict[name] = np.float32
+                    # self._check_type_dict[name] = np.float32
                 print('***')
                 item_auto_detected += 1
         if item_auto_detected == 0:
