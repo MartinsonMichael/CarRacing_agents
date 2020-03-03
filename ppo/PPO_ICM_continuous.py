@@ -36,16 +36,6 @@ class PPO_ICM:
             sample_order=['state', 'action', 'reward', 'log_prob', 'done', 'next_state'],
         )
 
-        # self.memory = Torch_Separated_Replay_Buffer(
-        #     buffer_size=10 ** 4,  # useless, it will be flushed frequently
-        #     batch_size=10 ** 4,  # useless, it will be flushed frequently
-        #     seed=0,
-        #     device=self.device,
-        #     state_extractor=lambda x: (None, x),
-        #     state_producer=lambda x, y: y,
-        #     sample_order=['state', 'action', 'reward', 'log_prob', 'done', 'next_state'],
-        # )
-
         state_description = self.test_env.observation_space
         action_size = self.test_env.action_space.shape[0]
 

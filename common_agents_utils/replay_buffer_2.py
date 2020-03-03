@@ -44,8 +44,6 @@ class Torch_Arbitrary_Replay_Buffer(object):
             for values in zip(*[kwargs[name] for name in self.sample_order]):
                 self._add_single_experience(**{name: value for name, value in zip(self.sample_order, values)})
         else:
-            if self._auto and not self._auto_was_inited:
-                self._init_auto(**kwargs)
             self._add_single_experience(**kwargs)
 
     def _init_auto(self, **kwargs) -> None:
@@ -111,6 +109,9 @@ class Torch_Arbitrary_Replay_Buffer(object):
         return value
 
     def _add_single_experience(self, **kwargs) -> None:
+        if self._auto and not self._auto_was_inited:
+            self._init_auto(**kwargs)
+
         exp = [self._unwrap(kwargs[name]) for name in self.sample_order]
 
         if self._sample_converter.__len__() != 0:
