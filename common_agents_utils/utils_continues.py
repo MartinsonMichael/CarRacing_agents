@@ -86,19 +86,24 @@ class ValueNet(nn.Module):
             activation_for_picture=None
         )
 
+        self._dense2 = nn.Linear(in_features=hidden_size, out_features=hidden_size).to(self._device)
+        torch.nn.init.xavier_uniform_(self._dense2.weight)
+        torch.nn.init.constant_(self._dense2.bias, 0)
+
         self._head1 = nn.Linear(in_features=hidden_size, out_features=1).to(self._device)
         torch.nn.init.xavier_uniform_(self._head1.weight)
         torch.nn.init.constant_(self._head1.bias, 0)
 
     def forward(self, state, return_stats: bool = False) -> TTOrTTStat:
         if not return_stats:
-            x = F.relu(self._state_layer(state))
+            x = self._state_layer(state)
+            x = F.leaky_relu(self._dense2(x))
             x = self._head1(x)
             return x
         else:
             stats = {}
             x, state_stats = self._state_layer(state, True)
-            x = F.relu(x)
+            x = F.leaky_relu(self._dense2(x))
             stats['state_proc'] = state_stats
             x = self._head1(x)
             return x, stats
@@ -133,6 +138,10 @@ class Policy(nn.Module):
             activation_for_picture=None,
         )
 
+        self._dense2 = nn.Linear(hidden_size, hidden_size).to(self._device)
+        torch.nn.init.xavier_uniform_(self._dense2.weight)
+        torch.nn.init.constant_(self._dense2.bias, 0)
+
         self._head = nn.Linear(
             in_features=hidden_size,
             out_features=2 * action_size if double_action_size_on_output else action_size
@@ -142,13 +151,14 @@ class Policy(nn.Module):
 
     def forward(self, state, return_stats: bool = False):
         if not return_stats:
-            x = F.relu(self._state_layer(state))
+            x = self._state_layer(state)
+            x = F.leaky_relu(self._dense2(x))
             x = self._head(x)
             return x
         else:
             stats = {}
             x, state_stats = self._state_layer(state, True)
-            x = F.relu(x)
+            x = F.leaky_relu(self._dense2(x))
             stats['state_proc'] = state_stats
             x = self._head(x)
             return x, stats
@@ -194,9 +204,9 @@ class ActorCritic(nn.Module):
     def _get_mean_std(self, state) -> Tuple[TT, TT]:
         action_out = self.actor(state)
         if self.double_action_size_on_output:
-            return torch.clamp(action_out[:, self.action_size:], -1, 1), action_out[:, :self.action_size]
+            return action_out[:, self.action_size:], action_out[:, :self.action_size]
         else:
-            return torch.clamp(action_out, -1, 1), self.action_std
+            return action_out, self.action_std
 
     def sample_action(self, state, **kwargs) -> Tuple[npTT, npTT, npTT]:
         """
