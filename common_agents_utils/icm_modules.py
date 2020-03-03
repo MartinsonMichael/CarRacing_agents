@@ -66,7 +66,7 @@ class ICM:
             device=self.device,
             batch_size=batch_size,
             sample_order=['state', 'action', 'next_state'],
-            mode=self.config.get("state_mode", None),
+            state_mode=self.config.get("state_mode", None),
             state_channel_split=self.config.get('state_image_channel_cnt', None),
         )
         self.mse = nn.MSELoss()
