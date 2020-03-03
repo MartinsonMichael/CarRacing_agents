@@ -145,7 +145,7 @@ class InverseDynamicModel(nn.Module):
         s = F.relu(self._state(state))
         ns = F.relu(self._next_state(next_state))
         x = F.relu(self._dense_1(torch.cat((s, ns), dim=1)))
-        x = self.head(x)
+        x = F.tanh(self.head(x))
 
         if return_stats:
             return x, {}

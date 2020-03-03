@@ -92,12 +92,13 @@ class ValueNet(nn.Module):
 
     def forward(self, state, return_stats: bool = False) -> TTOrTTStat:
         if not return_stats:
-            x = self._state_layer(state)
+            x = F.relu(self._state_layer(state))
             x = self._head1(x)
             return x
         else:
             stats = {}
             x, state_stats = self._state_layer(state, True)
+            x = F.relu(x)
             stats['state_proc'] = state_stats
             x = self._head1(x)
             return x, stats
@@ -141,14 +142,15 @@ class Policy(nn.Module):
 
     def forward(self, state, return_stats: bool = False):
         if not return_stats:
-            x = self._state_layer(state)
-            x = self._head(x)
+            x = F.relu(self._state_layer(state))
+            x = F.tanh(self._head(x))
             return x
         else:
             stats = {}
             x, state_stats = self._state_layer(state, True)
+            x = F.relu(x)
             stats['state_proc'] = state_stats
-            x = self._head(x)
+            x = F.tanh(self._head(x))
             return x, stats
 
 
