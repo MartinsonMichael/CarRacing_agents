@@ -66,6 +66,7 @@ class Torch_Arbitrary_Replay_Buffer(object):
                     print(f"it treat as vector (no convert, no deconvert, type float32)")
                     self._check_type_dict[name] = np.float32
                 print('***')
+                item_auto_detected += 1
         if item_auto_detected == 0:
             print("No item was auto detected.")
         print("END of 'replay buffer auto detector'")

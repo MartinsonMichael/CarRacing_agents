@@ -101,7 +101,7 @@ class ICM:
     def get_intrinsic_reward_with_loss(
             self, state: npTT, action: npTT, next_state: npTT, return_stats=False
     ) -> Union[Tuple[NpA, TT, StatType], Tuple[NpA, TT]]:
-        _action = make_it_batched_torch_tensor(action)
+        _action = make_it_batched_torch_tensor(action, device=self.device)
 
         encoded_state = self._encoder(state)
         encoded_next_state = self._encoder(next_state)
