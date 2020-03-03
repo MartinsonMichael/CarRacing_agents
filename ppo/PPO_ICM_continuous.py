@@ -28,16 +28,6 @@ class PPO_ICM:
         self._config = config
         self.create_env(config)
 
-        # self.memory = Torch_Separated_Replay_Buffer(
-        #     buffer_size=10 ** 4,  # useless, it will be flushed frequently
-        #     batch_size=10 ** 4,  # useless, it will be flushed frequently
-        #     seed=0,
-        #     device=self.device,
-        #     state_extractor=lambda x: (None, x),
-        #     state_producer=lambda x, y: y,
-        #     sample_order=['state', 'action', 'reward', 'log_prob', 'done', 'next_state'],
-        # )
-
         self.memory = Torch_Arbitrary_Replay_Buffer(
             buffer_size=10 ** 4,
             batch_size=10 ** 4,
@@ -57,6 +47,7 @@ class PPO_ICM:
                 encoded_state_size=100,
                 device=self.device,
                 batch_size=256,
+                config=config.hyperparameters['icm_config']
             )
         self.ac: ActorCritic = ActorCritic(
             state_description=state_description,

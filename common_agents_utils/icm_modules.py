@@ -24,7 +24,12 @@ class ICM:
             update_per_step: int = 50,
             hidden_size: int = 40,
             clipping_gradient_norm: float = 0.1,
+            config=None,
     ):
+        if config is None:
+            config = {}
+
+        self.config = config
         self.device: str = device
         self.buffer_size: int = buffer_size
         self.batch_size: int = batch_size
@@ -59,6 +64,8 @@ class ICM:
             device=self.device,
             batch_size=batch_size,
             sample_order=['state', 'action', 'next_state'],
+            mode=self.config.get("state_mode", None),
+            state_channel_split=self.config.get('state_image_channel_cnt', None),
         )
         self.mse = nn.MSELoss()
 

@@ -37,7 +37,14 @@ def create_config(args):
         "env_settings_file_path": args.env_settings,
         "device": args.device,
         "env_settings": json.load(open(args.env_settings)),
+
         "use_icm": args.icm,
+        "icm_config": {
+            "state_mode": mode,
+            "state_image_channel_cnt":
+                config.test_environment_make_function().state_image_channel_cnt
+                if mode in {'image', 'both'} else None,
+        },
 
         "save_frequency_episode": 500,
         "log_interval": 20,

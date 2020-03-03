@@ -27,6 +27,9 @@ class Torch_Arbitrary_Replay_Buffer(object):
         self.experience = namedtuple("Experience", field_names=self.sample_order)
 
         self._auto = kwargs.get('do_it_auto', True)
+        self.mode = kwargs.get('state_mode', None)
+        self.state_split_channels = kwargs.get('state_channel_split', None)
+
         self._auto_was_inited: bool = False
         self.batch_size = kwargs.get('batch_size', 64)
         self.seed = random.seed(kwargs.get('seed', 42))
@@ -46,8 +49,29 @@ class Torch_Arbitrary_Replay_Buffer(object):
         else:
             self._add_single_experience(**kwargs)
 
+    @staticmethod
+    def _state_splitter__both(state: NpA, channel_to_split=3) -> Tuple[NpA, NpA]:
+        assert len(state.shape) == 3, "state must have 3 dimensions"
+
+        state_picture, state_vector_extended = np.split(state, [channel_to_split], axis=0)
+        state_vector = state_vector_extended[:, 0, 0]
+        del state_vector_extended
+
+        return (state_picture / 255).astype(np.uint8), state_vector
+
+    @staticmethod
+    def _from_image_vector_to_combined_state(compress_state: Tuple[NpA, NpA]) -> NpA:
+        image, vector = compress_state
+        return np.concatenate([
+                image.astype(np.float32) * 255,
+                np.transpose(np.tile(vector, (image.shape[1], image.shape[2], 1)), (2, 1, 0)),
+            ],
+            axis=0,
+        )
+
     def _init_auto(self, **kwargs) -> None:
         print(f"replay buffer auto detector:")
+        print(f"use mode : {self.mode}")
         self._auto_was_inited = True
         item_auto_detected = 0
         for name, _value in kwargs.items():
@@ -58,12 +82,27 @@ class Torch_Arbitrary_Replay_Buffer(object):
                 print(f"input shape : {value.shape}")
                 print(f"min max values -> {np.min(value)}, {np.max(value)}")
                 if len(value.shape) == 3:
-                    print(f"it treat as image (convert to uint8 and deconvert to float32)")
-                    self._sample_converter[name] = lambda x: np.array(x * 255).astype(np.uint8)
-                    self._sample_deconverter[name] = lambda x: np.array(x).astype(np.float32) / 255
-                    # self._check_type_dict[name] = np.uint8
+                    if self.mode == 'vector':
+                        raise ValueError(f'mode {self.mode} is incompatible with 3 size state dimension')
+
+                    if self.mode == 'image' or self.mode is None:
+                        print(f"state treat as image (convert to uint8 and deconvert to float32)")
+                        self._sample_converter[name] = lambda x: np.array(x * 255).astype(np.uint8)
+                        self._sample_deconverter[name] = lambda x: np.array(x).astype(np.float32) / 255
+
+                    if self.mode == 'both':
+                        print(f"it treat as BOTH (convert to uint8+float32 and deconvert to float32)")
+
+                        self._sample_converter[name] = \
+                            lambda x: Torch_Arbitrary_Replay_Buffer._state_splitter__both(x, self.state_split_channels)
+                        self._sample_deconverter[name] = \
+                            lambda x: Torch_Arbitrary_Replay_Buffer._from_image_vector_to_combined_state(x)
+
                 if len(value.shape) == 1:
-                    print(f"it treat as vector (no convert, no deconvert, type float32)")
+                    if self.mode in {'image', 'both'}:
+                        raise ValueError(f'mode {self.mode} is incompatible with 1 size state dimension')
+
+                    print(f"state treat as vector (no convert, no deconvert, type float32)")
                     # self._check_type_dict[name] = np.float32
                 print('***')
                 item_auto_detected += 1
