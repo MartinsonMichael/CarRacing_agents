@@ -137,6 +137,8 @@ class Torch_Arbitrary_Replay_Buffer(object):
     def remove_all(self):
         self.memory.clear()
 
+    clean_all_buffer = remove_all
+
     def get_all(self, sample_order=None) -> Tuple[torch.Tensor]:
         if sample_order is None:
             sample_order = self.sample_order
