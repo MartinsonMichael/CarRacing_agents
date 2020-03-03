@@ -198,12 +198,16 @@ class StateLayer(nn.Module):
 class ActionLayer(nn.Module):
     def __init__(self, action_size: int, hidden_size: int, device: str):
         super(ActionLayer, self).__init__()
-        self._state_layer_out_size = hidden_size
+
+        self.hidden_size = hidden_size
         self.device = device
+
         self._dense = nn.Linear(action_size, hidden_size).to(device)
+        torch.nn.init.xavier_uniform_(self._dense_1.weight)
+        torch.nn.init.constant_(self._dense_1.bias, 0)
 
     def get_out_shape_for_in(self):
-        return self._state_layer_out_size
+        return self.hidden_size
 
     def forward(self, action, return_stat: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, dict]]:
         x = self._dense(make_it_batched_torch_tensor(action, self.device))

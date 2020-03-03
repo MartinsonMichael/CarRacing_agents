@@ -202,13 +202,14 @@ class ForwardDynamicModel(nn.Module):
         torch.nn.init.constant_(self._state.bias, 0)
 
         self._action: ActionLayer = ActionLayer(action_size, hidden_size, device)
-        torch.nn.init.xavier_uniform_(self._action.weight)
-        torch.nn.init.constant_(self._action.bias, 0)
 
         self._dense_1 = nn.Linear(hidden_size * 2, hidden_size).to(device)
         torch.nn.init.xavier_uniform_(self._dense_1.weight)
         torch.nn.init.constant_(self._dense_1.bias, 0)
+
         self.head = nn.Linear(hidden_size, state_size).to(device)
+        torch.nn.init.xavier_uniform_(self.head.weight)
+        torch.nn.init.constant_(self.head.bias, 0)
 
     def forward(self, state: npTT, action: npTT, return_stats: bool = False) -> TTOrTTStat:
         s = F.relu(self._state(state))
