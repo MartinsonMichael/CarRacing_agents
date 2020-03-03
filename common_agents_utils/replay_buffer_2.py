@@ -18,6 +18,8 @@ class Torch_Arbitrary_Replay_Buffer(object):
             self, buffer_size, device,
             sample_order=['state', 'action', 'reward', 'next_state', 'done'], **kwargs
     ):
+        print('replay buffer -> kwargs')
+        print(kwargs)
         # self.separate_state = kwargs.get('separate_state', False)
         # if self.separate_state:
         #     raise NotImplemented
