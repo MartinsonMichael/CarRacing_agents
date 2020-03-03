@@ -41,13 +41,14 @@ class PPO_ICM:
         state_description = self.test_env.observation_space
         action_size = self.test_env.action_space.shape[0]
 
-        self._icm: ICM = ICM(
-            state_description=state_description,
-            action_size=action_size,
-            encoded_state_size=100,
-            device=self.device,
-            batch_size=256,
-        )
+        if self.hyperparameters['use_icm']:
+            self._icm: ICM = ICM(
+                state_description=state_description,
+                action_size=action_size,
+                encoded_state_size=100,
+                device=self.device,
+                batch_size=256,
+            )
         self.ac: ActorCritic = ActorCritic(
             state_description=state_description,
             action_size=action_size,
@@ -57,7 +58,10 @@ class PPO_ICM:
             double_action_size_on_output=False,
         )
         self.optimizer = torch.optim.Adam(
-            chain(self.ac.parameters(), self._icm.parameters()),
+            chain(self.ac.parameters(), self._icm.parameters())
+            if self.hyperparameters['use_icm']
+            else self.ac.parameters()
+            ,
             lr=config.hyperparameters['lr'],
             betas=config.hyperparameters['betas'],
         )
@@ -72,8 +76,6 @@ class PPO_ICM:
         )
         self.update_old_policy()
         self.mse = nn.MSELoss()
-
-        self.MseLoss = nn.MSELoss()
 
         self.folder_save_path = os.path.join('model_saves', 'PPO', self.name)
         self.episode_number = 0
@@ -177,7 +179,7 @@ class PPO_ICM:
                 'intrinsic_reward MAX': intrinsic_reward.max(),
             })
             self.current_game_stats.update(icm_update_stat)
-        
+
         sum_ppo_loss = 0.0
         for _ in range(self.hyperparameters['learning_updates_per_learning_session']):
             new_log_probs, new_entropy = self.ac.estimate_action(states, actions)
@@ -192,9 +194,12 @@ class PPO_ICM:
             loss = -1 * torch.min(term_1, term_2) - 0.01 * new_entropy + 0.5 * self.mse(discount_reward, state_value)
             sum_ppo_loss += float(loss.mean().detach().cpu().numpy())
             self.optimizer.zero_grad()
-            (loss.mean() + 0.5 * intrinsic_loss).backward(retain_graph=True)
+            if self.hyperparameters['use_icm']:
+                (loss.mean() + 0.5 * intrinsic_loss).backward(retain_graph=True)
+                torch.nn.utils.clip_grad_norm_(self._icm.parameters(), 0.75)
+            else:
+                loss.mean().backward()
             torch.nn.utils.clip_grad_norm_(self.ac.parameters(), self.hyperparameters['gradient_clipping_norm'])
-            torch.nn.utils.clip_grad_norm_(self._icm.parameters(), 0.75)
             self.optimizer.step()
 
         self.current_game_stats.update({
