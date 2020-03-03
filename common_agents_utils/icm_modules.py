@@ -23,7 +23,7 @@ class ICM:
             batch_size: int = 256,
             update_per_step: int = 50,
             hidden_size: int = 40,
-            clipping_gradient_norm: float = 0.75,
+            clipping_gradient_norm: float = 0.1,
     ):
         self.device: str = device
         self.buffer_size: int = buffer_size
@@ -96,7 +96,7 @@ class ICM:
         if return_stat:
             if len(stat) == 0:
                 return {}
-            return {key: float(np.mean(value)) for key, value in stat.items()}
+            return {'update_' + key: float(np.mean(value)) for key, value in stat.items()}
 
     def get_intrinsic_reward_with_loss(
             self, state: npTT, action: npTT, next_state: npTT, return_stats=False
@@ -145,7 +145,7 @@ class InverseDynamicModel(nn.Module):
         s = F.relu(self._state(state))
         ns = F.relu(self._next_state(next_state))
         x = F.relu(self._dense_1(torch.cat((s, ns), dim=1)))
-        x = F.tanh(self.head(x))
+        x = torch.tanh(self.head(x))
 
         if return_stats:
             return x, {}
