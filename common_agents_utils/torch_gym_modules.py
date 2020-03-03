@@ -203,8 +203,8 @@ class ActionLayer(nn.Module):
         self.device = device
 
         self._dense = nn.Linear(action_size, hidden_size).to(device)
-        torch.nn.init.xavier_uniform_(self._dense_1.weight)
-        torch.nn.init.constant_(self._dense_1.bias, 0)
+        torch.nn.init.xavier_uniform_(self._dense.weight)
+        torch.nn.init.constant_(self._dense.bias, 0)
 
     def get_out_shape_for_in(self):
         return self.hidden_size
