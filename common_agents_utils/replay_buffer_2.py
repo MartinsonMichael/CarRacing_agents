@@ -81,11 +81,12 @@ class Torch_Arbitrary_Replay_Buffer(object):
                 if len(item) == 0:
                     item = item[0]
                     continue
+                return item
             if isinstance(item, np.ndarray):
                 if item.shape[0] == 1:
                     item = item[0]
                     continue
-
+                return item
             raise ValueError(
                 'add another type to replay_buffer\n'
                 f'it was type : {type(item)}\n'
