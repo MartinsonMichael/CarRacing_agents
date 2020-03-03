@@ -1,6 +1,6 @@
 from collections import namedtuple, deque
 import random
-from typing import Tuple, Dict, Callable, Any, Type
+from common_agents_utils.typingTypes import *
 import torch
 import numpy as np
 
@@ -103,7 +103,12 @@ class Torch_Arbitrary_Replay_Buffer(object):
             return self._sample_converter[name](value)
         return value
 
-    def _add_single_experience(self, **kwargs):
+    def _deconverter(self, value: NpA, name: str) -> NpA:
+        if name in self._sample_deconverter.keys():
+            return self._sample_deconverter[name](value)
+        return value
+
+    def _add_single_experience(self, **kwargs) -> None:
         exp = [self._unwrap(kwargs[name]) for name in self.sample_order]
 
         if self._sample_converter.__len__() != 0:
@@ -115,12 +120,15 @@ class Torch_Arbitrary_Replay_Buffer(object):
 
         self.memory.append(self.experience(*exp))
 
-    def _prepare_row_of_samples(self, experiences, attribute_name) -> torch.Tensor:
+    def _prepare_row_of_samples(self, experiences, attribute_name) -> TT:
         return torch.from_numpy(
-            np.array([e.__getattribute__(attribute_name) for e in experiences], dtype=np.float32)
+            np.array([
+                self._deconverter(e.__getattribute__(attribute_name), attribute_name)
+                for e in experiences
+            ], dtype=np.float32)
         ).to(self.device)
 
-    def sample(self, get_all=False, num_experiences=None, sample_order=None) -> Tuple[torch.Tensor]:
+    def sample(self, get_all=False, num_experiences=None, sample_order=None) -> Tuple[TT]:
         """
         Sample experiences from replay buffer
 
@@ -143,18 +151,18 @@ class Torch_Arbitrary_Replay_Buffer(object):
             for name in sample_order
         )
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.memory)
 
-    def len(self):
+    def len(self) -> int:
         return self.__len__()
 
-    def remove_all(self):
+    def remove_all(self) -> None:
         self.memory.clear()
 
     clean_all_buffer = remove_all
 
-    def get_all(self, sample_order=None) -> Tuple[torch.Tensor]:
+    def get_all(self, sample_order=None) -> Tuple[TT]:
         if sample_order is None:
             sample_order = self.sample_order
         return tuple(

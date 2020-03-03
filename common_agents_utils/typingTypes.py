@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from typing import Union, Dict, Tuple, Any, Iterable, Optional
+from typing import Union, Dict, Tuple, Any, Iterable, Optional, Callable
 
 
 TT = torch.Tensor
