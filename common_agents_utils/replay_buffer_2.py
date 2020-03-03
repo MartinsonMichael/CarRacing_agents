@@ -47,18 +47,32 @@ class Torch_Arbitrary_Replay_Buffer(object):
             self._add_single_experience(**kwargs)
 
     def _init_auto(self, **kwargs) -> None:
+        print(f"replay buffer auto detector:")
         self._auto_was_inited = True
+        item_auto_detected = 0
         for name, _value in kwargs.items():
             value = self._unwrap(_value)
             if name.startswith('state') or name.endswith('state'):
+                print(f"{item_auto_detected} -> {name}")
+                print(f"{name} is state container")
+                print(f"input shape : {value.shape}")
+                print(f"min max values -> {np.min(value)}, {np.max(value)}")
                 if len(value.shape) == 3:
+                    print(f"it treat as image (convert to uint8 and deconvert to float32)")
                     self._sample_converter[name] = lambda x: np.array(x * 255).astype(np.uint8)
                     self._sample_deconverter[name] = lambda x: np.array(x).astype(np.float32) / 255
                     self._check_type_dict[name] = np.uint8
                 if len(value.shape) == 1:
+                    print(f"it treat as vector (no convert, no deconvert, type float32)")
                     self._check_type_dict[name] = np.float32
+                print('***')
+        if item_auto_detected == 0:
+            print("No item was auto detected.")
+        print("END of 'replay buffer auto detector'")
 
     def _unwrap(self, item):
+        if isinstance(item, (torch.FloatTensor, torch.Tensor, torch.cuda.FloatTensor)):
+            item = item.detach().cpu().numpy()
         if isinstance(item, (int, float, bool, np.float32, np.bool, np.int32)):
             return item
         if isinstance(item, list):

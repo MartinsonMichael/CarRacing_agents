@@ -76,7 +76,19 @@ class ICM:
 
         for _ in range(self.update_per_step):
             state_batch, action_batch, next_state_batch = self.replay_buffer.sample()
-            cur_stat = self._update_on_batch(state_batch, action_batch, next_state_batch, return_stats=return_stat)
+
+            _, loss, cur_stat = self.get_intrinsic_reward_with_loss(
+                state_batch,
+                action_batch,
+                next_state_batch,
+                return_stats=True,
+            )
+
+            self._optimizer.zero_grad()
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.parameters(), self._clipping_gradient_norm)
+            self._optimizer.step()
+
             if return_stat:
                 for key, value in cur_stat.items():
                     stat[key].append(value)
@@ -86,75 +98,35 @@ class ICM:
                 return {}
             return {key: float(np.mean(value)) for key, value in stat.items()}
 
-    def _update_on_batch(
-            self, state_batch, _action_batch, next_state_batch,
-            return_reward=False, return_stats=False,
-    ) -> Optional[Union[StatType, NpAOrNpAStat]]:
-        stat = {}
-        action_batch = make_it_batched_torch_tensor(_action_batch, self.device).detach()
-        encoded_state = self._encoder(state_batch)
-        encoded_next_state = self._encoder(next_state_batch)
-        predicted_encoded_next_state = self._forward(encoded_state, action_batch)
-
-        forward_loss = ((predicted_encoded_next_state - encoded_next_state)**2).mean(dim=1)
-
-        predicted_action = self._inverse(encoded_state, encoded_next_state)
-        inverse_loss = ((predicted_action - action_batch)**2).mean(dim=1)
-
-        loss = (forward_loss + inverse_loss).mean()
-        self._optimizer.zero_grad()
-        loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.parameters(), self._clipping_gradient_norm)
-        self._optimizer.step()
-
-        if return_stats:
-            stat['icm_forward_loss'] = float(forward_loss.detach().cpu().numpy().mean())
-            stat['icm_inverse_loss'] = float(inverse_loss.detach().cpu().numpy().mean())
-            stat['icm_full_loss'] = float(loss.detach().cpu().numpy().mean())
-
-        if return_reward:
-            if return_stats:
-                return inverse_loss.view(-1, 1).detach().cpu().numpy(), stat
-            return inverse_loss.view(-1, 1).detach().cpu().numpy()
-        if return_stats:
-            return stat
-
-    def get_intrinsic_reward(
-            self, state: npTT, action: npTT, next_state: npTT, return_stats=False
-    ) -> Union[Tuple[NpA, StatType], NpA]:
-
-        encoded_state = self._encoder(state)
-        encoded_next_state = self._encoder(next_state)
-
-        predicted_action = self._inverse(encoded_state, encoded_next_state)
-        inverse_loss = ((action.detach() - predicted_action)**2).mean(dim=1)
-
-        if return_stats:
-            return inverse_loss.view(-1, 1).detach().cpu().numpy(), {}
-        else:
-            return inverse_loss.view(-1, 1).detach().cpu().numpy()
-
     def get_intrinsic_reward_with_loss(
             self, state: npTT, action: npTT, next_state: npTT, return_stats=False
     ) -> Union[Tuple[NpA, TT, StatType], Tuple[NpA, TT]]:
+        _action = make_it_batched_torch_tensor(action)
 
         encoded_state = self._encoder(state)
         encoded_next_state = self._encoder(next_state)
 
         predicted_action = self._inverse(encoded_state, encoded_next_state)
-        inverse_loss = ((action.detach() - predicted_action)**2).mean(dim=1)
 
-        predicted_encoded_next_state = self._forward(encoded_state, action)
+        print('predicted_action')
+        print(predicted_action[:10, :])
+
+        print('real actions')
+        print(_action[:10, :])
+
+        inverse_loss = ((_action.detach() - predicted_action)**2).mean(dim=1)
+
+        predicted_encoded_next_state = self._forward(encoded_state, _action)
         forward_loss = ((encoded_next_state - predicted_encoded_next_state)**2).mean(dim=1)
         loss = (forward_loss + inverse_loss).mean()
 
         if return_stats:
-            # stat = {
-            #     'icm_inverse_loss': inverse_loss.detach().cpu().numpy().mean(),
-            #     'icm_forward_loss': forward_loss.detach().cpu().numpy().mean(),
-            #     'icm_full_loss': loss.detach().cpu().numpy().mean(),
-            # }
-            return inverse_loss.view(-1, 1).detach().cpu().numpy(), loss, {}
+            stat = {
+                'icm_inverse_loss': inverse_loss.detach().cpu().numpy().mean(),
+                'icm_forward_loss': forward_loss.detach().cpu().numpy().mean(),
+                'icm_full_loss': loss.detach().cpu().numpy().mean(),
+            }
+            return inverse_loss.view(-1, 1).detach().cpu().numpy(), loss, stat
         else:
             return inverse_loss.view(-1, 1).detach().cpu().numpy(), loss
 
@@ -165,10 +137,7 @@ class InverseDynamicModel(nn.Module):
 
         self._state = nn.Linear(state_size, hidden_size).to(device)
         self._next_state = nn.Linear(state_size, hidden_size).to(device)
-        self._dense_1 = nn.Linear(
-            in_features=hidden_size * 2,
-            out_features=hidden_size,
-        ).to(device)
+        self._dense_1 = nn.Linear(hidden_size * 2, hidden_size).to(device)
         self.head = nn.Linear(hidden_size, action_size).to(device)
 
     def forward(self, state: npTT, next_state: npTT, return_stats: bool = False) -> TTOrTTStat:
