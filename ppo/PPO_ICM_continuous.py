@@ -77,9 +77,6 @@ class PPO_ICM:
             double_action_size_on_output=False,
         )
         self.update_old_policy()
-        self.mse = nn.MSELoss()
-
-        self.MseLoss = nn.MSELoss()
 
         self.folder_save_path = os.path.join('model_saves', 'PPO', self.name)
         self.episode_number = 0
@@ -197,15 +194,15 @@ class PPO_ICM:
             term_1 = policy_ratio * advantage
             term_2 = torch.clamp(policy_ratio, 1 - self.eps_clip, 1 + self.eps_clip) * advantage
 
-            loss = -1 * torch.min(term_1, term_2) \
-                   - 0.01 * new_entropy \
-                   + 0.5 * torch.pow(discount_reward - state_value, 2)
+            loss = -1 * torch.min(term_1, term_2).mean() \
+                   - 0.01 * new_entropy.mean() \
+                   + 0.5 * torch.pow(discount_reward - state_value, 2).mean()
             sum_ppo_loss += float(loss.mean().detach().cpu().numpy())
             self.optimizer.zero_grad()
             if self.hyperparameters['use_icm']:
-                (loss.mean() + 0.5 * intrinsic_loss).backward(retain_graph=True)
+                (loss + 0.5 * intrinsic_loss).backward(retain_graph=True)
             else:
-                loss.mean().backward()
+                loss.backward()
             torch.nn.utils.clip_grad_norm_(self.ac.parameters(), self.hyperparameters['gradient_clipping_norm'])
             if self.hyperparameters['use_icm']:
                 torch.nn.utils.clip_grad_norm_(self._icm.parameters(), 0.1)

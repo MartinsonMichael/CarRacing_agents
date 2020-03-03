@@ -143,14 +143,14 @@ class Policy(nn.Module):
     def forward(self, state, return_stats: bool = False):
         if not return_stats:
             x = F.relu(self._state_layer(state))
-            x = torch.tanh(self._head(x))
+            x = self._head(x)
             return x
         else:
             stats = {}
             x, state_stats = self._state_layer(state, True)
             x = F.relu(x)
             stats['state_proc'] = state_stats
-            x = torch.tanh(self._head(x))
+            x = self._head(x)
             return x, stats
 
 
@@ -194,9 +194,9 @@ class ActorCritic(nn.Module):
     def _get_mean_std(self, state) -> Tuple[TT, TT]:
         action_out = self.actor(state)
         if self.double_action_size_on_output:
-            return action_out[:, self.action_size:], action_out[:, :self.action_size]
+            return torch.clamp(action_out[:, self.action_size:], -1, 1), action_out[:, :self.action_size]
         else:
-            return action_out, self.action_std
+            return torch.clamp(action_out, -1, 1), self.action_std
 
     def sample_action(self, state, **kwargs) -> Tuple[npTT, npTT, npTT]:
         """
@@ -204,7 +204,7 @@ class ActorCritic(nn.Module):
         Return: action, log_prob, entropy
         """
         distribution = Normal(*self._get_mean_std(state))
-        action = torch.clamp(distribution.sample(), -1, 1)
+        action = distribution.sample()
         return \
             process_kwargs(action.detach(), **kwargs), \
             process_kwargs(distribution.log_prob(action), **kwargs), \

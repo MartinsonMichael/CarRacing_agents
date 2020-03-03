@@ -105,13 +105,14 @@ class ICM:
 
         encoded_state = self._encoder(state)
         encoded_next_state = self._encoder(next_state)
+        encoder_reg_loss = torch.pow(encoded_state, 2).mean() + torch.pow(encoded_next_state, 2).mean()
 
         predicted_action = self._inverse(encoded_state, encoded_next_state)
         inverse_loss = ((_action.detach() - predicted_action)**2).mean(dim=1)
 
         predicted_encoded_next_state = self._forward(encoded_state, _action)
         forward_loss = ((encoded_next_state - predicted_encoded_next_state)**2).mean(dim=1)
-        loss = (forward_loss + inverse_loss).mean()
+        loss = (forward_loss + inverse_loss).mean() + 0.01 * encoder_reg_loss
 
         if return_stats:
             stat = {
