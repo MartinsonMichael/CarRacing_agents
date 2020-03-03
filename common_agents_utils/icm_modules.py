@@ -108,11 +108,11 @@ class ICM:
 
         predicted_action = self._inverse(encoded_state, encoded_next_state)
 
-        print('predicted_action')
-        print(predicted_action[:10, :])
-
-        print('real actions')
-        print(_action[:10, :])
+        # print('predicted_action')
+        # print(predicted_action[:10, :])
+        #
+        # print('real actions')
+        # print(_action[:10, :])
 
         inverse_loss = ((_action.detach() - predicted_action)**2).mean(dim=1)
 
