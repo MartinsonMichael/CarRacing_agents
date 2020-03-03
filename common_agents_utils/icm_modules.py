@@ -26,6 +26,8 @@ class ICM:
             clipping_gradient_norm: float = 0.1,
             config=None,
     ):
+        print('config inside icm module:')
+        print(config)
         if config is None:
             config = {}
 

@@ -40,10 +40,8 @@ def get_EnvCreator_by_settings(settings_path: str):
 def make_CarRacing_fixed_combined_features(settings_path: str, name: Optional[str] = None, discrete_wrapper=None):
     def f():
         env = CarRacingHackatonContinuousFixed(settings_file_path=settings_path)
-        # env = FrameCompressor(env)
-        # env = ImageStackWrapper(env, channel_order='hwc', neutral_action=np.array([0.0, 0.0, 0.0]))
-        # -> dict[(.., .., 3), (16)]
         env = FrameCompressor(env)
+
         FRAME_STACK = 4
         env = ImageStackWrapper(env, neutral_action=np.array([0.0, 0.0, 0.0]), frames_in_stack=FRAME_STACK)
         env.state_image_channel_cnt = FRAME_STACK
@@ -57,8 +55,6 @@ def make_CarRacing_fixed_combined_features(settings_path: str, name: Optional[st
 
         if discrete_wrapper is not None:
             env = discrete_wrapper(env)
-
-        env._max_episode_steps = 250
 
         if name is not None:
             env.name = name
