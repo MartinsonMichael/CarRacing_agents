@@ -144,8 +144,7 @@ class InverseDynamicModel(nn.Module):
         assert state.shape == next_state.shape
         s = F.relu(self._state(state))
         ns = F.relu(self._next_state(next_state))
-        x = F.relu(self._dense_1(torch.cat((s, ns), dim=1)))
-        x = torch.tanh(self.head(x))
+        x = torch.tanh(self.head(torch.cat((s, ns), dim=1)))
 
         if return_stats:
             return x, {}
