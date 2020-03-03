@@ -221,12 +221,3 @@ class ActorCritic(nn.Module):
 
     def forward(self, **kwargs: Any):
         raise NotImplemented
-
-    # def forward(self, state)\
-    #         -> Union[Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
-    #     value = self.critic(state)
-    #     action_out = self.actor(state)
-    #     if self.double_action_size_on_output:
-    #         return value, action_out[:, self.action_size:], action_out[:, :self.action_size]
-    #     else:
-    #         return value, action_out

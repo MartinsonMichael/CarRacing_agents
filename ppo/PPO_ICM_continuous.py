@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from common_agents_utils import Config, Torch_Separated_Replay_Buffer, ActorCritic, ICM
+from common_agents_utils import Config, Torch_Separated_Replay_Buffer, ActorCritic, ICM, Torch_Arbitrary_Replay_Buffer
 from common_agents_utils.logger import Logger
 from envs.common_envs_utils.visualizer import save_as_mp4
 
@@ -28,14 +28,23 @@ class PPO_ICM:
         self._config = config
         self.create_env(config)
 
-        self.memory = Torch_Separated_Replay_Buffer(
-            buffer_size=10 ** 4,  # useless, it will be flushed frequently
-            batch_size=10 ** 4,  # useless, it will be flushed frequently
+        # self.memory = Torch_Separated_Replay_Buffer(
+        #     buffer_size=10 ** 4,  # useless, it will be flushed frequently
+        #     batch_size=10 ** 4,  # useless, it will be flushed frequently
+        #     seed=0,
+        #     device=self.device,
+        #     state_extractor=lambda x: (None, x),
+        #     state_producer=lambda x, y: y,
+        #     sample_order=['state', 'action', 'reward', 'log_prob', 'done', 'next_state'],
+        # )
+
+        self.memory = Torch_Arbitrary_Replay_Buffer(
+            buffer_size=10 ** 4,
+            batch_size=10 ** 4,
             seed=0,
             device=self.device,
-            state_extractor=lambda x: (None, x),
-            state_producer=lambda x, y: y,
             sample_order=['state', 'action', 'reward', 'log_prob', 'done', 'next_state'],
+            do_it_auto=False,
         )
 
         state_description = self.test_env.observation_space
@@ -58,10 +67,10 @@ class PPO_ICM:
             double_action_size_on_output=False,
         )
         self.optimizer = torch.optim.Adam(
-            chain(self.ac.parameters(), self._icm.parameters())
-            if self.hyperparameters['use_icm']
-            else self.ac.parameters()
-            ,
+            chain(
+                self.ac.parameters(),
+                self._icm.parameters()
+            ) if self.hyperparameters['use_icm'] else self.ac.parameters(),
             lr=config.hyperparameters['lr'],
             betas=config.hyperparameters['betas'],
         )
@@ -223,8 +232,8 @@ class PPO_ICM:
     def run_one_episode(self):
         state = self.env.reset()
         record_anim = (
-            self.episode_number % self.hyperparameters.get('animation_record_frequency', 1e6) == 0 and
-            self.hyperparameters.get('record_animation', False)
+                self.episode_number % self.hyperparameters.get('animation_record_frequency', 1e6) == 0 and
+                self.hyperparameters.get('record_animation', False)
         )
 
         done = False
@@ -247,14 +256,15 @@ class PPO_ICM:
             episode_len += 1
 
             self.memory.add_experience(
-                state, action, reward, next_state, done, log_prob
+                is_single=True,
+                state=state, action=action, reward=reward, next_state=next_state, done=done, log_prob=log_prob,
             )
             state = next_state
 
             # update if its time
             if self.global_step_number % self.hyperparameters['update_every_n_steps'] == 0:
                 self.update()
-                self.memory.clean_all_buffer()
+                self.memory.remove_all()
 
             if done \
                     or info.get('need_reset', False) \

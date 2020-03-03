@@ -74,22 +74,23 @@ class Torch_Arbitrary_Replay_Buffer(object):
     def _unwrap(self, item):
         if isinstance(item, (torch.FloatTensor, torch.Tensor, torch.cuda.FloatTensor)):
             item = item.detach().cpu().numpy()
-        if isinstance(item, (int, float, bool, np.float32, np.bool, np.int32)):
-            return item
-        if isinstance(item, list):
-            if len(item) == 0:
-                return self._unwrap(item[0])
-            return item
-        if isinstance(item, np.ndarray):
-            if item.shape[0] == 1:
-                return self._unwrap(item[0])
-            return item
+        while True:
+            if isinstance(item, (int, float, bool, np.float32, np.bool, np.int32)):
+                return item
+            if isinstance(item, list):
+                if len(item) == 0:
+                    item = item[0]
+                    continue
+            if isinstance(item, np.ndarray):
+                if item.shape[0] == 1:
+                    item = item[0]
+                    continue
 
-        raise ValueError(
-            'add another type to replay_buffer\n'
-            f'it was type : {type(item)}\n'
-            f'content : {item}\n'
-        )
+            raise ValueError(
+                'add another type to replay_buffer\n'
+                f'it was type : {type(item)}\n'
+                f'content : {item}\n'
+            )
 
     def _type_checker(self, value, name: str):
         if name in self._check_type_dict.keys():
