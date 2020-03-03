@@ -3,13 +3,13 @@ import pickle
 from collections import defaultdict
 import time
 from itertools import chain
-from threading import Thread
+from multiprocessing import Process
 
 import torch
 import torch.nn as nn
 import numpy as np
 
-from common_agents_utils import Config, Torch_Separated_Replay_Buffer, ActorCritic, ICM, Torch_Arbitrary_Replay_Buffer
+from common_agents_utils import Config, Torch_Separated_Replay_Buffer, ActorCritic, ICM
 from common_agents_utils.logger import Logger
 from envs.common_envs_utils.visualizer import save_as_mp4
 
@@ -28,29 +28,26 @@ class PPO_ICM:
         self._config = config
         self.create_env(config)
 
-        self.memory: Torch_Arbitrary_Replay_Buffer = Torch_Arbitrary_Replay_Buffer(
-            buffer_size=10**4,
-            device=self.device,
-            batch_size=10**4,
+        self.memory = Torch_Separated_Replay_Buffer(
+            buffer_size=10 ** 4,  # useless, it will be flushed frequently
+            batch_size=10 ** 4,  # useless, it will be flushed frequently
             seed=0,
+            device=self.device,
+            state_extractor=lambda x: (None, x),
+            state_producer=lambda x, y: y,
             sample_order=['state', 'action', 'reward', 'log_prob', 'done', 'next_state'],
         )
 
         state_description = self.test_env.observation_space
         action_size = self.test_env.action_space.shape[0]
 
-        if self.hyperparameters['use_icm']:
-            self._icm: ICM = ICM(
-                state_description=state_description,
-                action_size=action_size,
-                encoded_state_size=100,
-                device=self.device,
-                buffer_size=10**6 if self.hyperparameters['mode'] == 'vector' else 5*10**4,
-                hidden_size=40 if self.hyperparameters['mode'] == 'vector' else 256,
-                batch_size=256 if self.hyperparameters['mode'] == 'vector' else 64,
-            )
-        else:
-            self._icm = None
+        self._icm: ICM = ICM(
+            state_description=state_description,
+            action_size=action_size,
+            encoded_state_size=100,
+            device=self.device,
+            batch_size=256,
+        )
         self.ac: ActorCritic = ActorCritic(
             state_description=state_description,
             action_size=action_size,
@@ -60,10 +57,7 @@ class PPO_ICM:
             double_action_size_on_output=False,
         )
         self.optimizer = torch.optim.Adam(
-            chain(self.ac.parameters(), self._icm.parameters())
-            if self.hyperparameters['use_icm'] else
-            self.ac.parameters()
-            ,
+            chain(self.ac.parameters(), self._icm.parameters()),
             lr=config.hyperparameters['lr'],
             betas=config.hyperparameters['betas'],
         )
@@ -77,6 +71,9 @@ class PPO_ICM:
             double_action_size_on_output=False,
         )
         self.update_old_policy()
+        self.mse = nn.MSELoss()
+
+        self.MseLoss = nn.MSELoss()
 
         self.folder_save_path = os.path.join('model_saves', 'PPO', self.name)
         self.episode_number = 0
@@ -85,7 +82,8 @@ class PPO_ICM:
         self.flush_stats()
         self.tf_writer = config.tf_writer
 
-        self.mse = nn.MSELoss()
+        self.accumulated_reward_mean = None
+        self.accumulated_reward_std = None
 
     def create_env(self, config):
         self.env = config.environment_make_function()
@@ -143,14 +141,13 @@ class PPO_ICM:
 
     def update(self):
         states, actions, rewards, log_probs, dones, next_states = self.memory.get_all()
-        log_probs = torch.unsqueeze(log_probs, 1)
 
         buffer_reward = 0
         discount_reward = []
         for cur_reward, cur_done in zip(reversed(rewards), reversed(dones)):
-            if cur_done == 1:
+            if cur_done[0] == 1:
                 buffer_reward = 0
-            buffer_reward = float(cur_reward + buffer_reward * self.hyperparameters['discount_rate'])
+            buffer_reward = float(cur_reward[0] + buffer_reward * self.hyperparameters['discount_rate'])
             discount_reward.insert(0, [buffer_reward])
         discount_reward = torch.from_numpy(
             np.array(discount_reward, dtype=np.float32)
@@ -169,19 +166,18 @@ class PPO_ICM:
                 action=actions.detach().cpu().numpy(),
                 next_state=next_states.detach().cpu().numpy(),
             )
-            intrinsic_reward, intrinsic_loss, icm_stat = self._icm.get_intrinsic_reward_with_loss(
-                state=states, action=actions, next_state=next_states, return_stats=True
+            intrinsic_reward, intrinsic_loss = self._icm.get_intrinsic_reward_with_loss(
+                state=states, action=actions, next_state=next_states, return_stats=False
             )
-            icm_update_stat = self._icm.update(return_stat=True)
             discount_reward += torch.from_numpy(np.clip(intrinsic_reward, -3, 3)).to(self.device)
 
-            self.current_game_stats.update(icm_update_stat)
-            self.current_game_stats.update(icm_stat)
+            icm_update_stat = self._icm.update(return_stat=True)
             self.current_game_stats.update({
                 'intrinsic_reward MEAN': intrinsic_reward.mean(),
                 'intrinsic_reward MAX': intrinsic_reward.max(),
             })
-
+            self.current_game_stats.update(icm_update_stat)
+        
         sum_ppo_loss = 0.0
         for _ in range(self.hyperparameters['learning_updates_per_learning_session']):
             new_log_probs, new_entropy = self.ac.estimate_action(states, actions)
@@ -196,13 +192,9 @@ class PPO_ICM:
             loss = -1 * torch.min(term_1, term_2) - 0.01 * new_entropy + 0.5 * self.mse(discount_reward, state_value)
             sum_ppo_loss += float(loss.mean().detach().cpu().numpy())
             self.optimizer.zero_grad()
-            if self.hyperparameters['use_icm']:
-                (loss.mean() + 0.5 * intrinsic_loss).backward(retain_graph=True)
-            else:
-                loss.mean().backward()
+            (loss.mean() + 0.5 * intrinsic_loss).backward(retain_graph=True)
             torch.nn.utils.clip_grad_norm_(self.ac.parameters(), self.hyperparameters['gradient_clipping_norm'])
-            if self.hyperparameters['use_icm']:
-                torch.nn.utils.clip_grad_norm_(self._icm.parameters(), 0.1)
+            torch.nn.utils.clip_grad_norm_(self._icm.parameters(), 0.75)
             self.optimizer.step()
 
         self.current_game_stats.update({
@@ -250,31 +242,26 @@ class PPO_ICM:
             episode_len += 1
 
             self.memory.add_experience(
-                state=state,
-                action=action,
-                reward=reward,
-                next_state=next_state,
-                done=done,
-                log_prob=log_prob,
+                state, action, reward, next_state, done, log_prob
             )
             state = next_state
 
             # update if its time
             if self.global_step_number % self.hyperparameters['update_every_n_steps'] == 0:
                 self.update()
-                self.memory.remove_all()
+                self.memory.clean_all_buffer()
 
             if done \
                     or info.get('need_reset', False) \
                     or episode_len > self.hyperparameters['max_episode_len']:
                 if record_anim:
-                    Thread(
+                    Process(
                         target=save_as_mp4,
                         args=(
                             images,
-                            f'animation_PPO/{self.name}/_R:_{total_reward}_Time:_{episode_len}_{time.time()}.mp4'
+                            f'animation_PPO/{self.name}/_R:_{total_reward}_Time:_{episode_len}_{time.time()}.mp4',
                         ),
-                    ).run()
+                    ).start()
                 if info.get('need_reset', False):
                     print('Was made panic env reset...')
                     raise ValueError
