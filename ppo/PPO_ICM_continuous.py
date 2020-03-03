@@ -156,9 +156,9 @@ class PPO_ICM:
         buffer_reward = 0
         discount_reward = []
         for cur_reward, cur_done in zip(reversed(rewards), reversed(dones)):
-            if cur_done[0] == 1:
+            if cur_done == 1:
                 buffer_reward = 0
-            buffer_reward = float(cur_reward[0] + buffer_reward * self.hyperparameters['discount_rate'])
+            buffer_reward = float(cur_reward + buffer_reward * self.hyperparameters['discount_rate'])
             discount_reward.insert(0, [buffer_reward])
         discount_reward = torch.from_numpy(
             np.array(discount_reward, dtype=np.float32)
