@@ -30,6 +30,8 @@ class Torch_Arbitrary_Replay_Buffer(object):
         self._auto_was_inited: bool = False
         self.batch_size = kwargs.get('batch_size', 64)
         self.seed = random.seed(kwargs.get('seed', 42))
+
+        # convert input values and deconvert them by passing rules, if necessary check types of stored items
         self._sample_converter: Dict[str, Callable[[Any], Any]] = kwargs.get('sample_converter', {})
         self._sample_deconverter: Dict[str, Callable[[Any], Any]] = kwargs.get('sample_deconverter', {})
         self._check_type_dict: Dict[str, Any] = kwargs.get('check_type_dict', {})

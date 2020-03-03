@@ -202,7 +202,7 @@ class ActorCritic(nn.Module):
         Return: action, log_prob, entropy
         """
         distribution = Normal(*self._get_mean_std(state))
-        action = distribution.sample()
+        action = torch.clamp(distribution.sample(), -1, 1)
         return \
             process_kwargs(action.detach(), **kwargs), \
             process_kwargs(distribution.log_prob(action), **kwargs), \
