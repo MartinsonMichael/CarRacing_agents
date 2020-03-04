@@ -37,7 +37,7 @@ class Logger:
 
     def log_video(self, image_array, path_or_file_name) -> None:
         if self.episode_number % 20 == 0:
-            wandb.log({os.path.basename(path_or_file_name): wandb.Video(image_array)}, step=self.episode_number)
+            wandb.log({os.path.basename(path_or_file_name): wandb.Video(np.array(image_array))}, step=self.episode_number)
 
     def _accumulate_stats(self, stats: Dict[str, Any]) -> None:
         for key, value in stats.items():
