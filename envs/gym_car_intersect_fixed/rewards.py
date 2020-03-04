@@ -41,8 +41,7 @@ class Rewarder:
                 self._settings_reward['idleness__punish_if_action_radius_less_then']:
             step_reward += self._settings_reward['idleness__punish_value']
 
-        step_reward += self._settings_reward.get('speed_multiplication_bonus', 0) * np.sqrt(
-            (np.array(car_stats['last_action']) ** 2).sum())
+        step_reward += self._settings_reward.get('speed_multiplication_bonus', 0) * car_stats['speed']
 
         for is_item in ['is_collided', 'is_finish', 'is_out_of_track', 'is_out_of_map', 'is_out_of_road']:
             if car_stats[is_item]:
