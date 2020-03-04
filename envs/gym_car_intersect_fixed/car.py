@@ -145,6 +145,7 @@ class DummyCar:
         self._hull.left_sensor = False
         self._hull.right_sensor = False
         self._hull.collision = False
+        self._hull.collision_list = []
         self._hull.userData = self._hull
         self.wheels = []
         self.fuel_spent = 0.0
@@ -188,6 +189,7 @@ class DummyCar:
             w.tiles = set()
             w.name = 'wheel'
             w.collision = False
+            w.collision_list = []
             w.penalty = False
             w.userData = w
             self.wheels.append(w)
@@ -328,6 +330,7 @@ class DummyCar:
         Update car statistic with current car state.
         """
         self._flush_stats()
+        self._state_data['collision_list'] = self._hull.collision_list
         cur_points = [
             np.array([wheel.position.x, wheel.position.y])
             for wheel in self.wheels
@@ -371,7 +374,12 @@ class DummyCar:
         self._state_data['last_action'] = self._last_action
 
         # update collision from contact listener
-        self._state_data['is_collided'] = self._hull.collision
+        self._state_data['is_collided'] = \
+            self._hull.collision or \
+            self.wheels[0].collision or \
+            self.wheels[1].collision or \
+            self.wheels[2].collision or \
+            self.wheels[3].collision
         self._state_data['right_sensor'] = self._hull.right_sensor
         self._state_data['left_sensor'] = self._hull.left_sensor
 

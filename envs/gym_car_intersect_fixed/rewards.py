@@ -68,6 +68,8 @@ class Rewarder:
         done = False
 
         for item in self._settings_done['true_flags_to_done']:
+            if item == 'is_collided' and car_stats['time'] < 15:
+                continue
             if car_stats[item]:
                 done = True
                 break
