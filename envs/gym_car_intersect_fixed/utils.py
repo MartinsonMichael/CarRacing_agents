@@ -70,12 +70,12 @@ class DataSupporter:
         # print(f'background image shape: {self._image_size * self._background_image_scale}')
         # print(f'play field shape: {self._playfield_size}')
 
-    @lru_cache
+    @lru_cache(maxsize=None)
     @property
     def car_features_list(self) -> Set[str]:
         return set(self._settings['state_config'].get('vector_car_features', []))
 
-    @lru_cache
+    @lru_cache(maxsize=None)
     @property
     def get_state_picture_shape(self):
         if 'picture' in self._settings['state_config'].keys():

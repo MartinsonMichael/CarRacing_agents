@@ -299,7 +299,7 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
         for bot in self.bot_cars:
             dists.append()
 
-    @lru_cache
+    @lru_cache(maxsize=None)
     def _create_vector_env_static_description(self) -> np.ndarray:
         params_to_use = self._settings['state_config']['vector_env_features']
         # that a have, just to remaind:
