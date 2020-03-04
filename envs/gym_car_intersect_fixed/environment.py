@@ -183,30 +183,24 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
             data_loader=self._data_loader,
             bot=False,
         )
+        self.car.update_stats()
+        self.car.update_stats()
 
     def create_bot_car(self):
-        attempts = 0
-        while True:
-            track = DataSupporter.do_with_points(
-                self._data_loader.peek_track(is_for_agent=False, expand_points=50),
-                self._data_loader.convertIMG2PLAY,
+        track = DataSupporter.do_with_points(
+            self._data_loader.peek_track(is_for_agent=False, expand_points=50),
+            self._data_loader.convertIMG2PLAY,
+        )
+        collided_indexes = self.initial_track_check(track)
+        if len(collided_indexes) == 0:
+            bot_car = DummyCar(
+                world=self.world,
+                car_image=self._data_loader.peek_car_image(is_for_agent=False),
+                track=track,
+                data_loader=self._data_loader,
+                bot=True,
             )
-            collided_indexes = self.initial_track_check(track)
-            if len(collided_indexes) == 0:
-                bot_car = DummyCar(
-                    world=self.world,
-                    car_image=self._data_loader.peek_car_image(is_for_agent=False),
-                    track=track,
-                    data_loader=self._data_loader,
-                    bot=True,
-                )
-                self.bot_cars.append(bot_car)
-                return True
-            else:
-                attempts += 1
-                print(f'created bot collided existed cars_full: {collided_indexes}')
-                if attempts >= 4:
-                    return False
+            self.bot_cars.append(bot_car)
 
     def initial_track_check(self, track) -> List[int]:
         """
@@ -256,9 +250,9 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
         for index, bot_car in enumerate(self.bot_cars):
             bot_car.update_stats()
 
-            print(f'BOT {index}')
-            print(bot_car.stats)
-            print()
+            # print(f'BOT {index}')
+            # print(bot_car.stats)
+            # print()
 
             if bot_car.stats['is_finish'] or bot_car.stats['is_out_of_road'] or bot_car.stats['is_out_of_map']:
                 bot_car.destroy()
@@ -268,7 +262,7 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
         if len(self.bot_cars) < self.num_bots:
             self.create_bot_car()
 
-        if self._need_draw_picture:
+        if self._settings['state_config']['picture']:
             try:
                 self.picture_state = self.render(self._preseted_render_mode)
             except:

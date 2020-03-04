@@ -1,3 +1,4 @@
+import os
 from typing import Dict, Any
 from collections import defaultdict
 
@@ -33,6 +34,10 @@ class Logger:
         self.episode_number += 1
         if self.episode_number % self.log_interval == 0:
             self._publish_logs()
+
+    def log_video(self, image_array, path_or_file_name) -> None:
+        if self.episode_number % 20 == 0:
+            wandb.log({os.path.basename(path_or_file_name): wandb.Video(image_array)}, step=self.episode_number)
 
     def _accumulate_stats(self, stats: Dict[str, Any]) -> None:
         for key, value in stats.items():
@@ -70,7 +75,7 @@ class Logger:
                 tf.summary.scalar(name=name, data=value, step=self.episode_number)
 
     def _publish_console(self) -> None:
-        print("Episode %d\tR %.3f\tTime %.1f" % (
+        print("Episode %d\tR %.4f\tTime %.1f" % (
                 self.episode_number,
                 self._stats.get('reward', None),
                 self._stats.get('env_steps', None)

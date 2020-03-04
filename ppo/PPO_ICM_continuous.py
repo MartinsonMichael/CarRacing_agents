@@ -266,6 +266,7 @@ class PPO_ICM:
                         args=(
                             images,
                             f'animation_PPO/{self.name}/_R:_{total_reward}_Time:_{episode_len}_{time.time()}.mp4',
+                            self.stat_logger
                         ),
                     ).start()
                 if info.get('need_reset', False):

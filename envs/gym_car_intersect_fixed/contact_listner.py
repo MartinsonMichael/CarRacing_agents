@@ -41,6 +41,7 @@ class RefactoredContactListener(contactListener):
         if (bodyA.name in {'car'}) and (bodyB.name in {'car', 'bot_car'}):
             if fixB != 'sensor':
                 bodyA.collision = True
+
         if (bodyA.name in {'car', 'bot_car'}) and (bodyB.name in {'car'}):
             if fixA != 'sensor':
                 bodyB.collision = True

@@ -6,7 +6,7 @@ import Box2D
 from Box2D.b2 import fixtureDef, polygonShape, revoluteJointDef
 
 from envs.gym_car_intersect_fixed.utils import DataSupporter
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Point
 
 
 SIZE = 80 / 1378.0
@@ -97,12 +97,12 @@ class DummyCar:
         ]
 
         LEFT_SENSOR = [
-            (0, 0), (+height_x, 0),
+            (0, width_y), (+height_x, width_y),
             (0, +width_y * 1.5), (+height_x, +width_y * 1.5)
         ]
 
         RIGHT_SENSOR = [
-            (-height_x, 0), (0, 0),
+            (-height_x, width_y), (0, width_y),
             (-height_x, +width_y * 1.5), (0, +width_y * 1.5)
         ]
 
@@ -199,7 +199,7 @@ class DummyCar:
         self._track_point: int = 0
         self._old_track_point: int = 0
         self._state_data = None
-        self._last_action = [0, 0, 0]
+        self._last_action = [0.0, 0.0, 0.0]
         self._flush_stats()
 
     def get_vector_state(self) -> np.ndarray:
@@ -207,7 +207,7 @@ class DummyCar:
         self.update_stats()
         CAR_FEATURES = {
             'hull_position', 'hull_angle', 'car_speed', 'wheels_positions',
-            'track_sensor', 'road_sensor', 'finish_sensor', 'cross_road_sensor'
+            'track_sensor', 'road_sensor', 'finish_sensor', 'cross_road_sensor', 'collide_sensor',
         }
         if len(set(self.data_loader.car_features_list) - CAR_FEATURES) > 0:
             raise ValueError(
@@ -253,6 +253,11 @@ class DummyCar:
 
         if 'finish_sensor' in self.data_loader.car_features_list:
             state.append(1.0 if self._state_data['is_finish'] else 0.0)
+
+        if 'collide_sensor' in self.data_loader.car_features_list:
+            state.append(float(self._state_data['left_sensor']))
+            state.append(float(self._state_data['right_sensor']))
+            state.append(float(self._state_data['is_collided']))
 
         return np.array(state)
 
@@ -402,7 +407,7 @@ class DummyCar:
         Car control: rear wheel drive
         """
         gas = np.clip(gas, 0, 1)
-        self._last_action[0] = gas
+        self._last_action[0] = float(gas)
         gas /= 10
         for w in self.wheels[2:4]:
             diff = gas - w.gas
@@ -437,15 +442,19 @@ class DummyCar:
         """
         self.update_stats()
 
-        if self._state_data['right_sensor']:
-            self.brake(0.8)
-            self._bot_state['stop_for_next'] = 10
-            return
-
-        if self._bot_state['stop_for_next'] > 0:
-            self.brake(0.8)
-            self._bot_state['stop_for_next'] -= 1
-            return
+        # if self._state_data['right_sensor']:
+        #     self.brake(0.8)
+        #     self.gas(0)
+        #     self.steer(0)
+        #     self._bot_state['stop_for_next'] = 20
+        #     return
+        #
+        # if self._bot_state['stop_for_next'] > 0:
+        #     self.brake(0.8)
+        #     self.gas(0)
+        #     self.steer(0)
+        #     self._bot_state['stop_for_next'] -= 1
+        #     return
 
         x, y = round(self._hull.position.x, 2), round(self._hull.position.y, 2)
 
@@ -492,11 +501,9 @@ class DummyCar:
             w.joint.motorSpeed = dir * val
 
             # Position => friction_limit
-            grass = True
             friction_limit = FRICTION_LIMIT * 0.6  # Grass friction if no tile
             for tile in w.tiles:
                 friction_limit = max(friction_limit, FRICTION_LIMIT * tile.road_friction)
-                grass = False
 
             # Force
             forw = w.GetWorldVector((0, 1))

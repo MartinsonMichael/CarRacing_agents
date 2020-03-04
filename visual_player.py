@@ -76,7 +76,6 @@ def main():
     steps = 0
     restart = False
     while True:
-        s = None
         done = None
         info = {}
         for _ in range(1):

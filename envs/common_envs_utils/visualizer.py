@@ -1,10 +1,14 @@
 import os
+from typing import Optional
 
 import numpy as np
+import wandb
 from matplotlib import animation
 from IPython.display import display, HTML
 import datetime
 import matplotlib.pyplot as plt
+
+from common_agents_utils.logger import Logger
 
 
 def episode_visualizer(env, action_picker, name='test', folder='save_animation_folder', image_processor=None):
@@ -37,7 +41,7 @@ def episode_visualizer(env, action_picker, name='test', folder='save_animation_f
 
 # f'./save_animation_folder/{datetime.datetime.now()}.mp4'
 
-def save_as_mp4(image_array, save_path):
+def save_as_mp4(image_array, save_path, logger: Optional[Logger]):
     dpi = 72.0
     xpixels, ypixels = image_array[0].shape[:2]
     fig = plt.figure(figsize=(ypixels / dpi, xpixels / dpi), dpi=dpi)
@@ -59,6 +63,9 @@ def save_as_mp4(image_array, save_path):
         os.makedirs(os.path.dirname(save_path))
 
     anim.save(save_path)
+
+    if logger is not None:
+        logger.log_video(image_array, save_path)
 
 
 def plot_sequence_images(image_array, need_disaply=False, need_save=None):
