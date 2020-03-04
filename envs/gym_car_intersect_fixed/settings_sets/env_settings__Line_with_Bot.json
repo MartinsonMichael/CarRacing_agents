@@ -18,7 +18,7 @@
   },
   "agent_tracks" : [0],
   "agent_image_indexes": [0],
-  "bot_number" : 2,
+  "bot_number" : 4,
   "bots_tracks": [0],
   "image_scale": {
     "back_image_scale_factor": 0.12,

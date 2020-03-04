@@ -110,7 +110,7 @@ class DummyCar:
 
         SENSOR = N_SENSOR_BOT if bot else N_SENSOR_SHAPE
         self.world = world
-        # SIZE *= 0.5
+
         self._hull = self.world.CreateDynamicBody(
             position=(init_x, init_y),
             angle=init_angle,
@@ -137,7 +137,6 @@ class DummyCar:
                 ),
             ]
         )
-        # SIZE *= 2
 
         self._hull.name = 'bot_car' if bot else 'car'
         self._hull.cross_time = float('inf')
@@ -145,7 +144,6 @@ class DummyCar:
         self._hull.left_sensor = False
         self._hull.right_sensor = False
         self._hull.collision = False
-        self._hull.collision_list = []
         self._hull.userData = self._hull
         self.wheels = []
         self.fuel_spent = 0.0
@@ -164,7 +162,8 @@ class DummyCar:
                     density=0.1,
                     categoryBits=0x0020,
                     maskBits=0x001,
-                    restitution=0.0)
+                    restitution=0.0,
+                )
             )
             w.wheel_rad = front_k * WHEEL_R * SIZE
             w.is_front = front_k
@@ -186,15 +185,11 @@ class DummyCar:
                 upperAngle=+0.4,
             )
             w.joint = self.world.CreateJoint(rjd)
-            w.tiles = set()
             w.name = 'wheel'
             w.collision = False
-            w.collision_list = []
-            w.penalty = False
             w.userData = w
             self.wheels.append(w)
         self.drawlist = self.wheels + [self._hull]
-        self.target = (0, 0)
 
         self._time: int = 0
         self.userData = self
@@ -330,7 +325,6 @@ class DummyCar:
         Update car statistic with current car state.
         """
         self._flush_stats()
-        self._state_data['collision_list'] = self._hull.collision_list
         cur_points = [
             np.array([wheel.position.x, wheel.position.y])
             for wheel in self.wheels
@@ -390,6 +384,8 @@ class DummyCar:
                 self._hull.linearVelocity.y,
             ])**2
         ))
+        self._state_data['speed_vector'] = np.array([self._hull.linearVelocity.x, self._hull.linearVelocity.y])
+        self._state_data['coordinate_vector'] = self.position_PLAY
         self._state_data['time'] = self._time
 
     def update_finish(self):
@@ -450,19 +446,19 @@ class DummyCar:
         """
         self.update_stats()
 
-        # if self._state_data['right_sensor']:
-        #     self.brake(0.8)
-        #     self.gas(0)
-        #     self.steer(0)
-        #     self._bot_state['stop_for_next'] = 20
-        #     return
-        #
-        # if self._bot_state['stop_for_next'] > 0:
-        #     self.brake(0.8)
-        #     self.gas(0)
-        #     self.steer(0)
-        #     self._bot_state['stop_for_next'] -= 1
-        #     return
+        if self._state_data['right_sensor']:
+            self.brake(0.8)
+            self.gas(0)
+            self.steer(0)
+            self._bot_state['stop_for_next'] = 20
+            return
+
+        if self._bot_state['stop_for_next'] > 0:
+            self.brake(0.8)
+            self.gas(0)
+            self.steer(0)
+            self._bot_state['stop_for_next'] -= 1
+            return
 
         x, y = round(self._hull.position.x, 2), round(self._hull.position.y, 2)
 
@@ -510,8 +506,8 @@ class DummyCar:
 
             # Position => friction_limit
             friction_limit = FRICTION_LIMIT * 0.6  # Grass friction if no tile
-            for tile in w.tiles:
-                friction_limit = max(friction_limit, FRICTION_LIMIT * tile.road_friction)
+            # for tile in w.tiles:
+            #     friction_limit = max(friction_limit, FRICTION_LIMIT * tile.road_friction)
 
             # Force
             forw = w.GetWorldVector((0, 1))

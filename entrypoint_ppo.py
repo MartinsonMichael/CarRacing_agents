@@ -55,13 +55,13 @@ def create_config(args):
         "max_episode_len": 500,
 
         "update_every_n_steps": 5000,
-        "learning_updates_per_learning_session": 2,
+        "learning_updates_per_learning_session": 1,
 
         "discount_rate": 0.99,
         "eps_clip": 0.2,  # clip parameter for PPO
 
         # parameters for Adam optimizer
-        "lr": 0.0003,
+        "lr": 0.0001,
         "gradient_clipping_norm": 1.0,
         "betas": (0.9, 0.999),
     }

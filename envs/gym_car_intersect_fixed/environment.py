@@ -1,4 +1,5 @@
 import json
+from functools import lru_cache
 
 import Box2D
 import cv2
@@ -290,9 +291,16 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
             'env_vector': self._create_vector_env_static_description().astype(np.float32),
         }
 
+    def _get_car_state_vector(self) -> np.ndarray:
+        if len(self._data_loader.car_features_list - {'car_radar_1', 'car_radar_2', 'car_radar_3'}):
+            return self.car.get_vector_state().astype(np.float32)
+
+        dists = []
+        for bot in self.bot_cars:
+            dists.append()
+
+    @lru_cache
     def _create_vector_env_static_description(self) -> np.ndarray:
-        if self._static_env_state_cache is not None:
-            return self._static_env_state_cache.copy()
         params_to_use = self._settings['state_config']['vector_env_features']
         # that a have, just to remaind:
         # * agent car - NOT in this function
@@ -329,8 +337,7 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
             if polygon_name in params_to_use:
                 for point in polygon_points:
                     env_vector.extend(point / self._data_loader.playfield_size)
-        self._static_env_state_cache = np.array(env_vector, dtype=np.float32)
-        return self._static_env_state_cache.copy()
+        return np.array(env_vector, dtype=np.float32)
 
     def render(self, mode='human', full_image=False) -> np.array:
         background_image = self._data_loader.get_background(true_size=full_image)

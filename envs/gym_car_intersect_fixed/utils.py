@@ -1,5 +1,6 @@
 import os
-from typing import List, NamedTuple, Type, Any, Optional, Tuple, Union, Dict
+from functools import lru_cache
+from typing import List, NamedTuple, Type, Any, Optional, Tuple, Union, Dict, Set
 import cv2
 import numpy as np
 from shapely.geometry import Polygon
@@ -69,12 +70,12 @@ class DataSupporter:
         # print(f'background image shape: {self._image_size * self._background_image_scale}')
         # print(f'play field shape: {self._playfield_size}')
 
+    @lru_cache
     @property
-    def car_features_list(self) -> List[str]:
-        if 'vector_car_features' in self._settings['state_config'].keys():
-            return self._settings['state_config']['vector_car_features']
-        return []
+    def car_features_list(self) -> Set[str]:
+        return set(self._settings['state_config'].get('vector_car_features', []))
 
+    @lru_cache
     @property
     def get_state_picture_shape(self):
         if 'picture' in self._settings['state_config'].keys():
