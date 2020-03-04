@@ -1,4 +1,5 @@
 import os
+from threading import Thread
 from typing import Dict, Any
 from collections import defaultdict
 
@@ -35,9 +36,19 @@ class Logger:
         if self.episode_number % self.log_interval == 0:
             self._publish_logs()
 
+    @staticmethod
+    def _delayed_animation_logging(image_array, path, step):
+        wandb.log(
+            {os.path.basename(path): wandb.Video(np.array(image_array))},
+            step=step,
+        )
+
     def log_video(self, image_array, path_or_file_name) -> None:
         if self.episode_number % 20 == 0:
-            wandb.log({os.path.basename(path_or_file_name): wandb.Video(np.array(image_array))}, step=self.episode_number)
+            Thread(
+                target=Logger._delayed_animation_logging,
+                args=(image_array, path_or_file_name, self.episode_number),
+            ).run()
 
     def _accumulate_stats(self, stats: Dict[str, Any]) -> None:
         for key, value in stats.items():
