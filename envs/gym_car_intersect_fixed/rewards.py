@@ -68,8 +68,6 @@ class Rewarder:
         """
         done = False
 
-        print(car_stats)
-
         for item in self._settings_done['true_flags_to_done']:
             if car_stats[item]:
                 done = True
