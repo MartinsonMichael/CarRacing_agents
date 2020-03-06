@@ -206,7 +206,7 @@ class Torch_Arbitrary_Replay_Buffer(object):
     def remove_all(self) -> None:
         self.memory.clear()
 
-    def get_all(self, sample_order=None) -> Tuple[TT]:
+    def get_all(self, sample_order=None) -> Tuple[TT, ...]:
         if sample_order is None:
             sample_order = self.sample_order
         return tuple(

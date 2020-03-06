@@ -44,11 +44,12 @@ class Logger:
         )
 
     def log_video(self, image_array, path_or_file_name) -> None:
-        if self.episode_number % 20 == 0:
-            Thread(
-                target=Logger._delayed_animation_logging,
-                args=(image_array, path_or_file_name, self.episode_number),
-            ).run()
+        return
+        # if self.episode_number % 20 == 0:
+        #     Thread(
+        #         target=Logger._delayed_animation_logging,
+        #         args=(image_array, path_or_file_name, self.episode_number),
+        #     ).run()
 
     def _accumulate_stats(self, stats: Dict[str, Any]) -> None:
         for key, value in stats.items():

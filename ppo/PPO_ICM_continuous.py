@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from common_agents_utils import Config, Torch_Separated_Replay_Buffer, ActorCritic, ICM, Torch_Arbitrary_Replay_Buffer
+from common_agents_utils import Config, ActorCritic, ICM, Torch_Arbitrary_Replay_Buffer
 from common_agents_utils.logger import Logger
 from envs.common_envs_utils.visualizer import save_as_mp4
 
@@ -26,6 +26,7 @@ class PPO_ICM:
         self.test_env = config.test_environment_make_function()
         self.action_size = self.test_env.action_space.shape[0]
         self._config = config
+        self.env = None
         self.create_env(config)
 
         self.memory = Torch_Arbitrary_Replay_Buffer(
@@ -161,6 +162,7 @@ class PPO_ICM:
             'discount_reward MAX': float(discount_reward.detach().cpu().numpy().max()),
         })
 
+        intrinsic_loss = 0
         if self.hyperparameters['use_icm']:
             self._icm.add_experience(
                 is_single=False,

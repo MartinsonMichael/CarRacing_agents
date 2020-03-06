@@ -8,7 +8,6 @@ from Box2D.b2 import fixtureDef, polygonShape, revoluteJointDef
 from envs.gym_car_intersect_fixed.utils import DataSupporter
 from shapely.geometry import Point
 
-
 SIZE = 80 / 1378.0
 MC = SIZE / 0.02
 ENGINE_POWER = 100000000 * SIZE * SIZE / MC / MC
@@ -29,7 +28,7 @@ SENSOR_SHAPE = [
     (-45, -105 - CENTROID), (+45, -105 - CENTROID),
     (-45, +105 - CENTROID), (+45, +105 - CENTROID)
 ]
-## Point sensor:
+# Point sensor:
 # SENSOR_BOT = [
 #     (-10,350-CENTROID), (+10,350-CENTROID),
 #     (-10,+360-CENTROID),  (+10,+360-CENTROID)
@@ -44,6 +43,7 @@ SENSOR_BOT = [
 # ]
 WHEEL_COLOR = (0.0, 0.0, 0.0)
 WHEEL_WHITE = (0.3, 0.3, 0.3)
+
 
 class DummyCar:
     """
@@ -258,6 +258,12 @@ class DummyCar:
 
         return np.array(state)
 
+    def DEBUG_get_hull(self):
+        return self._hull
+
+    def DEBUG_get_cur_track_point(self) -> int:
+        return self._track_point
+
     @property
     def angle_index(self) -> int:
         return int((int(self._hull.angle * 180 / np.pi) % 360) / 8)
@@ -265,6 +271,10 @@ class DummyCar:
     @property
     def angle_degree(self) -> float:
         return self._hull.angle * 180 / np.pi
+
+    @property
+    def angle_radian(self) -> float:
+        return self._hull.angle
 
     @property
     def position_PLAY(self) -> np.ndarray:
@@ -290,12 +300,12 @@ class DummyCar:
         return self.data_loader.convertPLAY2IMG(self.wheels_positions_PLAY)
 
     def _is_car_closely_to(self, point, threshold=0.5) -> bool:
-        if point.shape != (2, ):
+        if point.shape != (2,):
             raise ValueError
         return (
-            np.any(np.sqrt(((self.wheels_positions_PLAY - point)**2).sum(axis=1)) < threshold)
-            or
-            ((self.position_PLAY - point)**2).sum() < threshold
+                np.any(np.sqrt(((self.wheels_positions_PLAY - point) ** 2).sum(axis=1)) < threshold)
+                or
+                ((self.position_PLAY - point) ** 2).sum() < threshold
         )
 
     def _flush_stats(self):
@@ -363,7 +373,7 @@ class DummyCar:
         self._update_track_point()
         self.update_finish()
         self._state_data['track_progress'] = self._track_point / (
-                len(self.track['line']) - 1 if len(self.track['line']) >= 2 else 1
+            len(self.track['line']) - 1 if len(self.track['line']) >= 2 else 1
         )
         self._state_data['last_action'] = self._last_action
 
@@ -382,7 +392,7 @@ class DummyCar:
             np.array([
                 self._hull.linearVelocity.x,
                 self._hull.linearVelocity.y,
-            ])**2
+            ]) ** 2
         ))
         self._state_data['speed_vector'] = np.array([self._hull.linearVelocity.x, self._hull.linearVelocity.y])
         self._state_data['coordinate_vector'] = self.position_PLAY
@@ -498,11 +508,11 @@ class DummyCar:
 
         for wheel_index, w in enumerate(self.wheels):
             # Steer each wheel
-            dir = np.sign(w.steer - w.joint.angle)
+            steer_direction = np.sign(w.steer - w.joint.angle)
             val = abs(w.steer - w.joint.angle) * 5
             if val < 1e-3:
                 val = 0
-            w.joint.motorSpeed = dir * val
+            w.joint.motorSpeed = steer_direction * val
 
             # Position => friction_limit
             friction_limit = FRICTION_LIMIT * 0.6  # Grass friction if no tile
@@ -520,19 +530,19 @@ class DummyCar:
             # WHEEL_MOMENT_OF_INERTIA*np.square(w.omega)/2 = E -- energy
             # WHEEL_MOMENT_OF_INERTIA*w.omega * domega/dt = dE/dt = W -- power
             # domega = dt*W/WHEEL_MOMENT_OF_INERTIA/w.omega
-            w.omega += dt * ENGINE_POWER * w.gas / WHEEL_MOMENT_OF_INERTIA / (
-                        abs(w.omega) + 5.0)  # small coef not to divide by zero
+            w.omega += dt * ENGINE_POWER * w.gas / WHEEL_MOMENT_OF_INERTIA / (abs(w.omega) + 5.0)
+            # small coef not to divide by zero
             self.fuel_spent += dt * ENGINE_POWER * w.gas
 
             if w.brake >= 0.9:
                 w.omega = 0
             elif w.brake > 0:
                 BRAKE_FORCE = 15  # radians per second
-                dir = -np.sign(w.omega)
+                steer_direction = -np.sign(w.omega)
                 val = BRAKE_FORCE * w.brake
                 if abs(val) > abs(w.omega):
                     val = abs(w.omega)  # low speed => same as = 0
-                w.omega += dir * val
+                w.omega += steer_direction * val
             w.phase += w.omega * dt
 
             vr = w.omega * w.wheel_rad  # rotating wheel speed
@@ -541,7 +551,8 @@ class DummyCar:
 
             # Physically correct is to always apply friction_limit until speed is equal.
             # But dt is finite, that will lead to oscillations if difference is already near zero.
-            f_force *= 205000 * SIZE * SIZE  # Random coefficient to cut oscillations in few steps (have no effect on friction_limit)
+            f_force *= 205000 * SIZE * SIZE
+            # Random coefficient to cut oscillations in few steps (have no effect on friction_limit)
             p_force *= 205000 * SIZE * SIZE
             force = np.sqrt(np.square(f_force) + np.square(p_force))
 
@@ -557,7 +568,6 @@ class DummyCar:
             w.ApplyForceToCenter((
                 p_force * side[0] + f_force * forw[0],
                 p_force * side[1] + f_force * forw[1]), True)
-
 
     def destroy(self):
         """

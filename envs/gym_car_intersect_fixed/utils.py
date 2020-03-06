@@ -1,6 +1,4 @@
-import os
-from functools import lru_cache
-from typing import List, NamedTuple, Type, Any, Optional, Tuple, Union, Dict, Set
+from typing import List, NamedTuple, Any, Optional, Tuple, Union, Dict, Set
 import cv2
 import numpy as np
 from shapely.geometry import Polygon
@@ -73,6 +71,14 @@ class DataSupporter:
     @property
     def car_features_list(self) -> Set[str]:
         return set(self._settings['state_config'].get('vector_car_features', []))
+
+    @property
+    def get_background_image_scale(self) -> float:
+        return self._background_image_scale
+
+    @property
+    def track_count(self) -> int:
+        return len(self._tracks)
 
     @property
     def playfield_size(self) -> np.array:
@@ -257,6 +263,7 @@ class DataSupporter:
                 ),
                 car.angle_degree + 90,
             )
+            self._image_memory[car.car_image.hashable_obj][angle_index] = (masked_image, car_mask_image)
         except:
             print('ERROR in resize')
             print(f'car image shape : {car.car_image.image.shape}')
@@ -264,7 +271,6 @@ class DataSupporter:
             print(f'angle : {car.angle_degree + 90}')
             print(f'scale : {self._car_image_scale}')
 
-        self._image_memory[car.car_image.hashable_obj][angle_index] = (masked_image, car_mask_image)
         return self._image_memory[car.car_image.hashable_obj][angle_index]
 
     @staticmethod
@@ -367,9 +373,10 @@ class DataSupporter:
             'line': np.array(expanded_track),
         }
 
-    def peek_car_image(self, is_for_agent, index: Optional[int] = None):
+    def peek_car_image(self, is_for_agent: bool, index: Optional[int] = None):
         """
         Return random car image.
+        :param is_for_agent: bool
         :param index: integer, if provided function return index'th car image
         :return: car image, named tuple
         """
@@ -379,12 +386,11 @@ class DataSupporter:
             index = np.random.choice(np.arange(len(self._cars)))
         return copy.deepcopy(self._cars[index])
 
-    def peek_track(self, is_for_agent, expand_points: Optional[float] = 50, index: Optional[int] = None):
+    def peek_track(self, is_for_agent, expand_points: Optional[float] = 50):
         """
         Return random track object.
         :param is_for_agent:
         :param expand_points: if provided increase number of points in 'line' part of track object
-        :param index: if provided, function return index'th track.
         :return:
         """
         if is_for_agent:
@@ -430,7 +436,10 @@ class DataSupporter:
         """
         if isinstance(track, dict):
             return track['line'][0]
-        return track[0]
+        if isinstance(track, (np.ndarray, list)):
+            return track[0]
+
+        raise ValueError('unknown track type, fix me!')
 
     @staticmethod
     def angle_by_2_points(

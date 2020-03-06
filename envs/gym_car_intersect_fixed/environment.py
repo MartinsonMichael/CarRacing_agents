@@ -2,10 +2,8 @@ import json
 from functools import lru_cache
 
 import Box2D
-import cv2
 import gym
 import numpy as np
-import torch
 
 from gym import spaces
 from gym.utils import seeding, EzPickle
@@ -81,7 +79,7 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
             car_vector=spaces.Box(
                 low=-5,
                 high=+5,
-                shape=(len(test_car.get_vector_state()), ),
+                shape=(len(test_car.get_vector_state()),),
                 dtype=np.float32,
             ),
             env_vector=spaces.Box(
@@ -92,6 +90,8 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
             ),
         )
         self._need_draw_picture = self._settings['state_config']['picture']
+        self.time = 0
+        self.np_random, _ = seeding.np_random(42)
         self.reset()
 
     def set_render_mode(self, mode):
@@ -221,7 +221,7 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
 
         return collided_indexes
 
-    def step(self, action: List[float]):
+    def step(self, action: Union[None, List[float]]):
         if self._was_done:
             self._was_done = False
             return self.reset(), 0.0, False, {'was_reset': True}
@@ -292,12 +292,37 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
         }
 
     def _get_car_state_vector(self) -> np.ndarray:
-        if len(self._data_loader.car_features_list - {'car_radar_1', 'car_radar_2', 'car_radar_3'}):
-            return self.car.get_vector_state().astype(np.float32)
+        car_state = list(self.car.get_vector_state().astype(np.float32))
 
-        dists = []
-        for bot in self.bot_cars:
-            dists.append(None)
+        if len(self._data_loader.car_features_list - {'car_radar_1', 'car_radar_2', 'car_radar_3'}) != 0:
+            dists = []
+            for bot in self.bot_cars:
+                angle_diff = (self.car.angle_radian - bot.angle_radian) % (2 * np.pi)
+                dists.append((
+                    self._data_loader.dist(
+                        self.car.position_PLAY,
+                        bot.position_PLAY
+                    ) / self._data_loader.playfield_size[0],
+                    np.sin(angle_diff),
+                    np.cos(angle_diff)
+                ))
+            dists = sorted(dists, key=lambda x: x[0])
+
+            num = 0
+            if 'car_radar_1' in self._data_loader.car_features_list:
+                num = 1
+            if 'car_radar_2' in self._data_loader.car_features_list:
+                num = 2
+            if 'car_radar_3' in self._data_loader.car_features_list:
+                num = 3
+
+            for index in range(num):
+                if len(dists) > index:
+                    car_state.extend(dists[index])
+                else:
+                    car_state.extend([10.0, 0.0, 1.0])
+
+        return np.array(car_state)
 
     @lru_cache(maxsize=None)
     def _create_vector_env_static_description(self) -> np.ndarray:
@@ -375,7 +400,7 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
         #     point_size=3,
         #     color='red'
         # )
-            # self.debug_draw_restrictions(background_image)
+        # self.debug_draw_restrictions(background_image)
         return background_image
 
     def draw_car(self, background_image, background_mask, car: DummyCar, full_image=False):
@@ -395,7 +420,7 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
 
         # car position in image coordinates (in pixels)
         car_x, car_y = car.position_IMG * (
-            self._data_loader._background_image_scale
+            self._data_loader.get_background_image_scale
             if not full_image else self._data_loader.FULL_RENDER_COEFF
         )
 
@@ -475,7 +500,7 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
             'right_sensor': 'blue',
             'left_sensor': [255, 255, 0],
         }
-        for fixture in car._hull.fixtures:
+        for fixture in car.DEBUG_get_hull.fixtures:
             for point in fixture.shape.vertices:
                 pnt = DataSupporter.convert_XY2YX(self._data_loader.convertPLAY2IMG(point) + car.position_IMG)
                 # print(f'fhull point: {pnt}')
@@ -487,7 +512,9 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
                 )
 
     def debug_draw_track(self, background_image, car, point_size=10, color='blue'):
-        for point in DataSupporter.convert_XY2YX(self._data_loader.convertPLAY2IMG(car.track['line'])) * self._data_loader._background_image_scale:
+        for point in DataSupporter.convert_XY2YX(
+                self._data_loader.convertPLAY2IMG(car.track['line'])
+        ) * self._data_loader.get_background_image_scale:
             CarRacingHackatonContinuousFixed.debug_draw_sized_point(
                 background_image,
                 point,
@@ -496,7 +523,9 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
             )
         CarRacingHackatonContinuousFixed.debug_draw_sized_point(
             background_image,
-            DataSupporter.convert_XY2YX(self._data_loader.convertPLAY2IMG(car.track['line'][car._track_point])) * self._data_loader._background_image_scale,
+            DataSupporter.convert_XY2YX(self._data_loader.convertPLAY2IMG(
+                car.track['line'][car.DEBUG_get_cur_track_point])
+            ) * self._data_loader.get_background_image_scale,
             point_size,
             'blue',
         )
@@ -535,7 +564,7 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
         for dx in range(int(-size / 2), int(size / 2) + 1, 1):
             for dy in range(int(-size / 2), int(size / 2) + 1, 1):
                 background_image[
-                int(np.clip(y + dy, 0, background_image.shape[0] - 1)),
-                int(np.clip(x + dx, 0, background_image.shape[1] - 1)),
-                :,
+                    int(np.clip(y + dy, 0, background_image.shape[0] - 1)),
+                    int(np.clip(x + dx, 0, background_image.shape[1] - 1)),
+                    :,
                 ] = color

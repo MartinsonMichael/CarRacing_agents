@@ -62,7 +62,7 @@ def create_config(args):
 
         # parameters for Adam optimizer
         "lr": 0.0002,
-        "gradient_clipping_norm": 1.0,
+        "gradient_clipping_norm": 0.5,
         "betas": (0.9, 0.999),
     }
     return config
