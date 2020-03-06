@@ -42,7 +42,6 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
 
         # init agent data
         self.car = None
-        self._preseted_agent_track = None
         self.create_agent_car()
         self.rewarder = Rewarder(self._settings)
 
@@ -63,7 +62,7 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
             world=self.world,
             car_image=self._data_loader.peek_car_image(is_for_agent=True),
             track=DataSupporter.do_with_points(
-                self._data_loader.peek_track(is_for_agent=True, expand_points=200, index=self._preseted_agent_track),
+                self._data_loader.peek_track(is_for_agent=True, expand_points=200),
                 self._data_loader.convertIMG2PLAY,
             ),
             data_loader=self._data_loader,
@@ -89,31 +88,9 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
                 dtype=np.float32,
             ),
         )
-        self._need_draw_picture = self._settings['state_config']['picture']
         self.time = 0
         self.np_random, _ = seeding.np_random(42)
         self.reset()
-
-    def set_render_mode(self, mode):
-        self._preseted_render_mode = mode
-
-    def set_bot_number(self, bot_number):
-        self.num_bots = bot_number
-
-    def set_agent_track(self, index):
-        """
-        Set agent track.
-        :param index: index from 0 to number of tracks (smt like 12)
-        :return: void
-        """
-        if index is None:
-            print('agent track set to random')
-            self._preseted_agent_track = None
-            return
-        if index < 0 or index > self._data_loader.track_count:
-            raise ValueError(f'index must be from 0 to {self._data_loader.track_count}')
-        print(f'agent track set to {index}')
-        self._preseted_agent_track = index
 
     def _init_world(self):
         """
@@ -158,7 +135,6 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
         self.time = 0
         self.create_agent_car()
         self.rewarder = Rewarder(self._settings)
-        self._need_draw_picture = self._settings['state_config']['picture']
 
         self.bot_cars = []
         for bot_index in range(self.num_bots):
@@ -177,7 +153,6 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
                 self._data_loader.peek_track(
                     is_for_agent=True,
                     expand_points=self._settings['reward']['track_checkpoint_expanding'],
-                    index=self._preseted_agent_track
                 ),
                 self._data_loader.convertIMG2PLAY,
             ),
