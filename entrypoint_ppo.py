@@ -61,7 +61,7 @@ def create_config(args):
         "eps_clip": 0.2,  # clip parameter for PPO
 
         # parameters for Adam optimizer
-        "lr": 0.0002,
+        "lr": 0.0005,
         "gradient_clipping_norm": 0.5,
         "betas": (0.9, 0.999),
     }
