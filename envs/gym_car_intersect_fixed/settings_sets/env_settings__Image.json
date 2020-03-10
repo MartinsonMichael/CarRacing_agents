@@ -47,6 +47,7 @@
 
     "new_tiles_count": 1.0,
     "speed_multiplication_bonus": 0.0,
+    "displacement": 1.0,
 
     "speed_per_point": 0.001,
     "if_speed_more_then_threshold": 0.0,

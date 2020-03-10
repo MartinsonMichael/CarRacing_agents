@@ -87,9 +87,10 @@ class Logger:
                 tf.summary.scalar(name=name, data=value, step=self.episode_number)
 
     def _publish_console(self) -> None:
-        print("Episode %d\tR %.4f\tTime %.1f" % (
+        print("Episode %d\tR %.4f\tTime %.1f\tTrack %.2f" % (
                 self.episode_number,
                 self._stats.get('reward', None),
-                self._stats.get('env_steps', None)
+                self._stats.get('env_steps', None),
+                self._stats.get('track_progress', -1),
             )
         )

@@ -1,11 +1,11 @@
-from collections import namedtuple, deque
+from collections import namedtuple, deque, defaultdict
 import random
 from common_agents_utils.typingTypes import *
 import torch
 import numpy as np
 
 
-class Torch_Arbitrary_Replay_Buffer(object):
+class Torch_Parallel_Arbitrary_Replay_Buffer(object):
     """
     Replay buffer to store past experiences that the agent can then use for training data
 
@@ -15,7 +15,7 @@ class Torch_Arbitrary_Replay_Buffer(object):
     """
 
     def __init__(
-            self, buffer_size, device,
+            self, buffer_size, device, batch_add=True, done_key_word='done',
             sample_order=['state', 'action', 'reward', 'next_state', 'done'], **kwargs
     ):
         print('replay buffer -> kwargs')
@@ -24,6 +24,9 @@ class Torch_Arbitrary_Replay_Buffer(object):
         # if self.separate_state:
         #     raise NotImplemented
 
+        self.done_key_word = done_key_word
+        self.batch_add = batch_add
+        self._batch_temp_memory = defaultdict(lambda: defaultdict(lambda: []))
         self.sample_order = sample_order
         self.memory = deque(maxlen=buffer_size)
         self.experience = namedtuple("Experience", field_names=self.sample_order)
@@ -46,10 +49,27 @@ class Torch_Arbitrary_Replay_Buffer(object):
     def add_experience(self, is_single=True, **kwargs):
         """Adds experience(s) into the replay buffer"""
         if not is_single:
-            for values in zip(*[kwargs[name] for name in self.sample_order]):
-                self._add_single_experience(**{name: value for name, value in zip(self.sample_order, values)})
+            if self.batch_add:
+                self._parallel_add(**kwargs)
+                return
+            self._add_session(**kwargs)
         else:
             self._add_single_experience(**kwargs)
+
+    def remove_all_not_done_session(self):
+        self._batch_temp_memory = defaultdict(lambda: defaultdict(lambda: []))
+
+    def _parallel_add(self, **kwargs):
+        for name, values in kwargs.items():
+            for index, value in enumerate(values):
+                self._batch_temp_memory[index][name].append(value)
+                if name == self.done_key_word and (value or value == 1 or value == 1.0):
+                    self._add_session(**self._batch_temp_memory[index])
+                    self._batch_temp_memory[index] = defaultdict(lambda: [])
+
+    def _add_session(self, **kwargs):
+        for values in zip(*[kwargs[name] for name in self.sample_order]):
+            self._add_single_experience(**{name: value for name, value in zip(self.sample_order, values)})
 
     @staticmethod
     def _state_splitter__both(state: NpA, channel_to_split=3) -> Tuple[NpA, NpA]:
