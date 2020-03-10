@@ -54,7 +54,7 @@ def create_config(args):
         "num_episodes_to_run": 50 * 10 ** 3,
         "max_episode_len": 500,
 
-        "update_every_n_steps": 5000,
+        "update_every_n_steps": 2000,
         "learning_updates_per_learning_session": 1,
 
         "discount_rate": 0.99,
