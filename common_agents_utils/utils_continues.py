@@ -194,9 +194,9 @@ class ActorCritic(nn.Module):
     def _get_mean_std(self, state) -> Tuple[TT, TT]:
         action_out = self.actor(state)
         if self.double_action_size_on_output:
-            return action_out[:, self.action_size:], action_out[:, :self.action_size]
+            return torch.tanh(action_out[:, self.action_size:]), action_out[:, :self.action_size]
         else:
-            return action_out, self.action_std
+            return torch.tanh(action_out), self.action_std
 
     def sample_action(self, state, **kwargs) -> Tuple[npTT, npTT, npTT]:
         """
