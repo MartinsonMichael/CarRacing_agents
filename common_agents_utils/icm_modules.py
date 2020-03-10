@@ -119,6 +119,12 @@ class ICM:
         predicted_action = self._inverse(encoded_state, encoded_next_state)
         inverse_loss = ((_action.detach() - predicted_action)**2).mean(dim=1)
 
+        print('predicted action')
+        print(predicted_action[:10].detch().cpu().numpy())
+
+        print('real action')
+        print(_action[:10].detach().cpu().numpy())
+
         predicted_encoded_next_state = self._forward(encoded_state, _action)
         forward_loss = ((encoded_next_state - predicted_encoded_next_state)**2).mean(dim=1)
         loss = (forward_loss + inverse_loss).mean() + 0.01 * encoder_reg_loss
