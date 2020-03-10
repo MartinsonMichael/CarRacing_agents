@@ -1,5 +1,5 @@
 import json
-from typing import Optional
+from typing import Optional, Dict, Union, Any
 
 import chainerrl
 import numpy as np
@@ -12,7 +12,10 @@ from envs.gym_car_intersect_fixed import CarRacingHackatonContinuousFixed
 
 
 def get_state_type_from_settings_path(settings_path: str) -> str:
-    settings = json.load(open(settings_path))
+    return get_state_type_from_settings(json.load(open(settings_path)))
+
+
+def get_state_type_from_settings(settings: Dict[str, Any]) -> str:
     have_image = settings['state_config']['picture']
     have_vector = len(settings['state_config']['vector_car_features']) != 0
     if have_image and have_vector:
@@ -22,11 +25,15 @@ def get_state_type_from_settings_path(settings_path: str) -> str:
     elif have_image:
         return 'image'
 
-    raise ValueError(f'unknown state type on path : {settings_path}')
+    raise ValueError(f'unknown state type on settings : {settings}')
 
 
-def get_EnvCreator_by_settings(settings_path: str):
-    expected_state_type = get_state_type_from_settings_path(settings_path)
+def get_EnvCreator_by_settings(settings_path: Union[str, Dict]):
+    if isinstance(settings_path, str):
+        expected_state_type = get_state_type_from_settings_path(settings_path)
+    else:
+        expected_state_type = get_state_type_from_settings(settings_path)
+
     if expected_state_type == 'both':
         return make_CarRacing_fixed_combined_features
     if expected_state_type == 'image':

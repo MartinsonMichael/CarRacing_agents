@@ -54,7 +54,7 @@ def create_config(args):
         "num_episodes_to_run": 50 * 10 ** 3,
         "max_episode_len": 500,
 
-        "update_every_n_steps": 2000,
+        "update_every_n_steps": 5000,
         "learning_updates_per_learning_session": 1,
 
         "discount_rate": 0.99,
@@ -65,6 +65,10 @@ def create_config(args):
         "gradient_clipping_norm": 0.5,
         "betas": (0.9, 0.999),
     }
+
+    if config.hyperparameters['max_episode_len'] != config.hyperparameters['env_settings']['max_episode_len']:
+        raise ValueError('set same max_episode_len')
+
     return config
 
 
