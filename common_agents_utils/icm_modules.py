@@ -79,11 +79,11 @@ class ICM:
             raise ValueError("you can save to ICM replay buffer only {'state', 'action', 'next_state'}")
         self.replay_buffer.add_experience(is_single=is_single, **kwargs)
 
-    def update(self, return_stat=False) -> Optional[StatType]:
+    def update(self, return_stat=False, num_iteration=None) -> Optional[StatType]:
         stat = defaultdict(list)
         stat['buffer_len'].append(self.replay_buffer.len())
 
-        for _ in range(self.update_per_step):
+        for _ in range(num_iteration if num_iteration is not None else self.update_per_step):
             state_batch, action_batch, next_state_batch = self.replay_buffer.sample()
 
             _, loss, cur_stat = self.get_intrinsic_reward_with_loss(
