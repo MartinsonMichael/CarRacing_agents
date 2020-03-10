@@ -107,9 +107,6 @@ class PPO_ICM:
         self.current_game_stats['reward'] += reward
         self.current_game_stats['env_steps'] += 1.0
 
-        if not done:
-            return
-
         if 'is_finish' in info.keys():
             self.current_game_stats['finish'] = info['is_finish']
         if 'track_progress' in info.keys():
