@@ -120,7 +120,7 @@ class ICM:
         inverse_loss = ((_action.detach() - predicted_action)**2).mean(dim=1)
 
         print('predicted action')
-        print(predicted_action[:10].detch().cpu().numpy())
+        print(predicted_action[:10].detach().cpu().numpy())
 
         print('real action')
         print(_action[:10].detach().cpu().numpy())
