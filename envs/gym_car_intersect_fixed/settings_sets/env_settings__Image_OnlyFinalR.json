@@ -50,7 +50,7 @@
     "displacement": 0.0,
     "max_episode_len": 500,
     "track_progress_as_final_reward": 0,
-    "track_progress_as_usual_reward": 1,
+    "track_progress_as_usual_reward": 0.1,
 
     "speed_per_point": 0.0,
     "if_speed_more_then_threshold": 0.0,
