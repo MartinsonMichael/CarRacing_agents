@@ -173,7 +173,7 @@ class PPO_ICM:
                 next_state=next_states.detach().cpu().numpy(),
             )
             intrinsic_reward, intrinsic_loss = self._icm.get_intrinsic_reward_with_loss(
-                state=states, action=actions, next_state=next_states, return_stats=False
+                state=states, action=actions, next_state=next_states, return_stats=False, print_debug=True,
             )
             discount_reward += torch.from_numpy(np.clip(intrinsic_reward, -3, 3)).to(self.device)
 

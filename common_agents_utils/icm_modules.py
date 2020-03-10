@@ -108,7 +108,7 @@ class ICM:
             return {'update_' + key: float(np.mean(value)) for key, value in stat.items()}
 
     def get_intrinsic_reward_with_loss(
-            self, state: npTT, action: npTT, next_state: npTT, return_stats=False
+            self, state: npTT, action: npTT, next_state: npTT, return_stats=False, print_debug=False,
     ) -> Union[Tuple[NpA, TT, StatType], Tuple[NpA, TT]]:
         _action = make_it_batched_torch_tensor(action, device=self.device)
 
@@ -119,11 +119,12 @@ class ICM:
         predicted_action = self._inverse(encoded_state, encoded_next_state)
         inverse_loss = ((_action.detach() - predicted_action)**2).mean(dim=1)
 
-        print('predicted action')
-        print(predicted_action[:10].detach().cpu().numpy())
+        if print_debug:
+            print('predicted action')
+            print(predicted_action[:10].detach().cpu().numpy())
 
-        print('real action')
-        print(_action[:10].detach().cpu().numpy())
+            print('real action')
+            print(_action[:10].detach().cpu().numpy())
 
         predicted_encoded_next_state = self._forward(encoded_state, _action)
         forward_loss = ((encoded_next_state - predicted_encoded_next_state)**2).mean(dim=1)
