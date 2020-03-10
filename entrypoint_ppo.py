@@ -66,7 +66,7 @@ def create_config(args):
         "betas": (0.9, 0.999),
     }
 
-    if config.hyperparameters['max_episode_len'] != config.hyperparameters['env_settings']['max_episode_len']:
+    if config.hyperparameters['max_episode_len'] != config.hyperparameters['env_settings']['reward']['max_episode_len']:
         raise ValueError('set same max_episode_len')
 
     return config
