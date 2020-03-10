@@ -42,7 +42,7 @@ class Rewarder:
         cur_point = np.array(car_stats.get('coordinate_vector', [0, 0]))
         if len(self._prev_coordinates) > 0:
             for prev_dot in self._prev_coordinates:
-                sumdist += np.sqrt((prev_dot - cur_point)**2)
+                sumdist += np.sqrt(np.sum((prev_dot - cur_point)**2))
             sumdist = sumdist / len(self._prev_coordinates)
         step_reward += sumdist * self._settings_reward.get('displacement', 0.0)
 
