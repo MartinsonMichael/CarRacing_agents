@@ -178,8 +178,6 @@ class PPO_ICM:
             self.current_game_stats.update({
                 'intrinsic_reward MEAN': intrinsic_reward.mean(),
                 'intrinsic_reward MAX': intrinsic_reward.max(),
-            })
-            self.current_game_stats.update({
                 'total_reward MEAN': float(discount_reward.detach().cpu().numpy().mean()),
                 'total_reward MAX': float(discount_reward.detach().cpu().numpy().max()),
             })
