@@ -57,7 +57,7 @@ def create_config(args):
         "update_every_n_steps": 5000,
         "learning_updates_per_learning_session": 1,
 
-        "discount_rate": 0.99,
+        "discount_rate": 0.999,
         "eps_clip": 0.2,  # clip parameter for PPO
 
         # parameters for Adam optimizer
