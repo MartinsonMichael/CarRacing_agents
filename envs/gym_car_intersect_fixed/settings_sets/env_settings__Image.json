@@ -38,16 +38,16 @@
 
     "is_collided": 0.0,
     "is_finish": 10,
-    "is_out_of_track": -1,
-    "is_out_of_map": -1,
-    "is_out_of_road": -1,
+    "is_out_of_track": -5,
+    "is_out_of_map": -5,
+    "is_out_of_road": -5,
 
     "idleness__punish_if_action_radius_less_then": 0.0,
     "idleness__punish_value": 0.0,
 
     "new_tiles_count": 1.0,
     "speed_multiplication_bonus": 0.0,
-    "displacement": 1.0,
+    "displacement": 0.05,
 
     "speed_per_point": 0.001,
     "if_speed_more_then_threshold": 0.0,
