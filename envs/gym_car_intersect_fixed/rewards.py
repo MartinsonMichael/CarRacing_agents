@@ -58,6 +58,10 @@ class Rewarder:
 
         self._prev_coordinates.append(cur_point)
 
+        if self.get_step_done(car_stats):
+            step_reward += self._settings_reward.get('track_progress_as_final_reward', 0.0) \
+                           * car_stats.get('track_progress', 0.0)
+
         return step_reward
 
     def get_step_done(self, car_stats) -> bool:

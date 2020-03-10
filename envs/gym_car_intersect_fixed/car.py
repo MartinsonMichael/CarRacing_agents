@@ -256,6 +256,11 @@ class DummyCar:
             state.append(float(self._state_data['right_sensor']))
             state.append(float(self._state_data['is_collided']))
 
+        if 'time' in self.data_loader.car_features_list:
+            state.append(float(np.sin(self._state_data['time'])))
+            state.append(float(np.sin(2 * self._state_data['time'])))
+            state.append(float(np.sin(3 * self._state_data['time'])))
+
         return np.array(state)
 
     def DEBUG_get_hull(self):
