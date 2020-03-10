@@ -48,7 +48,6 @@
     "new_tiles_count": 0.0,
     "speed_multiplication_bonus": 0.0,
     "displacement": 0.0,
-    "max_episode_len": 500,
     "track_progress_as_final_reward": 0,
     "track_progress_as_usual_reward": 0.1,
 

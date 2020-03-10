@@ -85,9 +85,6 @@ class Rewarder:
         """
         done = False
 
-        if car_stats['time'] >= self._settings_reward['max_episode_len']:
-            return True
-
         for item in self._settings_done['true_flags_to_done']:
             if item == 'is_collided' and car_stats['time'] < 15:
                 continue
