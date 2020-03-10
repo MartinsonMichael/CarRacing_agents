@@ -34,7 +34,7 @@
     "vector_env_features": []
   },
   "reward": {
-    "track_checkpoint_expanding": 50,
+    "track_checkpoint_expanding": 10,
 
     "is_collided": 0.0,
     "is_finish": 10,
