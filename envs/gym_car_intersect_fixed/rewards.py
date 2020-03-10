@@ -39,8 +39,8 @@ class Rewarder:
         step_reward += self._settings_reward['time_per_tick']
 
         sumdist = 0
+        cur_point = np.array(car_stats.get('coordinate_vector', [0, 0]))
         if len(self._prev_coordinates) > 0:
-            cur_point = np.array(car_stats.get('coordinate_vector', [0, 0]))
             for prev_dot in self._prev_coordinates:
                 sumdist += np.sqrt((prev_dot - cur_point)**2)
             sumdist = sumdist / len(self._prev_coordinates)
