@@ -23,13 +23,16 @@ class ObservationPictureNormalizer(gym.ObservationWrapper):
         self._floating_std = deque(maxlen=floating_len)
 
     def _fill_floating(self, picture: np.ndarray):
-        self._floating_mean = 0.95 * self._floating_mean + 0.05 * np.mean(picture)
+        if self._floating_mean is None:
+            self._floating_mean = np.mean(picture)
+        else:
+            self._floating_mean = 0.95 * self._floating_mean + 0.05 * np.mean(picture)
         self._floating_std.append(np.std(picture))
 
     def observation(self, obs):
         self._fill_floating(obs[self._image_dict_name])
         obs.update({
-            self._image_dict_name: (obs[self._floating_std] - self._floating_mean) / np.mean(self._floating_std)
+            self._image_dict_name: (obs[self._image_dict_name] - self._floating_mean) / np.mean(self._floating_std)
         })
         return obs
 
@@ -51,6 +54,7 @@ class RewardNormalizer(gym.Wrapper):
     def reset(self):
         self._running_statistic = []
         self._r = 0
+        return self.env.reset()
 
 
 class ObservationToFloat32(gym.ObservationWrapper):
