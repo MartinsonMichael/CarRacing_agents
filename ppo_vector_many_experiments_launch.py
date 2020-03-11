@@ -81,7 +81,7 @@ env_setting = '''
 def iterate_over_configs(exp_name) -> Iterable[Tuple[Config, str]]:
     config = Config()
     mode = 'vector'
-    settings = json.load(env_setting)
+    settings = json.loads(env_setting)
     print('MODE : ', mode)
 
     config.hyperparameters = {
@@ -138,6 +138,7 @@ def iterate_over_configs(exp_name) -> Iterable[Tuple[Config, str]]:
         config.tf_writer = tf.summary.create_file_writer(log_tb_path)
 
         settings['state_config']['vector_car_features'] = list(vector_set)
+        config.hyperparameters['env_settings'] = settings
 
         def env_creator():
             env = CarRacingHackatonContinuousFixed(settings_file_path_or_settings=settings)
