@@ -102,11 +102,11 @@ def iterate_over_configs(exp_name) -> Iterable[Tuple[Config, str]]:
 
         "save_frequency_episode": 1000,
         "log_interval": 20,
-        "animation_record_frequency": 250,
-        "record_animation": args.record_animation,
+        "animation_record_frequency": 100,
+        "record_animation": True,
         "track_progress_success_threshold": 0.8,
 
-        "num_episodes_to_run": 50 * 10 ** 3,
+        "num_episodes_to_run": 10 * 10 ** 3,
         "max_episode_len": 500,
 
         "update_every_n_steps": 5000,
