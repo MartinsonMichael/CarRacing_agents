@@ -184,6 +184,7 @@ class PPO_ICM:
             self.current_game_stats.update(icm_update_stat)
 
         sum_ppo_loss = 0.0
+        sum_ppo_critic_loss = 0.0
         for _ in range(self.hyperparameters['learning_updates_per_learning_session']):
             new_log_probs, new_entropy = self.ac.estimate_action(states, actions)
 
@@ -193,8 +194,8 @@ class PPO_ICM:
                 self.mse(discount_reward, state_value),
                 self.mse(
                     discount_reward,
-                    torch.max(
-                        torch.min(state_value, state_value_old - self.eps_clip),
+                    torch.min(
+                        torch.max(state_value, state_value_old - self.eps_clip),
                         state_value_old + self.eps_clip
                     ),
                 ),
@@ -206,8 +207,9 @@ class PPO_ICM:
             term_1 = policy_ratio * advantage
             term_2 = torch.clamp(policy_ratio, 1 - self.eps_clip, 1 + self.eps_clip) * advantage
 
-            loss = -1 * torch.min(term_1, term_2) - 0.01 * new_entropy + 0.5 * critic_loss
+            loss = -1 * torch.min(term_1, term_2) - 0.0 * new_entropy + 0.5 * critic_loss
             sum_ppo_loss += float(loss.mean().detach().cpu().numpy())
+            sum_ppo_critic_loss += float(critic_loss.mean().detach().cpu().numpy())
             self.optimizer.zero_grad()
             if self.hyperparameters['use_icm']:
                 (loss.mean() + 0.5 * intrinsic_loss).backward(retain_graph=True)
@@ -221,6 +223,7 @@ class PPO_ICM:
 
         self.current_game_stats.update({
             'ppo_loss': float(sum_ppo_loss) / self.hyperparameters['learning_updates_per_learning_session'],
+            'ppo_critic_loss': float(sum_ppo_critic_loss) / self.hyperparameters['learning_updates_per_learning_session'],
         })
 
         # update old policy
