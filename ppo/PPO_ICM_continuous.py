@@ -188,7 +188,7 @@ class PPO_ICM:
             new_log_probs, new_entropy = self.ac.estimate_action(states, actions)
 
             state_value = self.ac.value(states)
-            state_value_old = self.ac_old.value(states)
+            state_value_old = self.ac_old.value(states).detach().cpu().numpy()
             critic_loss = torch.min(
                 self.mse(discount_reward, state_value),
                 self.mse(
