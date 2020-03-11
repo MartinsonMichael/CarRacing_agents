@@ -160,7 +160,7 @@ def main(args):
     for config, wandb_note in iterate_over_configs(args.name):
 
         wandb.init(
-            project='PPO',
+            project='PPO_series',
             name=config.name,
             notes=args.note + ' -> ' + wandb_note if args.note is not None else wandb_note,
             config=config.hyperparameters,
