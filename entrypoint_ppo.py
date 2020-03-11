@@ -34,7 +34,6 @@ def create_config(args):
         "name": args.name,
         "mode": mode,
         "seed": 12,
-        "env_settings_file_path": args.env_settings,
         "device": args.device,
         "env_settings": json.load(open(args.env_settings)),
 

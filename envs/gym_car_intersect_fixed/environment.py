@@ -25,12 +25,12 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
         'video.frames_per_second': FPS
     }
 
-    def __init__(self, settings_file_path):
+    def __init__(self, settings_file_path_or_settings):
         EzPickle.__init__(self)
-        if isinstance(settings_file_path, dict):
-            self._settings = settings_file_path
+        if isinstance(settings_file_path_or_settings, dict):
+            self._settings = settings_file_path_or_settings
         else:
-            self._settings = json.load(open(settings_file_path))
+            self._settings = json.load(open(settings_file_path_or_settings))
 
         # load env resources
         self._data_loader = DataSupporter(self._settings)

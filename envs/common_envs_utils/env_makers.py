@@ -46,7 +46,7 @@ def get_EnvCreator_by_settings(settings_path: Union[str, Dict]):
 
 def make_CarRacing_fixed_combined_features(settings_path: str, name: Optional[str] = None, discrete_wrapper=None):
     def f():
-        env = CarRacingHackatonContinuousFixed(settings_file_path=settings_path)
+        env = CarRacingHackatonContinuousFixed(settings_file_path_or_settings=settings_path)
         env = FrameCompressor(env)
 
         FRAME_STACK = 4
@@ -72,7 +72,7 @@ def make_CarRacing_fixed_combined_features(settings_path: str, name: Optional[st
 
 def make_CarRacing_fixed_image_features(settings_path: str, name: Optional[str] = None, discrete_wrapper=None):
     def f():
-        env = CarRacingHackatonContinuousFixed(settings_file_path=settings_path)
+        env = CarRacingHackatonContinuousFixed(settings_file_path_or_settings=settings_path)
         # -> dict[(~106, ~106, 3), (~5-11)]
         env = FrameCompressor(env)
         FRAME_STACK = 4
@@ -98,13 +98,13 @@ def make_CarRacing_fixed_image_features(settings_path: str, name: Optional[str] 
 
 def make_CarRacing_fixed_vector_features(settings_path: str, name: Optional[str] = None, discrete_wrapper=None):
     def f():
-        env = CarRacingHackatonContinuousFixed(settings_file_path=settings_path)
+        env = CarRacingHackatonContinuousFixed(settings_file_path_or_settings=settings_path)
         # -> dict[(.., .., 3), (16)]
-        env = chainerrl.wrappers.ContinuingTimeLimit(env, max_episode_steps=450)
+        env = chainerrl.wrappers.ContinuingTimeLimit(env, max_episode_steps=500)
         # -> dict[(84, 84, 3), (16)]
         env = OnlyVectorsTaker(env)
         # -> Box(16)
-        env._max_episode_steps = 450
+        env._max_episode_steps = 500
 
         if discrete_wrapper is not None:
             env = discrete_wrapper(env)

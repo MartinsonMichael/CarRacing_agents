@@ -90,6 +90,8 @@ class PPO_ICM:
         self.accumulated_reward_mean = None
         self.accumulated_reward_std = None
 
+        self._exp_moving_track_progress = 0.0
+
     def create_env(self, config):
         self.env = config.environment_make_function()
 
@@ -115,9 +117,11 @@ class PPO_ICM:
     def flush_stats(self):
         self.current_game_stats = defaultdict(float, {})
 
-    def save(self):
+    def save(self, suffix=None):
         current_save_path = os.path.join(
             self.folder_save_path,
+            f"{suffix}_{self.name}_episode_{self.episode_number}_time_{time.time()}"
+            if suffix is not None else
             f"{self.name}_episode_{self.episode_number}_time_{time.time()}"
         )
         os.makedirs(current_save_path)
@@ -194,6 +198,7 @@ class PPO_ICM:
                 self.mse(discount_reward, state_value),
                 self.mse(
                     discount_reward,
+                    # кустарный clamp
                     torch.min(
                         torch.max(state_value, state_value_old - self.eps_clip),
                         state_value_old + self.eps_clip
@@ -235,6 +240,14 @@ class PPO_ICM:
             self.run_one_episode()
 
             self.stat_logger.log_it(self.current_game_stats)
+            self._exp_moving_track_progress = (
+                0.95 * self._exp_moving_track_progress +
+                0.05 * self.current_game_stats.get('track_progress', 0)
+            )
+            if self._exp_moving_track_progress >= self.hyperparameters.get('track_progress_success_threshold', 10):
+                self.save(suffix='final')
+                break
+
             self.flush_stats()
 
             if self.episode_number % self.hyperparameters['save_frequency_episode'] == 0:
