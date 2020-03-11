@@ -168,11 +168,9 @@ def main(args):
 
         ppo_agent = PPO_ICM(config)
 
-        if args.load != 'none':
-            print(f'load from {args.load}')
-            ppo_agent.load(args.load)
-
         print('Start training of PPO...')
+        print(f'note : {wandb_note}')
+
         ppo_agent.train()
 
 
