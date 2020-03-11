@@ -5,34 +5,52 @@ import cv2
 import gym
 import numpy as np
 import collections
-import time
-
-from envs.common_envs_utils.visualizer import save_as_mp4
+from collections import deque
 
 
-class VisualizerWrapper(gym.Wrapper):
+class ObservationPictureNormalizer(gym.ObservationWrapper):
+    def __init__(self, env, image_dict_name='picture', floating_len=100):
+        super().__init__(env)
+        self._image_dict_name = image_dict_name
+        assert isinstance(self.observation_space, gym.spaces.Dict)
+        self.observation_space.spaces[self._image_dict_name] = gym.spaces.Box(
+            low=-1.0,
+            high=1.0,
+            dtype=np.float32,
+            shape=self.observation_space.spaces[self._image_dict_name].shape,
+        )
+        self._floating_mean = None
+        self._floating_std = deque(maxlen=floating_len)
+
+    def _fill_floating(self, picture: np.ndarray):
+        self._floating_mean = 0.95 * self._floating_mean + 0.05 * np.mean(picture)
+        self._floating_std.append(np.std(picture))
+
+    def observation(self, obs):
+        self._fill_floating(obs[self._image_dict_name])
+        obs.update({
+            self._image_dict_name: (obs[self._floating_std] - self._floating_mean) / np.mean(self._floating_std)
+        })
+        return obs
+
+
+class RewardNormalizer(gym.Wrapper):
     def __init__(self, env):
         super().__init__(env)
-        self.ims = []
+        self._r = 0
+        self._running_statistic = []
 
-    def step(self, action):
-        state, reward, done, info = self.env.step(action)
-        if done and len(self.ims) > 0:
-            if not os.path.exists('save_animation_folder'):
-                os.makedirs('save_animation_folder')
-            save_as_mp4(self.ims, f'save_animation_folder/animation_{str(time.time())}.mp4')
-            self.ims = []
-        try:
-            im = self.env.render(mode='rgb_array')
-            self.ims.append(im)
-        except:
-            print('ha, classic...')
-
-        return state, reward, done, info
+    def reward(self, reward):
+        self._r = 0.95 * self._r + reward
+        self._running_statistic.append(self._r)
+        std = np.std(self._running_statistic)
+        if std < 1e-8:
+            return reward
+        return reward / std
 
     def reset(self):
-        self.ims = []
-        return self.env.reset()
+        self._running_statistic = []
+        self._r = 0
 
 
 class ObservationToFloat32(gym.ObservationWrapper):

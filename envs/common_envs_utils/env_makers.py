@@ -7,7 +7,7 @@ import numpy as np
 from envs.common_envs_utils.env_wrappers import DiscreteWrapper
 from envs.common_envs_utils.extended_env_wrappers import ExtendedMaxAndSkipEnv, FrameCompressor, \
     ImageWithVectorCombiner, ChannelSwapper, OnlyImageTaker, OnlyVectorsTaker, \
-    ImageToFloat, ImageStackWrapper
+    ImageToFloat, ImageStackWrapper, ObservationPictureNormalizer, RewardNormalizer
 from envs.gym_car_intersect_fixed import CarRacingHackatonContinuousFixed
 
 
@@ -79,7 +79,9 @@ def make_CarRacing_fixed_image_features(settings_path: str, name: Optional[str] 
         env = ImageStackWrapper(env, neutral_action=np.array([0.0, 0.0, 0.0]), frames_in_stack=FRAME_STACK)
         env.state_image_channel_cnt = FRAME_STACK
 
-        env = ImageToFloat(env)
+        # env = ImageToFloat(env)
+        env = ObservationPictureNormalizer(env)
+        env = RewardNormalizer(env)
         env = OnlyImageTaker(env)
         env = ChannelSwapper(env)
         # -> Box(19, 84, 84)

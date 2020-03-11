@@ -188,21 +188,32 @@ class PPO_ICM:
             new_log_probs, new_entropy = self.ac.estimate_action(states, actions)
 
             state_value = self.ac.value(states)
+            state_value_old = self.ac_old.value(states)
+            critic_loss = torch.min(
+                self.mse(discount_reward, state_value),
+                self.mse(
+                    discount_reward,
+                    torch.clamp(state_value, state_value_old - self.eps_clip, state_value_old + self.eps_clip),
+                ),
+            )
+
             advantage = discount_reward - state_value.detach()
             policy_ratio = torch.exp(new_log_probs - log_probs.detach())
 
             term_1 = policy_ratio * advantage
             term_2 = torch.clamp(policy_ratio, 1 - self.eps_clip, 1 + self.eps_clip) * advantage
 
-            loss = -1 * torch.min(term_1, term_2) - 0.01 * new_entropy + 0.5 * self.mse(discount_reward, state_value)
+            loss = -1 * torch.min(term_1, term_2) - 0.01 * new_entropy + 0.5 * critic_loss
             sum_ppo_loss += float(loss.mean().detach().cpu().numpy())
             self.optimizer.zero_grad()
             if self.hyperparameters['use_icm']:
                 (loss.mean() + 0.5 * intrinsic_loss).backward(retain_graph=True)
-                torch.nn.utils.clip_grad_norm_(self._icm.parameters(), 0.75)
+                torch.nn.utils.clip_grad_norm_(
+                    chain(self._icm.parameters(), self.ac.parameters()), 0.75
+                )
             else:
                 loss.mean().backward()
-            torch.nn.utils.clip_grad_norm_(self.ac.parameters(), self.hyperparameters['gradient_clipping_norm'])
+                torch.nn.utils.clip_grad_norm_(self.ac.parameters(), self.hyperparameters['gradient_clipping_norm'])
             self.optimizer.step()
 
         self.current_game_stats.update({
