@@ -30,7 +30,7 @@
   },
   "state_config": {
     "picture": false,
-    "vector_car_features": ["hull_position", "hull_angle", "cross_road_sensor", "collide_sensor"],
+    "vector_car_features": ["hull_position", "hull_angle", "cross_road_sensor", "collide_sensor", "car_radar_2"],
     "vector_env_features": []
   },
   "reward": {
