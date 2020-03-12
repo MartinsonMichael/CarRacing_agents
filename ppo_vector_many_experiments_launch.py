@@ -105,7 +105,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
         "log_interval": 20,
         "animation_record_frequency": 100,
         "record_animation": True,
-        "track_progress_success_threshold": 0.8,
+        "track_progress_success_threshold": 0.85,
 
         "num_episodes_to_run": 10 * 10 ** 3,
         "max_episode_len": 500,
@@ -131,6 +131,13 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
         {"wheels_positions"},
         {"wheels_positions", "hull_angle"},
         {"wheels_positions", "hull_angle", "car_speed"},
+
+        {"hull_position", "cross_road_sensor"},
+        {"hull_position", "hull_angle", "cross_road_sensor"},
+        {"hull_position", "hull_angle", "car_speed", "cross_road_sensor"},
+        {"wheels_positions", "cross_road_sensor"},
+        {"wheels_positions", "hull_angle", "cross_road_sensor"},
+        {"wheels_positions", "hull_angle", "car_speed", "cross_road_sensor"},
     ]):
         config.name = f"exp_{_args.name}_{index}"
         log_tb_path = os.path.join('logs', 'PPO', config.name)
