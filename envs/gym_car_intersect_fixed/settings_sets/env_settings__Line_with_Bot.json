@@ -30,7 +30,7 @@
   },
   "state_config": {
     "picture": false,
-    "vector_car_features": ["hull_position", "hull_angle", "car_speed", "cross_road_sensor", "collide_sensor"],
+    "vector_car_features": ["hull_position", "hull_angle", "cross_road_sensor", "collide_sensor"],
     "vector_env_features": []
   },
   "reward": {
@@ -55,7 +55,7 @@
     "time_per_tick": 0.0
   },
   "done": {
-    "true_flags_to_done": ["is_out_of_map", "is_finish", "is_collided"],
+    "true_flags_to_done": ["is_out_of_map", "is_finish", "is_collided", "is_out_of_track"],
     "false_flags_to_done" : []
   }
 }

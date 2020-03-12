@@ -59,6 +59,7 @@ class DummyCar:
             car_image=None,
             track=None,
             data_loader=None,
+            bot_list=None,
     ):
         """ Constructor to define Car.
         Parameters
@@ -66,7 +67,6 @@ class DummyCar:
         world : Box2D World
 
         """
-        global SIZE
         self.car_image = car_image
         self.track = track
         self.data_loader = data_loader
@@ -189,22 +189,26 @@ class DummyCar:
             w.collision = False
             w.userData = w
             self.wheels.append(w)
-        self.drawlist = self.wheels + [self._hull]
 
         self._time: int = 0
         self.userData = self
         self._track_point: int = 0
         self._old_track_point: int = 0
         self._state_data = None
+        self._flush_stats()
         self._last_action = [0.0, 0.0, 0.0]
+        self._update_track_point(hard=True)
         self._flush_stats()
 
-    def get_vector_state(self) -> np.ndarray:
+        self._i_am_still_alive = True
+
+    def get_vector_state(self, bot_list=None) -> np.ndarray:
         state = []
         self.update_stats()
         CAR_FEATURES = {
             'hull_position', 'hull_angle', 'car_speed', 'wheels_positions',
             'track_sensor', 'road_sensor', 'finish_sensor', 'cross_road_sensor', 'collide_sensor',
+            'car_radar_1', 'car_radar_2', 'car_radar_3',
         }
         if len(set(self.data_loader.car_features_list) - CAR_FEATURES) > 0:
             raise ValueError(
@@ -261,13 +265,71 @@ class DummyCar:
             state.append(float(np.sin(2 * self._state_data['time'])))
             state.append(float(np.sin(3 * self._state_data['time'])))
 
+        if 'car_radar_1' in self.data_loader.car_features_list:
+            state.extend(self._create_radar_state(1, bot_list))
+
+        if 'car_radar_2' in self.data_loader.car_features_list:
+            state.extend(self._create_radar_state(2, bot_list))
+
+        if 'car_radar_3' in self.data_loader.car_features_list:
+            state.extend(self._create_radar_state(3, bot_list))
+
         return np.array(state)
+
+    def __repr__(self):
+        if self._i_am_still_alive:
+            return f"Car, bot={self.is_bot}, ({self.position_PLAY}, angle={self.angle_degree} o)"
+        else:
+            return f"Car, killed"
+
+    @property
+    def one_radar_len(self) -> int:
+        return 6
+
+    def _create_radar_state(self, max_num, bot_list=None) -> np.ndarray:
+        dists = []
+        if bot_list is None:
+            bot_list = []
+        for bot in bot_list:
+            if not bot._i_am_still_alive:
+                continue
+            angle_diff = (self.angle_radian - bot.angle_radian) % (2 * np.pi)
+            dist = self.data_loader.dist(self.position_PLAY, bot.position_PLAY)
+            if dist > 25:
+                continue
+            direct_to_bot = (bot.position_PLAY - self.position_PLAY) / np.linalg.norm(
+                bot.position_PLAY - self.position_PLAY
+            )
+            rel_cos = np.dot(self.forward_vector, direct_to_bot)
+            dists.append([
+                1.0,
+                dist / self.data_loader.playfield_size[0],
+                np.sin(angle_diff),
+                np.cos(angle_diff),
+                np.sqrt(1 - rel_cos**2),
+                rel_cos,
+            ])
+
+        radar_state = np.zeros(self.one_radar_len * max_num)
+
+        if len(dists) != 0:
+            dists = np.array(sorted(dists, key=lambda x: x[1])[:max_num])
+            radar_state[:len(dists.ravel())] = dists.ravel()
+
+        return radar_state
 
     def DEBUG_get_hull(self):
         return self._hull
 
     def DEBUG_get_cur_track_point(self) -> int:
         return self._track_point
+
+    def DEBUG_create_radar_state(self, max_num, bot_list) -> Dict[str, np.ndarray]:
+        radar_state = self._create_radar_state(max_num, bot_list)
+        return {
+            f"radar:{index}": radar_state[index * self.one_radar_len : (index + 1) * self.one_radar_len]
+            for index in range(max_num)
+        }
 
     @property
     def angle_index(self) -> int:
@@ -298,6 +360,13 @@ class DummyCar:
         return np.array([
             np.array([wheel.position.x, wheel.position.y])
             for wheel in self.wheels
+        ])
+
+    @property
+    def forward_vector(self) -> np.ndarray:
+        return np.array([
+            np.cos(self.angle_radian),
+            np.sin(self.angle_radian),
         ])
 
     @property
@@ -344,7 +413,6 @@ class DummyCar:
             np.array([wheel.position.x, wheel.position.y])
             for wheel in self.wheels
         ]
-        # self._state_data['car_position'] = np.mean(cur_points, axis=0)
 
         for wheel_position in cur_points:
             if np.any(wheel_position < 0):
@@ -578,6 +646,7 @@ class DummyCar:
         """
         Remove car property from pyBox2D world.
         """
+        self._i_am_still_alive = False
         self.world.DestroyBody(self._hull)
         del self._hull
         for w in self.wheels:

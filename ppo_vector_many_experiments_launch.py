@@ -8,80 +8,14 @@ from typing import Iterable, Tuple
 import wandb
 
 from common_agents_utils import Config
-from envs import get_state_type_from_settings_path, get_EnvCreator_by_settings, CarRacingHackatonContinuousFixed, \
-    OnlyVectorsTaker
+from envs import CarRacingHackatonContinuousFixed, OnlyVectorsTaker
 from ppo.PPO_ICM_continuous import PPO_ICM
-
-
-env_setting = '''
-{
-  "name": "Basic, straight line",
-  "cars_path": "envs/gym_car_intersect_fixed/env_data/cars",
-  "background_path": "envs/gym_car_intersect_fixed/env_data/tracks/background_image_1520_1520.jpg",
-  "annotation_path": "envs/gym_car_intersect_fixed/env_data/tracks/CarRacing_sq_extended_v2.0.xml",
-  "TRACK_USER_INFO_NOT_A_SETTINGS": {
-    "agent_track": {
-      "0": "line",
-      "1": "small rotate",
-      "2": "rotate over line"
-    },
-    "agent_image_indexes": "use just 0, it works fine",
-    "bot_track": {
-      "0": "up-down line, cross all agent tracks",
-      "1": "left-right line, cross only '2' agent track",
-      "bot_number": "just number of bot which will appear in a single moment"
-    }
-  },
-  "agent_tracks" : [0],
-  "agent_image_indexes": [0],
-  "bot_number" : 0,
-  "bots_tracks": [0, 1],
-  "image_scale": {
-    "back_image_scale_factor": 0.12,
-    "car_image_scale_factor": 0.1
-  },
-  "steer_policy": {
-    "angle_steer": false,
-    "angle_steer_multiplication": 5.0
-  },
-  "state_config": {
-    "picture": false,
-    "vector_car_features": [],
-    "vector_env_features": []
-  },
-  "reward": {
-    "track_checkpoint_expanding": 50,
-
-    "is_collided": 0.0,
-    "is_finish": 10,
-    "is_out_of_track": -1,
-    "is_out_of_map": -1,
-    "is_out_of_road": -1,
-
-    "idleness__punish_if_action_radius_less_then": 0.0,
-    "idleness__punish_value": 0.0,
-
-    "new_tiles_count": 0.5,
-    "speed_multiplication_bonus": 0.0,
-
-    "speed_per_point": 0.0,
-    "if_speed_more_then_threshold": 0.0,
-    "speed_threshold": 0.0,
-    "time_per_point": 0.0,
-    "time_per_tick": 0.0
-  },
-  "done": {
-    "true_flags_to_done": ["is_out_of_road", "is_out_of_map", "is_out_of_track", "is_finish"],
-    "false_flags_to_done" : []
-  }
-}
-'''
 
 
 def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
     config = Config()
     mode = 'vector'
-    settings = json.loads(env_setting)
+    settings = json.load(_args.env_settings)
     print('MODE : ', mode)
 
     config.hyperparameters = {
@@ -125,19 +59,10 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
     config.environment = None
 
     for index, vector_set in enumerate([
-        {"hull_position"},
-        {"hull_position", "hull_angle"},
-        {"hull_position", "hull_angle", "car_speed"},
-        {"wheels_positions"},
-        {"wheels_positions", "hull_angle"},
-        {"wheels_positions", "hull_angle", "car_speed"},
-
-        {"hull_position", "cross_road_sensor"},
-        {"hull_position", "hull_angle", "cross_road_sensor"},
-        {"hull_position", "hull_angle", "car_speed", "cross_road_sensor"},
-        {"wheels_positions", "cross_road_sensor"},
-        {"wheels_positions", "hull_angle", "cross_road_sensor"},
-        {"wheels_positions", "hull_angle", "car_speed", "cross_road_sensor"},
+        {"hull_position", "hull_angle", "cross_road_sensor", "collide_sensor"},
+        {"wheels_positions", "hull_angle", "cross_road_sensor", "collide_sensor"},
+        {"hull_position", "hull_angle", "cross_road_sensor", "collide_sensor", "car_radar_2"},
+        {"wheels_positions", "hull_angle", "cross_road_sensor", "collide_sensor", "car_radar_2"},
     ]):
         config.name = f"exp_{_args.name}_{index}"
         log_tb_path = os.path.join('logs', 'PPO', config.name)
@@ -190,6 +115,7 @@ if __name__ == '__main__':
     parser.add_argument('--icm', default=False, action='store_true', help='use icm')
     parser.add_argument('--record-animation', default=False, action='store_true', help='use icm')
     parser.add_argument('--name', type=str, help='name for experiment')
+    parser.add_argument('--env-settings', type=str, default=None, help='name for experiment')
     parser.add_argument('--note', type=str, default=None, help='name for experiment')
     parser.add_argument('--device', type=str, default='cpu', help="'cpu' - [default] or 'cuda:{number}'")
     parser.add_argument('--track', type=str, default=None, help='name for experiment')
@@ -201,5 +127,8 @@ if __name__ == '__main__':
 
     if args.track not in {'line', 'rotate', 'rotate_over_line'}:
         raise ValueError("set track, it is one of {'line', 'rotate', 'rotate_over_line'}")
+
+    if args.env_settings is None:
+        raise ValueError('set env settings')
 
     main(args)

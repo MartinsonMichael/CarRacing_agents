@@ -113,6 +113,8 @@ class PPO_ICM:
             self.current_game_stats['finish'] = info['is_finish']
         if 'track_progress' in info.keys():
             self.current_game_stats['track_progress'] = info['track_progress']
+        if 'is_collided' in info.keys():
+            self.current_game_stats['is_collided'] = info['is_collided']
 
     def flush_stats(self):
         self.current_game_stats = defaultdict(float, {})
@@ -241,8 +243,8 @@ class PPO_ICM:
 
             self.stat_logger.log_it(self.current_game_stats)
             self._exp_moving_track_progress = (
-                0.95 * self._exp_moving_track_progress +
-                0.05 * self.current_game_stats.get('track_progress', 0)
+                0.98 * self._exp_moving_track_progress +
+                0.02 * self.current_game_stats.get('track_progress', 0)
             )
             if self._exp_moving_track_progress >= self.hyperparameters.get('track_progress_success_threshold', 10):
                 self.save(suffix='final')

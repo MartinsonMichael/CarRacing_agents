@@ -45,15 +45,15 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
 
         # init agent data
         self.car = None
+        self.bot_cars = []
         self.create_agent_car()
         self.rewarder = Rewarder(self._settings)
 
         # init bots data
         self.num_bots = self._settings['bot_number']
-        self.bot_cars = []
 
         self._preseted_render_mode = 'human'
-
+        self.bot_cars = []
         # init gym properties
         self.picture_state = np.zeros_like(self._data_loader.get_background(), dtype=np.uint8)
         self.action_space = spaces.Box(
@@ -251,7 +251,9 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
 
         done = self.rewarder.get_step_done(self.car.stats)
         step_reward = self.rewarder.get_step_reward(self.car.stats)
+
         info.update(self.car.stats)
+        # info.update(self.car.DEBUG_create_radar_state(2, self.bot_cars))
 
         self._was_done = done
         return self._create_state(), step_reward, done, info
@@ -263,44 +265,11 @@ class CarRacingHackatonContinuousFixed(gym.Env, EzPickle):
                 if self._settings['state_config']['picture']
                 else None,
             'car_vector':
-                self.car.get_vector_state().astype(np.float32)
+                self.car.get_vector_state(self.bot_cars).astype(np.float32)
                 if len(self._settings['state_config']['vector_car_features']) != 0
                 else None,
             'env_vector': self._create_vector_env_static_description().astype(np.float32),
         }
-
-    def _get_car_state_vector(self) -> np.ndarray:
-        car_state = list(self.car.get_vector_state().astype(np.float32))
-
-        if len(self._data_loader.car_features_list - {'car_radar_1', 'car_radar_2', 'car_radar_3'}) != 0:
-            dists = []
-            for bot in self.bot_cars:
-                angle_diff = (self.car.angle_radian - bot.angle_radian) % (2 * np.pi)
-                dists.append((
-                    self._data_loader.dist(
-                        self.car.position_PLAY,
-                        bot.position_PLAY
-                    ) / self._data_loader.playfield_size[0],
-                    np.sin(angle_diff),
-                    np.cos(angle_diff)
-                ))
-            dists = sorted(dists, key=lambda x: x[0])
-
-            num = 0
-            if 'car_radar_1' in self._data_loader.car_features_list:
-                num = 1
-            if 'car_radar_2' in self._data_loader.car_features_list:
-                num = 2
-            if 'car_radar_3' in self._data_loader.car_features_list:
-                num = 3
-
-            for index in range(num):
-                if len(dists) > index:
-                    car_state.extend(dists[index])
-                else:
-                    car_state.extend([10.0, 0.0, 1.0])
-
-        return np.array(car_state)
 
     @lru_cache(maxsize=None)
     def _create_vector_env_static_description(self) -> np.ndarray:

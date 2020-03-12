@@ -16,6 +16,7 @@ from envs.common_envs_utils.env_wrappers import DiscreteWrapper
 
 action = 0
 restart = False
+start_to_use_pause = False
 KEYS = {key.LEFT, key.RIGHT, key.UP, key.DOWN}
 KEY_MAP = {
     key.LEFT: 1,
@@ -26,11 +27,13 @@ KEY_MAP = {
 
 
 def key_press(k, modifier):
-    global restart, action
+    global restart, action, start_to_use_pause
     if k == key.ESCAPE:
         restart = True
     if k in KEYS:
         action = KEY_MAP[k]
+    if k == key.P:
+        start_to_use_pause = not start_to_use_pause
 
 
 def key_release(k, modifier):
@@ -47,7 +50,7 @@ def main():
     parser.add_argument("--track", type=int, default=0,
                         help="Track for agents cars_full in environment.")
     parser.add_argument("--discrete", type=int, default=1, help="Apply discrete wrapper?")
-    parser.add_argument("--sleep", type=float, default=None, help="time in s between actions")
+    parser.add_argument("--delay", type=float, default=None, help="time in s between actions")
     parser.add_argument("--debug", action='store_true', default=False, help="debug mode")
     parser.add_argument(
         "--env-settings",
@@ -87,6 +90,12 @@ def main():
 
         steps += 1
         viewer.imshow(env.render(full_image=True))
+
+        if args.delay is not None:
+            time.sleep(args.delay)
+
+        if start_to_use_pause:
+            time.sleep(1.0)
 
         if done or restart or info.get('need_reset', False):
             print('restart')
