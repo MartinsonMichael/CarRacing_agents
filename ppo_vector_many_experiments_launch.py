@@ -15,7 +15,7 @@ from ppo.PPO_ICM_continuous import PPO_ICM
 def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
     config = Config()
     mode = 'vector'
-    settings = json.load(_args.env_settings)
+    settings = json.load(open(_args.env_settings))
     print('MODE : ', mode)
 
     config.hyperparameters = {
