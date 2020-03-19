@@ -105,7 +105,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
         "record_animation": True,
         "track_progress_success_threshold": 0.85,
 
-        "num_episodes_to_run": 10,
+        "num_episodes_to_run": 15 * 10**3,
         "max_episode_len": 500,
 
         "update_every_n_steps": 5000,
