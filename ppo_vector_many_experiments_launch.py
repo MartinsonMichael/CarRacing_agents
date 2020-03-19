@@ -1,11 +1,13 @@
 import argparse
 import collections
 import os
+from threading import Thread
 
 import chainerrl
 import tensorflow as tf
 from typing import Iterable, Tuple
 import wandb
+import numpy as np
 
 from common_agents_utils import Config
 from envs import CarRacingHackatonContinuousFixed, OnlyVectorsTaker
@@ -319,20 +321,25 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
 def main(_args):
     for config, wandb_note in iterate_over_configs(_args):
 
-        wandb.init(
-            reinit=True,
-            project='PPO_series',
-            name=config.name,
-            notes=wandb_note,
-            config=config.hyperparameters,
-        )
+        config.hyperparameters['device'] = f'cuda:{np.random.choice([0, 1, 2, 3])}'
 
-        ppo_agent = PPO_ICM(config)
+        def f():
+            wandb.init(
+                reinit=True,
+                project='PPO_series',
+                name=config.name,
+                notes=wandb_note,
+                config=config.hyperparameters,
+            )
 
-        print('Start training of PPO...')
-        print(f'note : {wandb_note}')
+            ppo_agent = PPO_ICM(config)
 
-        ppo_agent.train()
+            print('Start training of PPO...')
+            print(f'note : {wandb_note}')
+
+            ppo_agent.train()
+
+        Thread(target=f).start()
 
 
 if __name__ == '__main__':
