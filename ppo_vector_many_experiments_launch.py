@@ -324,13 +324,13 @@ def main(_args):
         config.hyperparameters['device'] = f'cuda:{np.random.choice([0, 1, 2, 3])}'
 
         def f():
-            wandb.init(
-                reinit=True,
-                project='PPO_series',
-                name=config.name,
-                notes=wandb_note,
-                config=config.hyperparameters,
-            )
+            # wandb.init(
+            #     reinit=True,
+            #     project='PPO_series',
+            #     name=config.name,
+            #     notes=wandb_note,
+            #     config=config.hyperparameters,
+            # )
 
             ppo_agent = PPO_ICM(config)
 

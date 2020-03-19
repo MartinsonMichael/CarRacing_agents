@@ -17,7 +17,11 @@ from envs.common_envs_utils.visualizer import save_as_mp4
 class PPO_ICM:
     def __init__(self, config: Config):
         self.name = config.name
-        self.stat_logger: Logger = Logger(config, log_interval=config.hyperparameters.get('log_interval', 20))
+        self.stat_logger: Logger = Logger(
+            config,
+            log_interval=config.hyperparameters.get('log_interval', 20),
+            use_wandb=False,
+        )
         self.debug = config.debug
         self.hyperparameters = config.hyperparameters
         self.eps_clip = config.hyperparameters['eps_clip']
