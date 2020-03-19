@@ -1,11 +1,10 @@
 import argparse
 import collections
-import json
 import os
 
 import chainerrl
 import tensorflow as tf
-from typing import Iterable, Tuple, Dict, Any
+from typing import Iterable, Tuple
 import wandb
 
 from common_agents_utils import Config
@@ -31,7 +30,7 @@ env_settings = {
       "bot_number": "just number of bot which will appear in a single moment"
     }
   },
-  "agent_tracks": [1],
+  "agent_tracks": None,
   "agent_image_indexes": [0],
   "bot_number": 0,
   "bots_tracks": [0],
@@ -45,7 +44,7 @@ env_settings = {
   },
   "state_config": {
     "picture": False,
-    "vector_car_features": [],
+    "vector_car_features": None,
     "vector_env_features": []
   },
   "reward": {
@@ -79,7 +78,6 @@ env_settings = {
 def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
     config = Config()
     mode = 'vector'
-    settings = env_settings
     print('MODE : ', mode)
 
     config.hyperparameters = {
@@ -89,7 +87,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
         "track_type": None,
         "seed": 12,
         "device": _args.device,
-        "env_settings": settings,
+        "env_settings": env_settings,
 
         "use_icm": _args.icm,
         "icm_config": {
@@ -151,7 +149,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
                 ]},
                 "bot_number": 0,
             },
-        },{
+        }, {
             "track_type": "line",
             "env_settings": {
                 "state_config": {"picture": False, "vector_car_features": [
@@ -159,7 +157,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
                 ]},
                 "bot_number": 0,
             },
-        },{
+        }, {
             "track_type": "line",
             "env_settings": {
                 "state_config": {"picture": False, "vector_car_features": [
@@ -167,7 +165,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
                 ]},
                 "bot_number": 0,
             },
-        },{
+        }, {
             "track_type": "line",
             "env_settings": {
                 "state_config": {"picture": False, "vector_car_features": [
@@ -232,12 +230,65 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
         ##
 
         # with track = rotate
+        {
+            "track_type": "rotate",
+            "env_settings": {
+                "state_config": {"picture": False, "vector_car_features": [
+                    "hull_position", "hull_angle", "car_speed",
+                ]},
+                "bot_number": 0,
+            },
+        }, {
+            "track_type": "line",
+            "env_settings": {
+                "state_config": {"picture": False, "vector_car_features": [
+                    "hull_position", "hull_angle", "track_sensor",
+                ]},
+                "bot_number": 0,
+            },
+        }, {
+            "track_type": "line",
+            "env_settings": {
+                "state_config": {"picture": False, "vector_car_features": [
+                    "hull_position", "hull_angle", "wheels_positions",
+                ]},
+                "bot_number": 0,
+            },
+        }, {
+            "track_type": "line",
+            "env_settings": {
+                "state_config": {"picture": False, "vector_car_features": [
+                    "hull_position", "hull_angle", "finish_sensor",
+                ]},
+                "bot_number": 0,
+            },
+        }, {
+            "track_type": "line",
+            "env_settings": {
+                "state_config": {"picture": False, "vector_car_features": [
+                    "hull_position", "hull_angle", "road_sensor",
+                ]},
+                "bot_number": 0,
+            },
+        }, {
+            "track_type": "line",
+            "env_settings": {
+                "state_config": {"picture": False, "vector_car_features": [
+                    "hull_position", "hull_angle", "time",
+                ]},
+                "bot_number": 0,
+            },
+        },
 
     ]):
         config.hyperparameters = deep_dict_update(
             config.hyperparameters,
-            params
+            params,
         )
+        config.hyperparameters['env_settings']['agent_track'] = {'line': [0], 'rotate': [1]}[
+            config.hyperparameters['track_type']
+        ]
+
         config.name = f"exp_{_args.name}_{index}"
         log_tb_path = os.path.join('logs', 'PPO', config.name)
         if not os.path.exists(log_tb_path):
@@ -245,7 +296,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
         config.tf_writer = tf.summary.create_file_writer(log_tb_path)
 
         def env_creator():
-            env = CarRacingHackatonContinuousFixed(settings_file_path_or_settings=settings)
+            env = CarRacingHackatonContinuousFixed(settings_file_path_or_settings=env_settings)
             env = chainerrl.wrappers.ContinuingTimeLimit(env, max_episode_steps=500)
             env = OnlyVectorsTaker(env)
             env._max_episode_steps = 500
