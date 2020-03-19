@@ -135,6 +135,11 @@ class Logger:
         final_stats = self._create_final_stat_dict()
         import pandas as pd
 
+        ind_path_to_table = os.path.join(self.model_config.table_path, f'{self.model_config.name}_records.csv')
+        data_self = pd.DataFrame(columns=final_stats.keys())
+        data_self = data_self.append(final_stats, ignore_index=True)
+        data_self.to_csv(ind_path_to_table, index=False)
+
         path_to_table = os.path.join(self.model_config.table_path, 'records.csv')
         if not os.path.exists(path_to_table):
             data = pd.DataFrame(columns=final_stats.keys())
