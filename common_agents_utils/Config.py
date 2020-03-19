@@ -12,6 +12,7 @@ class Config(object):
         self.agent_class: str = ""
         self.tf_writer = None
         self.debug: bool = False
+        self.table_path: str = "."
 
 
 def config_to_key_value(config: Config) -> Dict[str, Union[str, int, float]]:

@@ -1,6 +1,6 @@
 import os
 from threading import Thread
-from typing import Dict, Any
+from typing import Dict, Any, Union
 from collections import defaultdict
 
 import wandb
@@ -30,11 +30,18 @@ class Logger:
         self._stats = defaultdict(list, {})
         self.episode_number: int = 0
 
+        self._keeping_stats = None
+
     def log_it(self, stats) -> None:
         self._accumulate_stats(stats)
         self.episode_number += 1
         if self.episode_number % self.log_interval == 0:
             self._publish_logs()
+
+    def on_training_end(self) -> None:
+        if self._keeping_stats is None:
+            self._keeping_stats = self._get_mean_logs()
+        self._write_finals_to_csv()
 
     @staticmethod
     def _delayed_animation_logging(image_array, path, step):
@@ -61,11 +68,15 @@ class Logger:
                 raise ValueError(f"Logger -> unknown type : {type(value)} with value : {value}")
             self._stats[key].append(float(_value))
 
-    def _publish_logs(self) -> None:
+    def _get_mean_logs(self) -> Dict[str, float]:
         _stats = {}
         for key, value in self._stats.items():
-            _stats[key] = np.mean(value)
-        self._stats = _stats
+            _stats[key] = float(np.mean(value))
+        return _stats
+
+    def _publish_logs(self) -> None:
+        self._stats = self._get_mean_logs()
+        self._keeping_stats = self._stats
 
         if self.use_console:
             self._publish_console()
@@ -94,3 +105,41 @@ class Logger:
                 self._stats.get('track_progress', -1),
             )
         )
+
+    def _create_final_stat_dict(self) -> Dict[str, Union[int, float, str, bool]]:
+
+        # create record about env observation format
+        state_config = self.model_config.hyperparameters['env_settings']['state_config']
+        state_record = 'Image' if state_config['picture'] is True else ""
+        if len(state_config['vector_car_features']) != 0:
+            if len(state_record) != 0:
+                state_record += ", "
+            state_record += "[" + ", ".join(sorted(state_config['vector_car_features'])) + "]"
+
+        final_stats = {
+            'total_env_episode': int(self._keeping_stats.get('total_env_episode', '-1')),
+            'track_progress': float(self._keeping_stats.get('moving_track_progress', -1)),
+            'total_grad_steps': int(self._keeping_stats.get('total_grad_steps', -1)),
+            'env_state': state_record,
+            'track_type':
+                self.model_config.hyperparameters['track_type']
+                if 'track_type' in self.model_config.hyperparameters.keys()
+                else ', '.join(self.model_config.hyperparameters['env_settings']['agent_tracks']),
+            'icm': self.model_config.hyperparameters['use_icm'],
+            'lr': self.model_config.hyperparameters['lr'],
+        }
+
+        return final_stats
+
+    def _write_finals_to_csv(self) -> None:
+        final_stats = self._create_final_stat_dict()
+        import pandas as pd
+
+        path_to_table = os.path.join(self.model_config.table_path, 'records.csv')
+        if not os.path.exists(path_to_table):
+            data = pd.DataFrame(columns=final_stats.keys())
+        else:
+            data = pd.read_csv(path_to_table)
+
+        data = data.append(final_stats, ignore_index=True)
+        data.to_csv(path_to_table, index=False, index_label=False)

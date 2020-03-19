@@ -83,6 +83,7 @@ class PPO_ICM:
         self.folder_save_path = os.path.join('model_saves', 'PPO', self.name)
         self.episode_number = 0
         self.global_step_number = 0
+        self._total_grad_steps = 0
         self.current_game_stats = None
         self.flush_stats()
         self.tf_writer = config.tf_writer
@@ -192,6 +193,7 @@ class PPO_ICM:
         sum_ppo_loss = 0.0
         sum_ppo_critic_loss = 0.0
         for _ in range(self.hyperparameters['learning_updates_per_learning_session']):
+            self._total_grad_steps += 1
             new_log_probs, new_entropy = self.ac.estimate_action(states, actions)
 
             state_value = self.ac.value(states)
@@ -237,23 +239,32 @@ class PPO_ICM:
         self.update_old_policy()
 
     def train(self):
-        for index in range(self.hyperparameters['num_episodes_to_run']):
+        try:
+            for index in range(self.hyperparameters['num_episodes_to_run']):
 
-            self.run_one_episode()
+                self.run_one_episode()
 
-            self.stat_logger.log_it(self.current_game_stats)
-            self._exp_moving_track_progress = (
-                0.98 * self._exp_moving_track_progress +
-                0.02 * self.current_game_stats.get('track_progress', 0)
-            )
-            if self._exp_moving_track_progress >= self.hyperparameters.get('track_progress_success_threshold', 10):
-                self.save(suffix='final')
-                break
+                self._exp_moving_track_progress = (
+                        0.98 * self._exp_moving_track_progress +
+                        0.02 * self.current_game_stats.get('track_progress', 0)
+                )
+                self.current_game_stats.update({
+                    'moving_track_progress': self._exp_moving_track_progress,
+                    'total_env_episode': self.episode_number,
+                    'total_grad_steps': self._total_grad_steps,
+                })
+                self.stat_logger.log_it(self.current_game_stats)
+                if self._exp_moving_track_progress >= self.hyperparameters.get('track_progress_success_threshold', 10):
+                    break
 
-            self.flush_stats()
+                self.flush_stats()
 
-            if self.episode_number % self.hyperparameters['save_frequency_episode'] == 0:
-                self.save()
+                if self.episode_number % self.hyperparameters['save_frequency_episode'] == 0:
+                    self.save()
+        finally:
+            self.stat_logger.on_training_end()
+            self.save(suffix='final')
+            pass
 
     def run_one_episode(self):
         state = self.env.reset()

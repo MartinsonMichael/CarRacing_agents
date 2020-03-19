@@ -19,7 +19,7 @@
   "agent_tracks" : [1],
   "agent_image_indexes": [0],
   "bot_number" : 0,
-  "bots_tracks": [0, 1],
+  "bots_tracks": [0],
   "image_scale": {
     "back_image_scale_factor": 0.12,
     "car_image_scale_factor": 0.1
