@@ -208,7 +208,7 @@ class DummyCar:
         CAR_FEATURES = {
             'hull_position', 'hull_angle', 'car_speed', 'wheels_positions',
             'track_sensor', 'road_sensor', 'finish_sensor', 'cross_road_sensor', 'collide_sensor',
-            'car_radar_1', 'car_radar_2', 'car_radar_3',
+            'car_radar_1', 'car_radar_2', 'car_radar_3', 'time',
         }
         if len(set(self.data_loader.car_features_list) - CAR_FEATURES) > 0:
             raise ValueError(
