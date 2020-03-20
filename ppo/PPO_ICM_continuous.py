@@ -20,7 +20,6 @@ class PPO_ICM:
         self.stat_logger: Logger = Logger(
             config,
             log_interval=config.hyperparameters.get('log_interval', 20),
-            use_wandb=False,
         )
         self.debug = config.debug
         self.hyperparameters = config.hyperparameters

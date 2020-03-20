@@ -321,25 +321,20 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
 def main(_args):
     for config, wandb_note in iterate_over_configs(_args):
 
-        config.hyperparameters['device'] = f'cuda:{np.random.choice([0, 1, 2, 3])}'
+        wandb.init(
+            reinit=True,
+            project='PPO_series',
+            name=config.name,
+            notes=wandb_note,
+            config=config.hyperparameters,
+        )
 
-        def f():
-            # wandb.init(
-            #     reinit=True,
-            #     project='PPO_series',
-            #     name=config.name,
-            #     notes=wandb_note,
-            #     config=config.hyperparameters,
-            # )
+        ppo_agent = PPO_ICM(config)
 
-            ppo_agent = PPO_ICM(config)
+        print('Start training of PPO...')
+        print(f'note : {wandb_note}')
 
-            print('Start training of PPO...')
-            print(f'note : {wandb_note}')
-
-            ppo_agent.train()
-
-        Thread(target=f).start()
+        ppo_agent.train()
 
 
 if __name__ == '__main__':
