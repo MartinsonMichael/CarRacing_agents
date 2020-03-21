@@ -290,6 +290,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
         config.hyperparameters['env_settings']['agent_tracks'] = {'line': [0], 'rotate': [1]}[
             config.hyperparameters['track_type']
         ]
+        config.hyperparameters['seed'] = np.random.random_integers(1, 10**4)
 
         config.name = f"exp_{_args.name}_{index}"
         log_tb_path = os.path.join('logs', 'PPO', config.name)
