@@ -39,10 +39,15 @@ class ICM:
         self._encoded_state_size: int = encoded_state_size
         self._clipping_gradient_norm: float = clipping_gradient_norm
 
-        self._encoder: StateEncoder = StateEncoder(
+        # self._encoder: StateEncoder = StateEncoder(
+        #     state_description=state_description,
+        #     encoded_size=self._encoded_state_size,
+        #     hidden_size=hidden_size,
+        #     device=self.device,
+        # )
+        self._encoder: SmallVectorStateEncoder = SmallVectorStateEncoder(
             state_description=state_description,
             encoded_size=self._encoded_state_size,
-            hidden_size=hidden_size,
             device=self.device,
         )
         self._inverse: InverseDynamicModel = InverseDynamicModel(
@@ -162,6 +167,34 @@ class InverseDynamicModel(nn.Module):
         s = F.relu(self._state(state))
         ns = F.relu(self._next_state(next_state))
         x = torch.tanh(self.head(torch.cat((s, ns), dim=1)))
+
+        if return_stats:
+            return x, {}
+        return x
+
+
+class SmallVectorStateEncoder(nn.Module):
+    def __init__(
+        self,
+        state_description: spaces.Box,
+        encoded_size: int,
+        device: str,
+    ):
+        super().__init__()
+        self.device = device
+
+        input_size = state_description.shape[0]
+        print(f'SmallVectorStateEncoder (icm) input_size : {input_size}')
+        assert input_size >= encoded_size, f"input_size must be >= encoded_size, " \
+                                           f"and you have input_size : {input_size}, encoded_size : {encoded_size}"
+
+        self.head = nn.Linear(input_size, encoded_size).to(device)
+        torch.nn.init.xavier_uniform_(self.head.weight)
+        torch.nn.init.constant_(self.head.bias, 0)
+
+    def forward(self, state: npTT, return_stats: bool = False) -> TTOrTTStat:
+        x = make_it_batched_torch_tensor(state, device=self.device)
+        x = self.head(x)
 
         if return_stats:
             return x, {}

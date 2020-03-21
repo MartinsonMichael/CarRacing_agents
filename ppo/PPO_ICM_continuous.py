@@ -48,13 +48,23 @@ class PPO_ICM:
             self._icm: ICM = ICM(
                 state_description=state_description,
                 action_size=action_size,
-                encoded_state_size=100 if self.hyperparameters['mode'] == 'vector' else 256,
+                encoded_state_size=6,
                 device=self.device,
-                batch_size=256 if self.hyperparameters['mode'] == 'vector' else 64,
-                buffer_size=10**4 if self.hyperparameters['mode'] == 'vector' else 10**6,
-                update_per_step=50 if self.hyperparameters['mode'] == 'vector' else 250,
+                batch_size=256,
+                buffer_size=10**5,
+                update_per_step=0,
                 config=config.hyperparameters['icm_config']
             )
+            # self._icm: ICM = ICM(
+            #     state_description=state_description,
+            #     action_size=action_size,
+            #     encoded_state_size=100 if self.hyperparameters['mode'] == 'vector' else 256,
+            #     device=self.device,
+            #     batch_size=256 if self.hyperparameters['mode'] == 'vector' else 64,
+            #     buffer_size=10**4 if self.hyperparameters['mode'] == 'vector' else 10**6,
+            #     update_per_step=50 if self.hyperparameters['mode'] == 'vector' else 250,
+            #     config=config.hyperparameters['icm_config']
+            # )
         self.ac: ActorCritic = ActorCritic(
             state_description=state_description,
             action_size=action_size,
@@ -179,19 +189,21 @@ class PPO_ICM:
                 action=actions.detach().cpu().numpy(),
                 next_state=next_states.detach().cpu().numpy(),
             )
-            intrinsic_reward, intrinsic_loss = self._icm.get_intrinsic_reward_with_loss(
-                state=states, action=actions, next_state=next_states, return_stats=False, print_debug=True,
+            intrinsic_reward, intrinsic_loss, intrinsic_stats = self._icm.get_intrinsic_reward_with_loss(
+                state=states, action=actions, next_state=next_states, return_stats=True, print_debug=True,
             )
+            self.current_game_stats.update(intrinsic_stats)
             discount_reward += torch.from_numpy(np.clip(intrinsic_reward, -3, 3)).to(self.device)
 
             icm_update_stat = self._icm.update(return_stat=True)
+            self.current_game_stats.update(icm_update_stat)
+
             self.current_game_stats.update({
                 'intrinsic_reward MEAN': intrinsic_reward.mean(),
                 'intrinsic_reward MAX': intrinsic_reward.max(),
                 'total_reward MEAN': float(discount_reward.detach().cpu().numpy().mean()),
                 'total_reward MAX': float(discount_reward.detach().cpu().numpy().max()),
             })
-            self.current_game_stats.update(icm_update_stat)
 
         sum_ppo_loss = 0.0
         sum_ppo_critic_loss = 0.0
