@@ -27,6 +27,9 @@ def create_config(_args):
         os.makedirs(log_tb_path)
     config.tf_writer = tf.summary.create_file_writer(log_tb_path)
 
+    config.table_path = 'PPO_tables'
+    if not os.path.exists(config.table_path):
+        os.makedirs(config.table_path)
     print('MODE : ', mode)
 
     config.hyperparameters = {
@@ -65,15 +68,18 @@ def create_config(_args):
         "betas": (0.9, 0.999),
     }
 
+    print(f"config.hyperparameters['env_settings']['agent_tracks'][0] : "
+          f"{config.hyperparameters['env_settings']['agent_tracks'][0]}")
+
     config.hyperparameters.update({
         "track_type": defaultdict(
             lambda: 'unknown',
             {
-                [0]: 'line',
-                [1]: 'rotate',
-                [2]: 'rotate_over_line',
-            }[config.hyperparameters['env_settings']['agent_track']]
-        )})
+                0: 'line',
+                1: 'rotate',
+                2: 'rotate_over_line',
+            })[config.hyperparameters['env_settings']['agent_tracks'][0]]
+    })
     print(f"Set track type : {config.hyperparameters['track_type']}")
 
     return config
