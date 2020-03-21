@@ -132,230 +132,231 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
 
     # track type 'line': [0] 'rotate': [1], 'rotate_over_line': [2]
 
-    for index, params in enumerate([
-        # Example:
-        # {
-        #     "track_type": "",
-        #     "env_settings": {
-        #         "state_config": {"picture": False, "vector_car_features": []},
-        #         "bot_number": 0,
-        #     },
-        # },
+    for exp_cycle_index in range(_args.exp_num):
+        for index, params in enumerate([
+            # Example:
+            # {
+            #     "track_type": "",
+            #     "env_settings": {
+            #         "state_config": {"picture": False, "vector_car_features": []},
+            #         "bot_number": 0,
+            #     },
+            # },
 
-        # why angle is important?
-        # {
-        #     "track_type": "line",
-        #     "env_settings": {
-        #         "state_config": {"picture": False, "vector_car_features": [
-        #             "hull_position"
-        #         ]},
-        #         "bot_number": 0,
-        #     },
-        # }, {
-        #     "track_type": "line",
-        #     "env_settings": {
-        #         "state_config": {"picture": False, "vector_car_features": [
-        #             "wheels_positions"
-        #         ]},
-        #         "bot_number": 0,
-        #     },
-        # }, {
-        #     "track_type": "line",
-        #     "env_settings": {
-        #         "state_config": {"picture": False, "vector_car_features": [
-        #             "wheels_positions", "hull_angle",
-        #         ]},
-        #         "bot_number": 0,
-        #     },
-        # }, {
-        #     "track_type": "line",
-        #     "env_settings": {
-        #         "state_config": {"picture": False, "vector_car_features": [
-        #             "hull_position", "hull_angle",
-        #         ]},
-        #         "bot_number": 0,
-        #     },
-        # },
-        # ##
-        #
-        #
-        # # what can help to converge faster?
-        # {
-        #     "track_type": "line",
-        #     "env_settings": {
-        #         "state_config": {"picture": False, "vector_car_features": [
-        #             "hull_position", "hull_angle", "car_speed",
-        #         ]},
-        #         "bot_number": 0,
-        #     },
-        # }, {
-        #     "track_type": "line",
-        #     "env_settings": {
-        #         "state_config": {"picture": False, "vector_car_features": [
-        #             "hull_position", "hull_angle", "track_sensor",
-        #         ]},
-        #         "bot_number": 0,
-        #     },
-        # }, {
-        #     "track_type": "line",
-        #     "env_settings": {
-        #         "state_config": {"picture": False, "vector_car_features": [
-        #             "hull_position", "hull_angle", "wheels_positions",
-        #         ]},
-        #         "bot_number": 0,
-        #     },
-        # }, {
-        #     "track_type": "line",
-        #     "env_settings": {
-        #         "state_config": {"picture": False, "vector_car_features": [
-        #             "hull_position", "hull_angle", "finish_sensor",
-        #         ]},
-        #         "bot_number": 0,
-        #     },
-        # }, {
-        #     "track_type": "line",
-        #     "env_settings": {
-        #         "state_config": {"picture": False, "vector_car_features": [
-        #             "hull_position", "hull_angle", "road_sensor",
-        #         ]},
-        #         "bot_number": 0,
-        #     },
-        # }, {
-        #     "track_type": "line",
-        #     "env_settings": {
-        #         "state_config": {"picture": False, "vector_car_features": [
-        #             "hull_position", "hull_angle", "time",
-        #         ]},
-        #         "bot_number": 0,
-        #     },
-        # },
-        # ##
-        #
-        # # with track = rotate
-        # {
-        #     "track_type": "rotate",
-        #     "env_settings": {
-        #         "state_config": {"picture": False, "vector_car_features": [
-        #             "hull_position", "hull_angle", "car_speed", "cross_road_sensor",
-        #         ]},
-        #         "bot_number": 0,
-        #     },
-        # }, {
-        #     "track_type": "rotate",
-        #     "env_settings": {
-        #         "state_config": {"picture": False, "vector_car_features": [
-        #             "hull_position", "hull_angle", "track_sensor", "cross_road_sensor",
-        #         ]},
-        #         "bot_number": 0,
-        #     },
-        # }, {
-        #     "track_type": "rotate",
-        #     "env_settings": {
-        #         "state_config": {"picture": False, "vector_car_features": [
-        #             "hull_position", "hull_angle", "wheels_positions", "cross_road_sensor",
-        #         ]},
-        #         "bot_number": 0,
-        #     },
-        # }, {
-        #     "track_type": "rotate",
-        #     "env_settings": {
-        #         "state_config": {"picture": False, "vector_car_features": [
-        #             "hull_position", "hull_angle", "finish_sensor", "cross_road_sensor",
-        #         ]},
-        #         "bot_number": 0,
-        #     },
-        # }, {
-        #     "track_type": "rotate",
-        #     "env_settings": {
-        #         "state_config": {"picture": False, "vector_car_features": [
-        #             "hull_position", "hull_angle", "road_sensor", "cross_road_sensor",
-        #         ]},
-        #         "bot_number": 0,
-        #     },
-        # }, {
-        #     "track_type": "rotate",
-        #     "env_settings": {
-        #         "state_config": {"picture": False, "vector_car_features": [
-        #             "hull_position", "hull_angle", "time", "cross_road_sensor",
-        #         ]},
-        #         "bot_number": 0,
-        #     },
-        # },
+            # why angle is important?
+            # {
+            #     "track_type": "line",
+            #     "env_settings": {
+            #         "state_config": {"picture": False, "vector_car_features": [
+            #             "hull_position"
+            #         ]},
+            #         "bot_number": 0,
+            #     },
+            # }, {
+            #     "track_type": "line",
+            #     "env_settings": {
+            #         "state_config": {"picture": False, "vector_car_features": [
+            #             "wheels_positions"
+            #         ]},
+            #         "bot_number": 0,
+            #     },
+            # }, {
+            #     "track_type": "line",
+            #     "env_settings": {
+            #         "state_config": {"picture": False, "vector_car_features": [
+            #             "wheels_positions", "hull_angle",
+            #         ]},
+            #         "bot_number": 0,
+            #     },
+            # }, {
+            #     "track_type": "line",
+            #     "env_settings": {
+            #         "state_config": {"picture": False, "vector_car_features": [
+            #             "hull_position", "hull_angle",
+            #         ]},
+            #         "bot_number": 0,
+            #     },
+            # },
+            # ##
+            #
+            #
+            # # what can help to converge faster?
+            # {
+            #     "track_type": "line",
+            #     "env_settings": {
+            #         "state_config": {"picture": False, "vector_car_features": [
+            #             "hull_position", "hull_angle", "car_speed",
+            #         ]},
+            #         "bot_number": 0,
+            #     },
+            # }, {
+            #     "track_type": "line",
+            #     "env_settings": {
+            #         "state_config": {"picture": False, "vector_car_features": [
+            #             "hull_position", "hull_angle", "track_sensor",
+            #         ]},
+            #         "bot_number": 0,
+            #     },
+            # }, {
+            #     "track_type": "line",
+            #     "env_settings": {
+            #         "state_config": {"picture": False, "vector_car_features": [
+            #             "hull_position", "hull_angle", "wheels_positions",
+            #         ]},
+            #         "bot_number": 0,
+            #     },
+            # }, {
+            #     "track_type": "line",
+            #     "env_settings": {
+            #         "state_config": {"picture": False, "vector_car_features": [
+            #             "hull_position", "hull_angle", "finish_sensor",
+            #         ]},
+            #         "bot_number": 0,
+            #     },
+            # }, {
+            #     "track_type": "line",
+            #     "env_settings": {
+            #         "state_config": {"picture": False, "vector_car_features": [
+            #             "hull_position", "hull_angle", "road_sensor",
+            #         ]},
+            #         "bot_number": 0,
+            #     },
+            # }, {
+            #     "track_type": "line",
+            #     "env_settings": {
+            #         "state_config": {"picture": False, "vector_car_features": [
+            #             "hull_position", "hull_angle", "time",
+            #         ]},
+            #         "bot_number": 0,
+            #     },
+            # },
+            # ##
+            #
+            # # with track = rotate
+            # {
+            #     "track_type": "rotate",
+            #     "env_settings": {
+            #         "state_config": {"picture": False, "vector_car_features": [
+            #             "hull_position", "hull_angle", "car_speed", "cross_road_sensor",
+            #         ]},
+            #         "bot_number": 0,
+            #     },
+            # }, {
+            #     "track_type": "rotate",
+            #     "env_settings": {
+            #         "state_config": {"picture": False, "vector_car_features": [
+            #             "hull_position", "hull_angle", "track_sensor", "cross_road_sensor",
+            #         ]},
+            #         "bot_number": 0,
+            #     },
+            # }, {
+            #     "track_type": "rotate",
+            #     "env_settings": {
+            #         "state_config": {"picture": False, "vector_car_features": [
+            #             "hull_position", "hull_angle", "wheels_positions", "cross_road_sensor",
+            #         ]},
+            #         "bot_number": 0,
+            #     },
+            # }, {
+            #     "track_type": "rotate",
+            #     "env_settings": {
+            #         "state_config": {"picture": False, "vector_car_features": [
+            #             "hull_position", "hull_angle", "finish_sensor", "cross_road_sensor",
+            #         ]},
+            #         "bot_number": 0,
+            #     },
+            # }, {
+            #     "track_type": "rotate",
+            #     "env_settings": {
+            #         "state_config": {"picture": False, "vector_car_features": [
+            #             "hull_position", "hull_angle", "road_sensor", "cross_road_sensor",
+            #         ]},
+            #         "bot_number": 0,
+            #     },
+            # }, {
+            #     "track_type": "rotate",
+            #     "env_settings": {
+            #         "state_config": {"picture": False, "vector_car_features": [
+            #             "hull_position", "hull_angle", "time", "cross_road_sensor",
+            #         ]},
+            #         "bot_number": 0,
+            #     },
+            # },
 
 
-        # Line with Bots
-        {
-            "track_type": "line",
-            "env_settings": {
-                "state_config": {"picture": False, "vector_car_features": [
-                    "hull_position", "hull_angle",
-                ]},
-                "bot_number": 4, "bot_tracks": [0],
+            # Line with Bots
+            {
+                "track_type": "line",
+                "env_settings": {
+                    "state_config": {"picture": False, "vector_car_features": [
+                        "hull_position", "hull_angle",
+                    ]},
+                    "bot_number": 4, "bot_tracks": [0],
+                },
             },
-        },
-        {
-            "track_type": "line",
-            "env_settings": {
-                "state_config": {"picture": False, "vector_car_features": [
-                    "hull_position", "hull_angle", "cross_road_sensor",
-                ]},
-                "bot_number": 4, "bot_tracks": [0],
+            {
+                "track_type": "line",
+                "env_settings": {
+                    "state_config": {"picture": False, "vector_car_features": [
+                        "hull_position", "hull_angle", "cross_road_sensor",
+                    ]},
+                    "bot_number": 4, "bot_tracks": [0],
+                },
             },
-        },
-        {
-            "track_type": "line",
-            "env_settings": {
-                "state_config": {"picture": False, "vector_car_features": [
-                    "hull_position", "hull_angle", "car_radar_2",
-                ]},
-                "bot_number": 4, "bot_tracks": [0],
+            {
+                "track_type": "line",
+                "env_settings": {
+                    "state_config": {"picture": False, "vector_car_features": [
+                        "hull_position", "hull_angle", "car_radar_2",
+                    ]},
+                    "bot_number": 4, "bot_tracks": [0],
+                },
             },
-        },
-        {
-            "track_type": "line",
-            "env_settings": {
-                "state_config": {"picture": False, "vector_car_features": [
-                    "hull_position", "hull_angle", "car_radar_2", "cross_road_sensor",
-                ]},
-                "bot_number": 4, "bot_tracks": [0],
+            {
+                "track_type": "line",
+                "env_settings": {
+                    "state_config": {"picture": False, "vector_car_features": [
+                        "hull_position", "hull_angle", "car_radar_2", "cross_road_sensor",
+                    ]},
+                    "bot_number": 4, "bot_tracks": [0],
+                },
             },
-        },
 
-    ]):
-        config.hyperparameters = deep_dict_update(
-            config.hyperparameters,
-            params,
-        )
-        config.hyperparameters['env_settings']['agent_tracks'] = {'line': [0], 'rotate': [1]}[
-            config.hyperparameters['track_type']
-        ]
-        config.hyperparameters['seed'] = int(np.random.random_integers(1, 10**4))
+        ]):
+            config.hyperparameters = deep_dict_update(
+                config.hyperparameters,
+                params,
+            )
+            config.hyperparameters['env_settings']['agent_tracks'] = {'line': [0], 'rotate': [1]}[
+                config.hyperparameters['track_type']
+            ]
+            config.hyperparameters['seed'] = int(np.random.random_integers(1, 10**4))
 
-        config.name = f"exp_{_args.name}_{index}"
-        log_tb_path = os.path.join('logs', 'PPO', config.name)
-        if not os.path.exists(log_tb_path):
-            os.makedirs(log_tb_path)
-        config.tf_writer = tf.summary.create_file_writer(log_tb_path)
+            config.name = f"exp_{_args.name}_{exp_cycle_index}_{index}"
+            log_tb_path = os.path.join('logs', 'PPO', config.name)
+            if not os.path.exists(log_tb_path):
+                os.makedirs(log_tb_path)
+            config.tf_writer = tf.summary.create_file_writer(log_tb_path)
 
-        def env_creator():
-            env = CarRacingHackatonContinuousFixed(settings_file_path_or_settings=env_settings)
-            env = chainerrl.wrappers.ContinuingTimeLimit(env, max_episode_steps=500)
-            env = OnlyVectorsTaker(env)
-            env._max_episode_steps = 500
-            return env
+            def env_creator():
+                env = CarRacingHackatonContinuousFixed(settings_file_path_or_settings=env_settings)
+                env = chainerrl.wrappers.ContinuingTimeLimit(env, max_episode_steps=500)
+                env = OnlyVectorsTaker(env)
+                env._max_episode_steps = 500
+                return env
 
-        config.environment_make_function = env_creator
-        config.test_environment_make_function = env_creator
-        config.debug = False
-        config.table_path = _args.table_path
-        if not os.path.exists(config.table_path):
-            os.makedirs(config.table_path)
+            config.environment_make_function = env_creator
+            config.test_environment_make_function = env_creator
+            config.debug = False
+            config.table_path = _args.table_path
+            if not os.path.exists(config.table_path):
+                os.makedirs(config.table_path)
 
-        wandb_note = f"Track : {config.hyperparameters['track_type']}. Use " + ", ".join(
-            config.hyperparameters['env_settings']['state_config']['vector_car_features']
-        )
+            wandb_note = f"Track : {config.hyperparameters['track_type']}. Use " + ", ".join(
+                config.hyperparameters['env_settings']['state_config']['vector_car_features']
+            )
 
-        yield config, wandb_note
+            yield config, wandb_note
 
 
 def main(_args):
@@ -385,6 +386,7 @@ if __name__ == '__main__':
     parser.add_argument('--name', type=str, help='name for experiment')
     parser.add_argument('--device', type=str, default='cpu', help="'cpu' - [default] or 'cuda:{number}'")
     parser.add_argument('--table-path', type=str, help='path to table records')
+    parser.add_argument('--exp-num', type=int, default=1)
 
     args = parser.parse_args()
 
