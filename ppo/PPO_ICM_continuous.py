@@ -52,7 +52,7 @@ class PPO_ICM:
                 device=self.device,
                 batch_size=256,
                 buffer_size=10**5,
-                update_per_step=0,
+                update_per_step=1,
                 config=config.hyperparameters['icm_config']
             )
             # self._icm: ICM = ICM(
@@ -194,6 +194,7 @@ class PPO_ICM:
             )
             self.current_game_stats.update(intrinsic_stats)
             discount_reward += torch.from_numpy(np.clip(intrinsic_reward, -3, 3)).to(self.device)
+            discount_reward = (discount_reward - discount_reward.mean()) / (discount_reward.std() + 1e-5)
 
             icm_update_stat = self._icm.update(return_stat=True)
             self.current_game_stats.update(icm_update_stat)
@@ -232,17 +233,19 @@ class PPO_ICM:
             term_2 = torch.clamp(policy_ratio, 1 - self.eps_clip, 1 + self.eps_clip) * advantage
 
             loss = -1 * torch.min(term_1, term_2) - 0.0 * new_entropy + 0.5 * critic_loss
+
             sum_ppo_loss += float(loss.mean().detach().cpu().numpy())
             sum_ppo_critic_loss += float(critic_loss.mean().detach().cpu().numpy())
+
             self.optimizer.zero_grad()
             if self.hyperparameters['use_icm']:
-                (loss.mean() + 0.5 * intrinsic_loss).backward(retain_graph=True)
+                (loss.mean() + 0.5 * intrinsic_loss.mean()).backward(retain_graph=True)
                 torch.nn.utils.clip_grad_norm_(
-                    chain(self._icm.parameters(), self.ac.parameters()), 0.75
+                    self._icm.parameters(), self.hyperparameters['icm_config'].get('icm_gradient_clipping', 1.0)
                 )
             else:
                 loss.mean().backward()
-                torch.nn.utils.clip_grad_norm_(self.ac.parameters(), self.hyperparameters['gradient_clipping_norm'])
+            torch.nn.utils.clip_grad_norm_(self.ac.parameters(), self.hyperparameters['gradient_clipping_norm'])
             self.optimizer.step()
 
         self.current_game_stats.update({

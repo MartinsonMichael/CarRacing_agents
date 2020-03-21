@@ -43,6 +43,7 @@ def create_config(_args):
         "use_icm": _args.icm,
         "icm_config": {
             "state_mode": mode,
+            "icm_gradient_clipping": 1.5,
             "state_image_channel_cnt":
                 config.test_environment_make_function().state_image_channel_cnt
                 if mode in {'image', 'both'} else None,
