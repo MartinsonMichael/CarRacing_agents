@@ -333,7 +333,7 @@ class DummyCar:
 
     @property
     def angle_index(self) -> int:
-        return int((int(self._hull.angle * 180 / np.pi) % 360) / 8)
+        return int((int(self._hull.angle * 180 / np.pi) % 360) / 180)
 
     @property
     def angle_degree(self) -> float:
