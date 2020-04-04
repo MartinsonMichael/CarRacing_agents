@@ -122,7 +122,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--env-settings',
         type=str,
-        default='env/CarRacing_env/settings_sets/env_settings__basic_straight_line.json',
+        default='env/settings_sets/env_settings__basic_straight_line.json',
         help='path to CarRacing env settings',
     )
     parser.add_argument('--device', type=str, default='cpu', help="'cpu' - [default] or 'cuda:{number}'")

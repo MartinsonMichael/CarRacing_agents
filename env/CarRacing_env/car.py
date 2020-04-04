@@ -616,7 +616,7 @@ class DummyCar:
         for wheel_index, w in enumerate(self.wheels):
             # Steer each wheel
             if w.is_front:
-                print(f'w.steer : {w.steer}, joint.angle : {w.joint.angle}')
+                # print(f'w.steer : {w.steer}, joint.angle : {w.joint.angle}')
                 steer_direction = np.sign(w.steer - w.joint.angle)
                 val = abs(w.steer - (w.joint.angle - w.steer_approx)) * 5
                 if val < 0.1:
@@ -641,7 +641,7 @@ class DummyCar:
 
             v = w.linearVelocity
 
-            print(f'linear velocity : {v[0]} {v[1]}')
+            # print(f'linear velocity : {v[0]} {v[1]}')
 
             vf = forw[0] * v[0] + forw[1] * v[1]  # forward speed
             vs = side[0] * v[0] + side[1] * v[1]  # side speed
@@ -663,7 +663,7 @@ class DummyCar:
                     w.omega = 0
             w.phase += w.omega * dt
 
-            print(f'w.omega : {w.omega}')
+            # print(f'w.omega : {w.omega}')
 
             vr = w.omega * w.wheel_rad  # rotating wheel speed
             f_force = -vf + vr  # force direction is direction of speed difference

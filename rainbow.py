@@ -62,7 +62,7 @@ def main():
     parser.add_argument(
         '--env-settings',
         type=str,
-        default='env/CarRacing_env/settings_sets/env_settings__basic_straight_line.json',
+        default='env/settings_sets/env_settings__basic_straight_line.json',
         help='path to settings file for CarRacingFixed',
     )
     parser.add_argument('--name', type=str, help='name')

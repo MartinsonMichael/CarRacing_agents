@@ -16,9 +16,9 @@ from ppo.PPO_ICM_continuous import PPO_ICM
 
 env_settings = {
   "name": "Basic, straight line",
-  "cars_path": "env/CarRacing_env/env_data/cars",
-  "background_path": "env/CarRacing_env/env_data/tracks/background_image_1520_1520.jpg",
-  "annotation_path": "env/CarRacing_env/env_data/tracks/CarRacing_sq_extended_v2.0.xml",
+  "cars_path": "env/env_data/cars",
+  "background_path": "env/env_data/tracks/background_image_1520_1520.jpg",
+  "annotation_path": "env/env_data/tracks/CarRacing_sq_extended_v2.0.xml",
   "TRACK_USER_INFO_NOT_A_SETTINGS": {
     "agent_track": {
       "0": "line",

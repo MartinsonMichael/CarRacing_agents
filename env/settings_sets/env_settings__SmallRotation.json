@@ -1,10 +1,10 @@
 {
   "name": "Basic, straight line",
-  "cars_path": "envs/gym_car_intersect_fixed/env_data/cars",
-  "background_path": "envs/gym_car_intersect_fixed/env_data/tracks/background_image_1520_1520.jpg",
-  "annotation_path": "envs/gym_car_intersect_fixed/env_data/tracks/sq_SmallRotation.xml",
+  "cars_path": "env/env_data/cars",
+  "background_path": "env/env_data/tracks/background_image_1520_1520.jpg",
+  "annotation_path": "env/env_data/tracks/sq_SmallRotation.xml",
 
-  "agent_tracks" : [0],
+  "agent_tracks" : [4],
   "agent_image_indexes": [0],
   "bot_number" : 0,
   "bots_tracks": [],
@@ -18,7 +18,7 @@
   },
   "state_config": {
     "picture": false,
-    "vector_car_features": ["hull_angle", "hull_position", "wheels_positions", "speed"],
+    "vector_car_features": ["hull_angle", "hull_position", "wheels_positions", "car_speed"],
     "vector_env_features": []
   },
   "reward": {
