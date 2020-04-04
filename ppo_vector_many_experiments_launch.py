@@ -10,15 +10,15 @@ import wandb
 import numpy as np
 
 from common_agents_utils import Config
-from envs import CarRacingHackatonContinuousFixed, OnlyVectorsTaker
+from env import CarRacingEnv, OnlyVectorsTaker
 from ppo.PPO_ICM_continuous import PPO_ICM
 
 
 env_settings = {
   "name": "Basic, straight line",
-  "cars_path": "envs/gym_car_intersect_fixed/env_data/cars",
-  "background_path": "envs/gym_car_intersect_fixed/env_data/tracks/background_image_1520_1520.jpg",
-  "annotation_path": "envs/gym_car_intersect_fixed/env_data/tracks/CarRacing_sq_extended_v2.0.xml",
+  "cars_path": "env/CarRacing_env/env_data/cars",
+  "background_path": "env/CarRacing_env/env_data/tracks/background_image_1520_1520.jpg",
+  "annotation_path": "env/CarRacing_env/env_data/tracks/CarRacing_sq_extended_v2.0.xml",
   "TRACK_USER_INFO_NOT_A_SETTINGS": {
     "agent_track": {
       "0": "line",
@@ -339,7 +339,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
             config.tf_writer = tf.summary.create_file_writer(log_tb_path)
 
             def env_creator():
-                env = CarRacingHackatonContinuousFixed(settings_file_path_or_settings=env_settings)
+                env = CarRacingEnv(settings_file_path_or_settings=env_settings)
                 env = chainerrl.wrappers.ContinuingTimeLimit(env, max_episode_steps=500)
                 env = OnlyVectorsTaker(env)
                 env._max_episode_steps = 500

@@ -5,7 +5,7 @@ import gym
 import time
 # from xvfbwrapper import Xvfb
 
-from envs.common_envs_utils.visualizer import save_as_mp4
+from env.common_envs_utils.visualizer import save_as_mp4
 
 
 class VisualWrapper(gym.Wrapper):

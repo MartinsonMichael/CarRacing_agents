@@ -7,7 +7,7 @@ from os.path import dirname, abspath
 import tensorflow as tf
 import wandb
 
-from envs.common_envs_utils.env_makers import \
+from env.common_envs_utils.env_makers import \
     get_state_type_from_settings_path, \
     get_EnvCreator_by_settings
 from common_agents_utils import Config
@@ -99,7 +99,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--env-settings',
         type=str,
-        default='envs/gym_car_intersect_fixed/settings_sets/env_settings__basic_straight_line.json',
+        default='env/CarRacing_env/settings_sets/env_settings__basic_straight_line.json',
         help='path to CarRacing env settings',
     )
     parser.add_argument('--device', type=str, default='cpu', help='path to CarRacing env settings')

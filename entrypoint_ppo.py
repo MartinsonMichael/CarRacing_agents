@@ -8,7 +8,7 @@ import tensorflow as tf
 import wandb
 
 from common_agents_utils import Config
-from envs import get_state_type_from_settings_path, get_EnvCreator_by_settings
+from env import get_state_type_from_settings_path, get_EnvCreator_by_settings
 from ppo.PPO_ICM_continuous import PPO_ICM
 
 
@@ -54,7 +54,7 @@ def create_config(_args):
         "animation_record_frequency": 100,
         "record_animation": _args.record_animation,
 
-        "num_episodes_to_run": 50 * 10 ** 3,
+        "num_episodes_to_run": 20 * 10 ** 3,
         "max_episode_len": 500,
 
         "update_every_n_steps": 5000,
@@ -79,6 +79,7 @@ def create_config(_args):
                 0: 'line',
                 1: 'rotate',
                 2: 'rotate_over_line',
+                4: 'small_rotation',
             })[config.hyperparameters['env_settings']['agent_tracks'][0]]
     })
     print(f"Set track type : {config.hyperparameters['track_type']}")
@@ -121,7 +122,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--env-settings',
         type=str,
-        default='envs/gym_car_intersect_fixed/settings_sets/env_settings__basic_straight_line.json',
+        default='env/CarRacing_env/settings_sets/env_settings__basic_straight_line.json',
         help='path to CarRacing env settings',
     )
     parser.add_argument('--device', type=str, default='cpu', help="'cpu' - [default] or 'cuda:{number}'")

@@ -12,7 +12,7 @@ import numpy as np
 import tensorflow as tf
 
 from common_agents_utils.Config import config_to_key_value
-from envs.common_envs_utils.env_state_utils import \
+from env.common_envs_utils.env_state_utils import \
     get_state_combiner_by_settings_file, \
     from_image_vector_to_combined_state
 
@@ -192,7 +192,7 @@ class SAC:
         self.episode_number += 1
 
         if visualize and self._current_run_global_steps > self.hyperparameters["min_steps_before_learning"]:
-            from envs.common_envs_utils import episode_visualizer
+            from env.common_envs_utils import episode_visualizer
             episode_visualizer(
                 env=self.environment,
                 action_picker=lambda state: self.actor_pick_action(state, eval=True),

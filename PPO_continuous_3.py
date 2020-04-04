@@ -11,7 +11,7 @@ import tensorflow as tf
 
 from common_agents_utils import Policy, ValueNet, Torch_Separated_Replay_Buffer, Torch_Arbitrary_Replay_Buffer
 
-from envs.common_envs_utils.extended_env_wrappers import ObservationToFloat32
+from env.common_envs_utils.extended_env_wrappers import ObservationToFloat32
 
 device = 'cuda:2'
 

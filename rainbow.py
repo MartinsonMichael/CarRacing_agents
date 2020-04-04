@@ -7,8 +7,8 @@ import os
 
 from chainerrl.experiments import train_agent_batch
 
-from envs import DiscreteWrapper
-from envs.common_envs_utils.env_makers import make_CarRacing_fixed_vector_features, make_CarRacing_fixed_image_features, \
+from env import DiscreteWrapper
+from env.common_envs_utils.env_makers import make_CarRacing_fixed_vector_features, make_CarRacing_fixed_image_features, \
     make_CarRacing_fixed_combined_features, get_state_type_from_settings_path
 from rainbow.extended_rainbow import ExtendedEvaluator, run_evaluation_episodes, DistributionalDuelingDQN_Vector, \
     QuadraticDecayEpsilonGreedy
@@ -56,13 +56,13 @@ def main():
     parser.add_argument('--eval-interval', type=int, default=5 * 10 ** 3)
     parser.add_argument('--logging-level', type=int, default=20, help='Logging level. 10:DEBUG, 20:INFO etc.')
     parser.add_argument('--monitor', action='store_true', default=False, help='Monitor env.')
-    parser.add_argument('--num-envs', type=int, default=40)
+    parser.add_argument('--num-env', type=int, default=40)
     parser.add_argument('--final-epsilon', type=float, default=0.01)
     parser.add_argument('--final-exploration-frames', type=int, default=2 * 10 ** 4)
     parser.add_argument(
         '--env-settings',
         type=str,
-        default='envs/gym_car_intersect_fixed/settings_sets/env_settings__basic_straight_line.json',
+        default='env/CarRacing_env/settings_sets/env_settings__basic_straight_line.json',
         help='path to settings file for CarRacingFixed',
     )
     parser.add_argument('--name', type=str, help='name')

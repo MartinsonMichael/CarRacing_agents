@@ -14,7 +14,7 @@ from chainerrl.recurrent import RecurrentChainMixin
 from chainer import functions as F
 from chainer import links as L
 
-from envs.common_envs_utils.visualizer import plot_sequence_images
+from env.common_envs_utils.visualizer import plot_sequence_images
 
 
 def run_evaluation_episodes(env, agent, n_steps, n_episodes,

@@ -12,7 +12,7 @@ import numpy as np
 from common_agents_utils import Config, ActorCritic, ICM, Torch_Arbitrary_Replay_Buffer, SubprocVecEnv_tf2
 from common_agents_utils.logger import Logger
 from common_agents_utils.parallel_replay_buffer import Torch_Parallel_Arbitrary_Replay_Buffer
-from envs.common_envs_utils.visualizer import save_as_mp4
+from env.common_envs_utils.visualizer import save_as_mp4
 
 
 class PPO_ICM_parallel:

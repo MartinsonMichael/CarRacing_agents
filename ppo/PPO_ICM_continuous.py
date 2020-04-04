@@ -11,7 +11,7 @@ import numpy as np
 
 from common_agents_utils import Config, ActorCritic, ICM, Torch_Arbitrary_Replay_Buffer
 from common_agents_utils.logger import Logger
-from envs.common_envs_utils.visualizer import save_as_mp4
+from env.common_envs_utils.visualizer import save_as_mp4
 
 
 class PPO_ICM:
@@ -194,7 +194,6 @@ class PPO_ICM:
             )
             self.current_game_stats.update(intrinsic_stats)
             discount_reward += torch.from_numpy(np.clip(intrinsic_reward, -3, 3)).to(self.device)
-            discount_reward = (discount_reward - discount_reward.mean()) / (discount_reward.std() + 1e-5)
 
             icm_update_stat = self._icm.update(return_stat=True)
             self.current_game_stats.update(icm_update_stat)

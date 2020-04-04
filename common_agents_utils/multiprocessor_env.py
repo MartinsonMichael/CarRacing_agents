@@ -101,7 +101,7 @@ class VecEnv(ABC):
         Return attribute from vectorized environment.
 
         :param attr_name: (str) The name of the attribute whose value to return
-        :param indices: (list,int) Indices of envs to get attribute from
+        :param indices: (list,int) Indices of env to get attribute from
         :return: (list) List of values of 'attr_name' in all environments
         """
         pass
@@ -113,7 +113,7 @@ class VecEnv(ABC):
 
         :param attr_name: (str) The name of attribute to assign new value
         :param value: (obj) Value to assign to `attr_name`
-        :param indices: (list,int) Indices of envs to assign value
+        :param indices: (list,int) Indices of env to assign value
         :return: (NoneType)
         """
         pass
@@ -124,7 +124,7 @@ class VecEnv(ABC):
         Call instance methods of vectorized environments.
 
         :param method_name: (str) The name of the environment method to invoke.
-        :param indices: (list,int) Indices of envs whose method to call
+        :param indices: (list,int) Indices of env whose method to call
         :param method_args: (tuple) Any positional arguments to provide in the call
         :param method_kwargs: (dict) Any keyword arguments to provide in the call
         :return: (list) List of items returned by the environment's method call
@@ -179,7 +179,7 @@ class VecEnv(ABC):
         """
         Convert a flexibly-typed reference to environment indices to an implied list of indices.
 
-        :param indices: (None,int,Iterable) refers to indices of envs.
+        :param indices: (None,int,Iterable) refers to indices of env.
         :return: (list) the implied list of indices.
         """
         if indices is None:
@@ -472,9 +472,9 @@ class SubprocVecEnv_tf2(VecEnv):
     def _get_target_remotes(self, indices):
         """
         Get the connection object needed to communicate with the wanted
-        envs that are in subprocesses.
+        env that are in subprocesses.
 
-        :param indices: (None,int,Iterable) refers to indices of envs.
+        :param indices: (None,int,Iterable) refers to indices of env.
         :return: ([multiprocessing.Connection]) Connection object to communicate between processes.
         """
         indices = self._get_indices(indices)

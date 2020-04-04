@@ -13,7 +13,7 @@ from common_agents_utils import Policy, ValueNet, Torch_Separated_Replay_Buffer
 
 
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-from envs.common_envs_utils.extended_env_wrappers import ObservationToFloat32
+from env.common_envs_utils.extended_env_wrappers import ObservationToFloat32
 
 device = 'cuda:2'
 
