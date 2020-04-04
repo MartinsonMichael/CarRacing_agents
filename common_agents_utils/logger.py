@@ -125,8 +125,8 @@ class Logger:
                 self.model_config.hyperparameters['track_type']
                 if 'track_type' in self.model_config.hyperparameters.keys()
                 else ', '.join(self.model_config.hyperparameters['env_settings']['agent_tracks']),
-            'icm': self.model_config.hyperparameters['use_icm'],
-            'lr': self.model_config.hyperparameters['lr'],
+            'icm': self.model_config.hyperparameters.get('use_icm', False),
+            'lr': self.model_config.hyperparameters.get('lr', '--'),
         }
 
         return final_stats

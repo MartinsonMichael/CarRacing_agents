@@ -148,6 +148,8 @@ class TD3:
 
         # Sample replay buffer
         state, action, reward, done, next_state = self.memory.sample(num_experiences=batch_size)
+        done = done.reshape(-1, 1)
+        reward = reward.reshape(-1, 1)
 
         with torch.no_grad():
             # Select action according to policy and add clipped noise
@@ -160,6 +162,9 @@ class TD3:
             # Compute the target Q value
             target_Q1, target_Q2 = self.critic_target(next_state, next_action)
             target_Q = torch.min(target_Q1, target_Q2)
+
+            # print(f'target_Q shape : {target_Q.shape}, done shape : {done.shape}, reward shape : {reward.shape}')
+
             target_Q = reward + (1 - done) * self.hyperparameters['discount_rate'] * target_Q
 
         # Get current Q estimates
