@@ -48,7 +48,7 @@ def create_config(_args):
         "animation_record_frequency": 100,
         "record_animation": _args.record_animation,
 
-        "num_episodes_to_run": 20 * 10 ** 3,
+        "num_episodes_to_run": 50 * 10 ** 3,
         "max_episode_len": 500,
         "track_progress_success_threshold": 0.99,
         "start_to_learn_time_point": 25e+3,

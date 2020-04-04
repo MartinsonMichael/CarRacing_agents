@@ -54,7 +54,7 @@ def create_config(_args):
         "animation_record_frequency": 100,
         "record_animation": _args.record_animation,
 
-        "num_episodes_to_run": 20 * 10 ** 3,
+        "num_episodes_to_run": 50 * 10 ** 3,
         "max_episode_len": 500,
 
         "update_every_n_steps": 5000,
@@ -64,8 +64,8 @@ def create_config(_args):
         "eps_clip": 0.2,  # clip parameter for PPO
 
         # parameters for Adam optimizer
-        "lr": 0.0005,
-        "gradient_clipping_norm": 0.5,
+        "lr": 1e-4,
+        "gradient_clipping_norm": 0.3,
         "betas": (0.9, 0.999),
     }
 
