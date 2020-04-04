@@ -174,7 +174,7 @@ class Torch_Arbitrary_Replay_Buffer(object):
             ], dtype=np.float32)
         ).to(self.device)
 
-    def sample(self, get_all=False, num_experiences=None, sample_order=None) -> Tuple[TT]:
+    def sample(self, get_all=False, num_experiences=None, sample_order=None) -> Tuple[TT, ...]:
         """
         Sample experiences from replay buffer
 
