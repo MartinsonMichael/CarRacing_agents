@@ -80,8 +80,8 @@ class TD3:
         self.name = config.name
 
         self.memory = Torch_Arbitrary_Replay_Buffer(
-            buffer_size=10 ** 4,
-            batch_size=10 ** 4,
+            buffer_size=20 ** 5,
+            batch_size=256,
             seed=0,
             device=self.device,
             sample_order=['state', 'action', 'reward', 'done', 'next_state'],
@@ -143,11 +143,11 @@ class TD3:
 
         return action
 
-    def update(self, batch_size=256):
+    def update(self):
         self.total_it += 1
 
         # Sample replay buffer
-        state, action, reward, done, next_state = self.memory.sample(num_experiences=batch_size)
+        state, action, reward, done, next_state = self.memory.sample()
         done = done.reshape(-1, 1)
         reward = reward.reshape(-1, 1)
 
@@ -271,7 +271,7 @@ class TD3:
 
             # update if its time
             if self.global_step_number > self.hyperparameters['start_to_learn_time_point']:
-                self.update(256)
+                self.update()
 
             if done \
                     or info.get('need_reset', False) \
