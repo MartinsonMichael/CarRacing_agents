@@ -8,7 +8,13 @@ runs/
 wandb/
 *__pycache__
 save_animation_folder/
+animation/
 model_saves/
-animation_PPO/
+animation/
 PPO_series_tables/
 PPO_tables/
+TD3_series_tables/
+TD3_tables/
+rainbow_series_tables/
+Rainbow_tables/
+

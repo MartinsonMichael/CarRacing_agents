@@ -279,7 +279,7 @@ class PPO_ICM_parallel:
                         target=save_as_mp4,
                         args=(
                             images,
-                            f'animation_PPO/{self.name}/_R:_{total_reward}_Time:_{episode_len}_{time.time()}.mp4',
+                            f'animation/{self.name}/_R:_{total_reward}_Time:_{episode_len}_{time.time()}.mp4',
                             self.stat_logger
                         ),
                     ).start()

@@ -281,7 +281,7 @@ class TD3:
                         target=save_as_mp4,
                         args=(
                             images,
-                            f'animation_PPO/{self.name}/_R:_{total_reward}_Time:_{episode_len}_{time.time()}.mp4',
+                            f'animation/TD3/{self.name}/_R:_{total_reward}_Time:_{episode_len}_{time.time()}.mp4',
                             self.stat_logger
                         ),
                     ).start()
