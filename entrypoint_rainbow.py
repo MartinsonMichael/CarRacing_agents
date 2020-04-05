@@ -98,12 +98,12 @@ def create_config(_args):
 def main(_args):
     config = create_config(_args)
 
-    # wandb.init(
-    #     notes=_args.note,
-    #     project='Rainbow',
-    #     name=config.name,
-    #     config=config.hyperparameters,
-    # )
+    wandb.init(
+        notes=_args.note,
+        project='Rainbow',
+        name=config.name,
+        config=config.hyperparameters,
+    )
 
     rainbow_agent = Rainbow(config)
 
