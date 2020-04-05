@@ -93,6 +93,8 @@ class Logger:
             print('call wandb init, currently wandb log is disabled')
 
     def _publish_tensorboard(self) -> None:
+        if self.model_config.tf_writer is None:
+            return 
         with self.model_config.tf_writer.as_default():
             for name, value in self._stats.items():
                 tf.summary.scalar(name=name, data=value, step=self.episode_number)
