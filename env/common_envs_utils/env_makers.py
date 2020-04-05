@@ -1,5 +1,5 @@
 import json
-from typing import Optional, Dict, Union, Any
+from typing import Optional, Dict, Union, Any, Callable
 
 import chainerrl
 import numpy as np

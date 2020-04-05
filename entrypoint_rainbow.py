@@ -5,8 +5,9 @@ from collections import defaultdict
 import wandb
 
 from common_agents_utils import Config
-from env import DiscreteWrapper
-from env.common_envs_utils.env_makers import get_state_type_from_settings_path, get_EnvCreator_by_settings
+from env import DiscreteWrapper, get_state_type_from_settings
+from env.common_envs_utils.env_makers import get_state_type_from_settings_path
+from env.common_envs_utils.rainbow_env_makers import get_EnvCreator_with_memory_safe_combiner
 from rainbow.rainbow import Rainbow
 
 os.environ["MKL_NUM_THREADS"] = "1"
@@ -27,9 +28,12 @@ def create_config(_args):
     config = Config()
     config.environment = None
 
-    mode = get_state_type_from_settings_path(_args.env_settings)
-    env_creator = get_EnvCreator_by_settings(_args.env_settings)
-    config.environment_make_function = lambda: DiscreteWrapper(env_creator(_args.env_settings)())
+    env_settings_json = json.load(open(_args.env_settings))
+
+    mode = get_state_type_from_settings(env_settings_json)
+    env_creator = get_EnvCreator_with_memory_safe_combiner(env_settings_json, DiscreteWrapper)
+
+    config.environment_make_function = env_creator
     config.test_environment_make_function = config.environment_make_function
     config.name = _args.name
     config.debug = _args.debug
@@ -45,7 +49,7 @@ def create_config(_args):
         "mode": mode,
         "seed": 12,
         "device": _args.device,
-        "env_settings": json.load(open(_args.env_settings)),
+        "env_settings": env_settings_json,
 
         "use_icm": False,
 

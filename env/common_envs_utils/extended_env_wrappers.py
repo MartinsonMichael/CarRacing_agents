@@ -166,6 +166,21 @@ class ImageWithVectorCombiner(gym.ObservationWrapper):
         return np.concatenate([image.astype(np.float32), vector_channel], axis=-1)
 
 
+class MemorySafeFeatureCombiner(gym.ObservationWrapper):
+    def __init__(self, env, image_dict_name='picture', vector_car_name='car_vector'):
+        super().__init__(env)
+        self._image_name = image_dict_name
+        self._vector_car_name = vector_car_name
+
+        self.observation_space = gym.spaces.Tuple([
+            self.env.observation_space.spaces[self._image_name],
+            self.env.observation_space.spaces[self._vector_car_name],
+        ])
+
+    def observation(self, observation):
+        return tuple([observation[self._image_name], observation[self._vector_car_name]])
+
+
 class ChannelSwapper(gym.ObservationWrapper):
 
     def __init__(self, env, image_dict_name='picture'):

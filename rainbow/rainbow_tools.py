@@ -3,6 +3,7 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 from builtins import *  # NOQA
+from typing import Tuple
 
 import gym
 from future import standard_library
@@ -24,21 +25,21 @@ class DistributionalDuelingDQN_VectorPicture(chainer.Chain, StateQFunction, Recu
     """
 
     def __init__(self,
-                 state_description: gym.spaces.Box,
+                 state_shape: Tuple[int, ...],
                  n_actions, n_atoms, v_min, v_max,
                  activation=F.relu, bias=0.1):
         assert n_atoms >= 2
         assert v_min < v_max
 
-        assert isinstance(state_description, gym.spaces.Box)
-        assert len(state_description.shape) == 3 or len(state_description.shape) == 1
+        assert len(state_shape) == 3 or len(state_shape) == 1
 
         self.n_actions = n_actions
         self.activation = activation
         self.n_atoms = n_atoms
 
-        self.is_picture_as_state = len(state_description.shape) == 3
-        self.state_shape = state_description.shape
+        self.is_picture_as_state = len(state_shape) == 3
+        self.state_shape = state_shape
+        print(f'rainbow input shape -> {self.state_shape}')
 
         super().__init__()
         z_values = self.xp.linspace(v_min, v_max,
@@ -48,8 +49,9 @@ class DistributionalDuelingDQN_VectorPicture(chainer.Chain, StateQFunction, Recu
 
         with self.init_scope():
             if self.is_picture_as_state:
+                print(f'set rainbow channel to : {self.state_shape[0]}')
                 self.state_layers = chainer.ChainList(
-                    L.Convolution2D(self.state_shape[2], 32, 8, stride=4,
+                    L.Convolution2D(self.state_shape[0], 32, 8, stride=4,
                                     initial_bias=bias),
                     L.Convolution2D(32, 64, 4, stride=2, initial_bias=bias),
                     L.Convolution2D(64, 64, 3, stride=1, initial_bias=bias)
