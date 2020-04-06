@@ -83,7 +83,6 @@ class TD3:
         if self.global_step_number < self.hyperparameters['start_to_learn_time_point']:
             return np.random.uniform(-1, 1, size=self.action_size)
 
-        state = torch.FloatTensor(state.reshape(1, -1)).to(self.device)
         not_noisy_action = self.actor(state).cpu().data.numpy().flatten()
 
         action = (
