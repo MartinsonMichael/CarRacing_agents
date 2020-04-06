@@ -29,7 +29,9 @@ class StateAdaptiveQValue(nn.Module):
             self._state_layers = nn.Sequential(
                 nn.Linear(state_shape[0], hidden_size)
             ).to(self.device)
-        state_layer_out_shape = self._state_layers(torch.zeros((1, *state_shape))).view(-1).shape[0]
+        state_layer_out_shape = self._state_layers(
+            torch.zeros((1, *state_shape)).to(self.device)
+        ).view(-1).shape[0]
         if self.is_state_picture:
             print(f"out of state layer : {state_layer_out_shape}")
 

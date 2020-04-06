@@ -29,7 +29,9 @@ class StateAdaptiveActor(nn.Module):
                 nn.Linear(state_shape[0], hidden_size)
             ).to(self.device)
 
-        state_layer_out_shape = self._state_layers(torch.zeros((1, *state_shape))).view(-1).shape[0]
+        state_layer_out_shape = self._state_layers(
+            torch.zeros((1, *state_shape)).to(self.device)
+        ).view(-1).shape[0]
 
         self._h1 = nn.Linear(state_layer_out_shape, hidden_size).to(self.device)
         self._head = nn.Linear(hidden_size, action_size).to(self.device)
