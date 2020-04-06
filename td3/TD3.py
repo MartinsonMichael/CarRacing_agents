@@ -86,8 +86,8 @@ class TD3:
         not_noisy_action = self.actor(state).cpu().data.numpy().flatten()
 
         action = (
-                not_noisy_action
-                + np.random.normal(0, 1 * self.hyperparameters['expl_noise'], size=self.action_size)
+            not_noisy_action
+            + np.random.normal(0, 1 * self.hyperparameters['expl_noise'], size=self.action_size)
         )
 
         return action
@@ -97,8 +97,6 @@ class TD3:
 
         # Sample replay buffer
         state, action, reward, done, next_state = self.memory.sample()
-
-        print(f'update state shape : {state.shape}')
 
         done = done.reshape(-1, 1)
         reward = reward.reshape(-1, 1)

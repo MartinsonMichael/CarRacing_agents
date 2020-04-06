@@ -13,7 +13,7 @@ class StateAdaptiveQValue(nn.Module):
         assert len(state_shape) == 3 or len(state_shape) == 1
 
         self.is_state_picture = len(state_shape) == 3
-        print(f"init StateAdaptiveActor, state shape : {state_shape}", end='')
+        print(f"init StateAdaptiveQValue, state shape : {state_shape}", end='')
         if self.is_state_picture:
             print(f", channels number : {state_shape[0]}")
         else:
@@ -43,6 +43,7 @@ class StateAdaptiveQValue(nn.Module):
     def forward(self, state, action) -> TT:
         x = make_it_batched_torch_tensor(state, self.device)
         x = torch.relu(self._state_layers(x))
+        x = x.flatten(start_dim=1)
 
         act = make_it_batched_torch_tensor(action, self.device)
         act = torch.relu(self._h1_act(act))
