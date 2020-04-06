@@ -98,6 +98,9 @@ class TD3:
 
         # Sample replay buffer
         state, action, reward, done, next_state = self.memory.sample()
+
+        print(f'update state shape : {state.shape}')
+
         done = done.reshape(-1, 1)
         reward = reward.reshape(-1, 1)
 
