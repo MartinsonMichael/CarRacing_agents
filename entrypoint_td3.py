@@ -18,8 +18,6 @@ def create_config(_args):
 
     mode = get_state_type_from_settings_path(_args.env_settings)
 
-    assert mode == 'vector'
-
     env_creator = get_EnvCreator_by_settings(_args.env_settings)
     config.environment_make_function = env_creator(_args.env_settings)
     config.test_environment_make_function = config.environment_make_function

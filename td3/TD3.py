@@ -12,56 +12,9 @@ import torch.nn.functional as F
 from common_agents_utils.typingTypes import *
 from common_agents_utils import Config, Torch_Arbitrary_Replay_Buffer
 from common_agents_utils.logger import Logger
+from deep_utils.simple_adaptive_actor import StateAdaptiveActor
+from deep_utils.simple_state_adaptive_q_value_ import DoubleStateAdaptiveCritic
 from env.common_envs_utils.visualizer import save_as_mp4
-
-
-class Actor(nn.Module):
-    def __init__(self, state_dim, action_dim):
-        super(Actor, self).__init__()
-
-        self.l1 = nn.Linear(state_dim, 256)
-        self.l2 = nn.Linear(256, 256)
-        self.l3 = nn.Linear(256, action_dim)
-
-    def forward(self, state):
-        a = F.relu(self.l1(state))
-        a = F.relu(self.l2(a))
-        return torch.tanh(self.l3(a))
-
-
-class Critic(nn.Module):
-    def __init__(self, state_dim, action_dim):
-        super(Critic, self).__init__()
-
-        # Q1 architecture
-        self.l1 = nn.Linear(state_dim + action_dim, 256)
-        self.l2 = nn.Linear(256, 256)
-        self.l3 = nn.Linear(256, 1)
-
-        # Q2 architecture
-        self.l4 = nn.Linear(state_dim + action_dim, 256)
-        self.l5 = nn.Linear(256, 256)
-        self.l6 = nn.Linear(256, 1)
-
-    def forward(self, state, action):
-        sa = torch.cat([state, action], 1)
-
-        q1 = F.relu(self.l1(sa))
-        q1 = F.relu(self.l2(q1))
-        q1 = self.l3(q1)
-
-        q2 = F.relu(self.l4(sa))
-        q2 = F.relu(self.l5(q2))
-        q2 = self.l6(q2)
-        return q1, q2
-
-    def Q1(self, state, action):
-        sa = torch.cat([state, action], 1)
-
-        q1 = F.relu(self.l1(sa))
-        q1 = F.relu(self.l2(q1))
-        q1 = self.l3(q1)
-        return q1
 
 
 class TD3:
@@ -87,18 +40,15 @@ class TD3:
             sample_order=['state', 'action', 'reward', 'done', 'next_state'],
             do_it_auto=False,
         )
-        state_description = self.env.observation_space
+        assert isinstance(self.env.observation_space, gym.spaces.Box)
+        state_shape = self.env.observation_space.shape
         self.action_size = self.env.action_space.shape[0]
 
-        assert isinstance(state_description, gym.spaces.Box)
-        assert len(state_description.shape) == 1
-        state_size = state_description.shape[0]
-
-        self.actor: nn.Module = Actor(state_size, self.action_size).to(self.device)
+        self.actor = StateAdaptiveActor(state_shape, self.action_size, self.device).to(self.device)
         self.actor_target: nn.Module = copy.deepcopy(self.actor)
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=3e-4)
 
-        self.critic: nn.Module = Critic(state_size, self.action_size).to(self.device)
+        self.critic = DoubleStateAdaptiveCritic(state_shape, self.action_size, self.device).to(self.device)
         self.critic_target: nn.Module = copy.deepcopy(self.critic)
         self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=3e-4)
 
