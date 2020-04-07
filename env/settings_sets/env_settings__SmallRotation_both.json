@@ -17,7 +17,7 @@
     "angle_steer_multiplication": 5.0
   },
   "state_config": {
-    "picture": false,
+    "picture": true,
     "vector_car_features": ["hull_angle", "hull_position", "wheels_positions", "car_speed"],
     "vector_env_features": []
   },
