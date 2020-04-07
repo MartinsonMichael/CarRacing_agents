@@ -8,41 +8,77 @@ from Box2D.b2 import fixtureDef, polygonShape, revoluteJointDef
 from env.CarRacing_env.utils import DataSupporter
 from shapely.geometry import Point
 
-SIZE = 80 / 1378.0
-MC = SIZE / 0.02
-ENGINE_POWER = 100000000 * SIZE * SIZE / MC / MC
-WHEEL_MOMENT_OF_INERTIA = 4000 * SIZE * SIZE / MC / MC
-FRICTION_LIMIT = 1000000 * SIZE * SIZE / MC / MC / 2
-WHEEL_R = 27 / MC
-WHEEL_W = 14 / MC
-CENTROID = 220
+
+SIZE = 0.02
+ENGINE_POWER            = 100000000*SIZE*SIZE
+WHEEL_MOMENT_OF_INERTIA = 4000*SIZE*SIZE
+FRICTION_LIMIT          = 1000000*SIZE*SIZE     # friction ~= mass ~= size^2 (calculated implicitly using density)
+WHEEL_R  = 27
+WHEEL_W  = 14
 WHEELPOS = [
-    (-45, +60 - CENTROID), (+45, +60 - CENTROID),
-    (-45, -70 - CENTROID), (+45, -70 - CENTROID)
-]
-HULL_POLY4 = [
-    (-45, -105 - CENTROID), (+45, -105 - CENTROID),
-    (-45, +105 - CENTROID), (+45, +105 - CENTROID)
-]
-SENSOR_SHAPE = [
-    (-45, -105 - CENTROID), (+45, -105 - CENTROID),
-    (-45, +105 - CENTROID), (+45, +105 - CENTROID)
-]
-# Point sensor:
+    (-55,+80), (+55,+80),
+    (-55,-82), (+55,-82)
+    ]
+HULL_POLY1 =[
+    (-60,+130), (+60,+130),
+    (+60,+110), (-60,+110)
+    ]
+HULL_POLY2 =[
+    (-15,+120), (+15,+120),
+    (+20, +20), (-20,  20)
+    ]
+HULL_POLY3 =[
+    (+25, +20),
+    (+50, -10),
+    (+50, -40),
+    (+20, -90),
+    (-20, -90),
+    (-50, -40),
+    (-50, -10),
+    (-25, +20)
+    ]
+HULL_POLY4 =[
+    (-50,-120), (+50,-120),
+    (+50,-90),  (-50,-90)
+    ]
+WHEEL_COLOR = (0.0,0.0,0.0)
+WHEEL_WHITE = (0.3,0.3,0.3)
+MUD_COLOR   = (0.4,0.4,0.0)
+# SIZE = 80 / 1378.0
+# MC = SIZE / 0.02
+# ENGINE_POWER = 100000000 * SIZE * SIZE / MC / MC
+# WHEEL_MOMENT_OF_INERTIA = 4000 * SIZE * SIZE / MC / MC
+# FRICTION_LIMIT = 1000000 * SIZE * SIZE / MC / MC / 2
+# WHEEL_R = 27 / MC
+# WHEEL_W = 14 / MC
+# CENTROID = 220
+# WHEELPOS = [
+#     (-45, +60 - CENTROID), (+45, +60 - CENTROID),
+#     (-45, -70 - CENTROID), (+45, -70 - CENTROID)
+# ]
+# HULL_POLY4 = [
+#     (-45, -105 - CENTROID), (+45, -105 - CENTROID),
+#     (-45, +105 - CENTROID), (+45, +105 - CENTROID)
+# ]
+# SENSOR_SHAPE = [
+#     (-45, -105 - CENTROID), (+45, -105 - CENTROID),
+#     (-45, +105 - CENTROID), (+45, +105 - CENTROID)
+# ]
+# # Point sensor:
+# # SENSOR_BOT = [
+# #     (-10,350-CENTROID), (+10,350-CENTROID),
+# #     (-10,+360-CENTROID),  (+10,+360-CENTROID)
+# # ]
 # SENSOR_BOT = [
-#     (-10,350-CENTROID), (+10,350-CENTROID),
-#     (-10,+360-CENTROID),  (+10,+360-CENTROID)
+#     (-50, +110 - CENTROID), (+50, +110 - CENTROID),
+#     (-10, +300 - CENTROID), (+10, +300 - CENTROID)
 # ]
-SENSOR_BOT = [
-    (-50, +110 - CENTROID), (+50, +110 - CENTROID),
-    (-10, +300 - CENTROID), (+10, +300 - CENTROID)
-]
-# SENSOR_ADD = [
-#     (-1,+110-CENTROID), (+1,+110-CENTROID),
-#     (-50,+200-CENTROID),  (+50,+200-CENTROID)
-# ]
-WHEEL_COLOR = (0.0, 0.0, 0.0)
-WHEEL_WHITE = (0.3, 0.3, 0.3)
+# # SENSOR_ADD = [
+# #     (-1,+110-CENTROID), (+1,+110-CENTROID),
+# #     (-50,+200-CENTROID),  (+50,+200-CENTROID)
+# # ]
+# WHEEL_COLOR = (0.0, 0.0, 0.0)
+# WHEEL_WHITE = (0.3, 0.3, 0.3)
 
 
 class DummyCar:
@@ -81,62 +117,73 @@ class DummyCar:
         init_angle = DataSupporter.get_track_angle(track) - np.pi / 2
         width_y, height_x = self.car_image.size
 
-        CAR_HULL_POLY4 = [
-            (-height_x / 2, -width_y / 2), (+height_x / 2, -width_y / 2),
-            (-height_x / 2, +width_y / 2), (+height_x / 2, +width_y / 2)
-        ]
-        N_SENSOR_BOT = [
-            (-height_x / 2 * 1.11, +width_y / 2 * 1.0), (+height_x / 2 * 1.11, +width_y / 2 * 1.0),
-            # (-height_x/2*1.11, +width_y/2*1.11), (+height_x/2*1.11, +width_y/2*1.11),
-            (-height_x / 2 * 0.8, +width_y / 2 * 3), (+height_x / 2 * 0.8, +width_y / 2 * 3)
-            # (-height_x/2*0.22, +width_y/2*2), (+height_x/2*0.22, +width_y/2*2)
-        ]
-        WHEELPOS = [
-            (-height_x / 2, +width_y / 2 / 2), (+height_x / 2, +width_y / 2 / 2),
-            (-height_x / 2, -width_y / 2 / 2), (+height_x / 2, -width_y / 2 / 2)
-        ]
-
-        LEFT_SENSOR = [
-            (0, width_y), (+height_x, width_y),
-            (0, +width_y * 1.5), (+height_x, +width_y * 1.5)
-        ]
-
-        RIGHT_SENSOR = [
-            (-height_x, width_y), (0, width_y),
-            (-height_x, +width_y * 1.5), (0, +width_y * 1.5)
-        ]
-
-        N_SENSOR_SHAPE = CAR_HULL_POLY4
-
-        SENSOR = N_SENSOR_BOT if bot else N_SENSOR_SHAPE
+        # CAR_HULL_POLY4 = [
+        #     (-height_x / 2, -width_y / 2), (+height_x / 2, -width_y / 2),
+        #     (-height_x / 2, +width_y / 2), (+height_x / 2, +width_y / 2)
+        # ]
+        # N_SENSOR_BOT = [
+        #     (-height_x / 2 * 1.11, +width_y / 2 * 1.0), (+height_x / 2 * 1.11, +width_y / 2 * 1.0),
+        #     # (-height_x/2*1.11, +width_y/2*1.11), (+height_x/2*1.11, +width_y/2*1.11),
+        #     (-height_x / 2 * 0.8, +width_y / 2 * 3), (+height_x / 2 * 0.8, +width_y / 2 * 3)
+        #     # (-height_x/2*0.22, +width_y/2*2), (+height_x/2*0.22, +width_y/2*2)
+        # ]
+        # WHEELPOS = [
+        #     (-height_x / 2, +width_y / 2 / 2), (+height_x / 2, +width_y / 2 / 2),
+        #     (-height_x / 2, -width_y / 2 / 2), (+height_x / 2, -width_y / 2 / 2)
+        # ]
+        #
+        # LEFT_SENSOR = [
+        #     (0, width_y), (+height_x, width_y),
+        #     (0, +width_y * 1.5), (+height_x, +width_y * 1.5)
+        # ]
+        #
+        # RIGHT_SENSOR = [
+        #     (-height_x, width_y), (0, width_y),
+        #     (-height_x, +width_y * 1.5), (0, +width_y * 1.5)
+        # ]
+        #
+        # N_SENSOR_SHAPE = CAR_HULL_POLY4
+        #
+        # SENSOR = N_SENSOR_BOT if bot else N_SENSOR_SHAPE
         self.world = world
 
         self._hull = self.world.CreateDynamicBody(
             position=(init_x, init_y),
             angle=init_angle,
             fixtures=[
-                fixtureDef(shape=polygonShape(
-                    vertices=[(x * SIZE, y * SIZE) for x, y in CAR_HULL_POLY4]),
-                    density=1.0,
-                    userData='body',
-                ),
-                fixtureDef(shape=polygonShape(
-                    vertices=[(x * SIZE, y * SIZE) for x, y in SENSOR]),
-                    isSensor=True,
-                    userData='sensor',
-                ),
-                fixtureDef(shape=polygonShape(
-                    vertices=[(x * SIZE, y * SIZE) for x, y in RIGHT_SENSOR]),
-                    isSensor=True,
-                    userData='right_sensor',
-                ),
-                fixtureDef(shape=polygonShape(
-                    vertices=[(x * SIZE, y * SIZE) for x, y in LEFT_SENSOR]),
-                    isSensor=True,
-                    userData='left_sensor',
-                ),
+                fixtureDef(shape=polygonShape(vertices=[(x * SIZE, y * SIZE) for x, y in HULL_POLY1]), density=1.0),
+                fixtureDef(shape=polygonShape(vertices=[(x * SIZE, y * SIZE) for x, y in HULL_POLY2]), density=1.0),
+                fixtureDef(shape=polygonShape(vertices=[(x * SIZE, y * SIZE) for x, y in HULL_POLY3]), density=1.0),
+                fixtureDef(shape=polygonShape(vertices=[(x * SIZE, y * SIZE) for x, y in HULL_POLY4]), density=1.0)
             ]
         )
+
+        # self._hull = self.world.CreateDynamicBody(
+        #     position=(init_x, init_y),
+        #     angle=init_angle,
+        #     fixtures=[
+        #         fixtureDef(shape=polygonShape(
+        #             vertices=[(x * SIZE, y * SIZE) for x, y in CAR_HULL_POLY4]),
+        #             density=1.0,
+        #             userData='body',
+        #         ),
+        #         fixtureDef(shape=polygonShape(
+        #             vertices=[(x * SIZE, y * SIZE) for x, y in SENSOR]),
+        #             isSensor=True,
+        #             userData='sensor',
+        #         ),
+        #         fixtureDef(shape=polygonShape(
+        #             vertices=[(x * SIZE, y * SIZE) for x, y in RIGHT_SENSOR]),
+        #             isSensor=True,
+        #             userData='right_sensor',
+        #         ),
+        #         fixtureDef(shape=polygonShape(
+        #             vertices=[(x * SIZE, y * SIZE) for x, y in LEFT_SENSOR]),
+        #             isSensor=True,
+        #             userData='left_sensor',
+        #         ),
+        #     ]
+        # )
 
         self._hull.name = 'bot_car' if bot else 'car'
         self._hull.cross_time = float('inf')
@@ -145,39 +192,42 @@ class DummyCar:
         self._hull.right_sensor = False
         self._hull.collision = False
         self._hull.userData = self._hull
+
         self.wheels = []
         self.fuel_spent = 0.0
         WHEEL_POLY = [
-            (-WHEEL_W, +WHEEL_R), (+WHEEL_W, +WHEEL_R),
-            (+WHEEL_W, -WHEEL_R), (-WHEEL_W, -WHEEL_R)
-        ]
-
+            (-WHEEL_W,+WHEEL_R), (+WHEEL_W,+WHEEL_R),
+            (+WHEEL_W,-WHEEL_R), (-WHEEL_W,-WHEEL_R)
+            ]
         for index, (wx, wy) in enumerate(WHEELPOS):
-            # shit happens here
             front_k = 1.0 if wy > 0 else 1.0
             w = self.world.CreateDynamicBody(
-                position=(init_x + wx * SIZE, init_y + wy * SIZE),
-                angle=init_angle,
-                fixtures=fixtureDef(
-                    shape=polygonShape(vertices=[(x * front_k * SIZE, y * front_k * SIZE) for x, y in WHEEL_POLY]),
+                position = (init_x+wx*SIZE, init_y+wy*SIZE),
+                angle = init_angle,
+                fixtures = fixtureDef(
+                    shape=polygonShape(vertices=[ (x*front_k*SIZE,y*front_k*SIZE) for x,y in WHEEL_POLY ]),
                     density=0.1,
                     categoryBits=0x0020,
                     maskBits=0x001,
-                    restitution=0.0,
-                )
-            )
+                    restitution=0.0)
+                    )
             w.wheel_rad = front_k * WHEEL_R * SIZE
-            w.is_front = index == 0 or index == 1
+            w.color = WHEEL_COLOR
             w.gas = 0.0
             w.brake = 0.0
             w.steer = 0.0
-            w.steer_approx = 0.0
             w.phase = 0.0  # wheel angle
             w.omega = 0.0  # angular velocity
+            w.skid_start = None
+            w.skid_particle = None
+
+            w.name = 'wheel'
+            w.collision = False
+            w.is_front = index == 0 or index == 1
+
             rjd = revoluteJointDef(
                 bodyA=self._hull,
                 bodyB=w,
-                referenceAngle=0,
                 localAnchorA=(wx * SIZE, wy * SIZE),
                 localAnchorB=(0, 0),
                 enableMotor=True,
@@ -188,10 +238,57 @@ class DummyCar:
                 upperAngle=+0.4,
             )
             w.joint = self.world.CreateJoint(rjd)
-            w.name = 'wheel'
-            w.collision = False
+            w.tiles = set()
             w.userData = w
             self.wheels.append(w)
+
+        # self.wheels = []
+        # self.fuel_spent = 0.0
+        # WHEEL_POLY = [
+        #     (-WHEEL_W, +WHEEL_R), (+WHEEL_W, +WHEEL_R),
+        #     (+WHEEL_W, -WHEEL_R), (-WHEEL_W, -WHEEL_R)
+        # ]
+        #
+        # for index, (wx, wy) in enumerate(WHEELPOS):
+        #     # shit happens here
+        #     front_k = 1.0 if wy > 0 else 1.0
+        #     w = self.world.CreateDynamicBody(
+        #         position=(init_x + wx * SIZE, init_y + wy * SIZE),
+        #         angle=init_angle,
+        #         fixtures=fixtureDef(
+        #             shape=polygonShape(vertices=[(x * front_k * SIZE, y * front_k * SIZE) for x, y in WHEEL_POLY]),
+        #             density=0.1,
+        #             categoryBits=0x0020,
+        #             maskBits=0x001,
+        #             restitution=0.0,
+        #         )
+        #     )
+        #     w.wheel_rad = front_k * WHEEL_R * SIZE
+        #     w.is_front = index == 0 or index == 1
+        #     w.gas = 0.0
+        #     w.brake = 0.0
+        #     w.steer = 0.0
+        #     w.steer_approx = 0.0
+        #     w.phase = 0.0  # wheel angle
+        #     w.omega = 0.0  # angular velocity
+        #     rjd = revoluteJointDef(
+        #         bodyA=self._hull,
+        #         bodyB=w,
+        #         referenceAngle=0,
+        #         localAnchorA=(wx * SIZE, wy * SIZE),
+        #         localAnchorB=(0, 0),
+        #         enableMotor=True,
+        #         enableLimit=True,
+        #         maxMotorTorque=180 * 900 * SIZE * SIZE,
+        #         motorSpeed=0,
+        #         lowerAngle=-0.4,
+        #         upperAngle=+0.4,
+        #     )
+        #     w.joint = self.world.CreateJoint(rjd)
+        #     w.name = 'wheel'
+        #     w.collision = False
+        #     w.userData = w
+        #     self.wheels.append(w)
 
         self._time: int = 0
         self.userData = self
@@ -600,70 +697,56 @@ class DummyCar:
             self._bot_state['was_break'] = False
             self.gas(0.3)
 
-    def step(self, dt):
+    def step(self, dt, test=False):
         """
         Compute forces and apply them to car wheels in accordance with gas/brake/steer state.
         This function must be called once in pyBox2D step.
 
         Only god know how does this function work...
         """
-        self._update_track_point(hard=True)
-        self._time += 1
+        if not test:
+            self._update_track_point(hard=True)
+            self._time += 1
 
-        if self.is_bot:
-            self.go_to_target()
+            if self.is_bot:
+                self.go_to_target()
 
-        for wheel_index, w in enumerate(self.wheels):
+        for w in self.wheels:
             # Steer each wheel
-            if w.is_front:
-                # print(f'w.steer : {w.steer}, joint.angle : {w.joint.angle}')
-                steer_direction = np.sign(w.steer - w.joint.angle)
-                val = abs(w.steer - (w.joint.angle - w.steer_approx)) * 5
-                if val < 0.1:
-                    val = 0
-                w.joint.motorSpeed = steer_direction * val * float(w.brake < 0.01)
+            dir = np.sign(w.steer - w.joint.angle)
+            val = abs(w.steer - w.joint.angle)
+            w.joint.motorSpeed = dir * min(50.0 * val, 3.0)
 
             # Position => friction_limit
+            # grass = True
             friction_limit = FRICTION_LIMIT * 0.6  # Grass friction if no tile
             # for tile in w.tiles:
             #     friction_limit = max(friction_limit, FRICTION_LIMIT * tile.road_friction)
+            #     grass = False
 
             # Force
             forw = w.GetWorldVector((0, 1))
             side = w.GetWorldVector((1, 0))
-            if w.brake > 0.9:
-                w.linearVelocity.x = 0
-                w.linearVelocity.y = 0
-                w.omega = 0
-            elif w.brake > 0:
-                w.linearVelocity.x /= np.exp(w.brake)
-                w.linearVelocity.y /= np.exp(w.brake)
-
             v = w.linearVelocity
-
-            # print(f'linear velocity : {v[0]} {v[1]}')
-
             vf = forw[0] * v[0] + forw[1] * v[1]  # forward speed
             vs = side[0] * v[0] + side[1] * v[1]  # side speed
 
             # WHEEL_MOMENT_OF_INERTIA*np.square(w.omega)/2 = E -- energy
             # WHEEL_MOMENT_OF_INERTIA*w.omega * domega/dt = dE/dt = W -- power
             # domega = dt*W/WHEEL_MOMENT_OF_INERTIA/w.omega
-            w.omega += dt * ENGINE_POWER * w.gas / WHEEL_MOMENT_OF_INERTIA / (abs(w.omega) + 5.0)
-            # small coef not to divide by zero
+            w.omega += dt * ENGINE_POWER * w.gas / WHEEL_MOMENT_OF_INERTIA / (
+                        abs(w.omega) + 5.0)  # small coef not to divide by zero
             self.fuel_spent += dt * ENGINE_POWER * w.gas
 
             if w.brake >= 0.9:
                 w.omega = 0
             elif w.brake > 0:
                 BRAKE_FORCE = 15  # radians per second
-                steer_direction = -np.sign(w.omega)
+                dir = -np.sign(w.omega)
                 val = BRAKE_FORCE * w.brake
-                if abs(val) > abs(w.omega):
-                    w.omega = 0
+                if abs(val) > abs(w.omega): val = abs(w.omega)  # low speed => same as = 0
+                w.omega += dir * val
             w.phase += w.omega * dt
-
-            # print(f'w.omega : {w.omega}')
 
             vr = w.omega * w.wheel_rad  # rotating wheel speed
             f_force = -vf + vr  # force direction is direction of speed difference
@@ -671,10 +754,22 @@ class DummyCar:
 
             # Physically correct is to always apply friction_limit until speed is equal.
             # But dt is finite, that will lead to oscillations if difference is already near zero.
-            f_force *= 205000 * SIZE * SIZE
-            # Random coefficient to cut oscillations in few steps (have no effect on friction_limit)
+            f_force *= 205000 * SIZE * SIZE  # Random coefficient to cut oscillations in few steps (have no effect on friction_limit)
             p_force *= 205000 * SIZE * SIZE
             force = np.sqrt(np.square(f_force) + np.square(p_force))
+
+            # # Skid trace
+            # if abs(force) > 2.0 * friction_limit:
+            #     if w.skid_particle and w.skid_particle.grass == grass and len(w.skid_particle.poly) < 30:
+            #         w.skid_particle.poly.append((w.position[0], w.position[1]))
+            #     elif w.skid_start is None:
+            #         w.skid_start = w.position
+            #     else:
+            #         w.skid_particle = self._create_particle(w.skid_start, w.position, grass)
+            #         w.skid_start = None
+            # else:
+            #     w.skid_start = None
+            #     w.skid_particle = None
 
             if abs(force) > friction_limit:
                 f_force /= force
@@ -688,6 +783,82 @@ class DummyCar:
             w.ApplyForceToCenter((
                 p_force * side[0] + f_force * forw[0],
                 p_force * side[1] + f_force * forw[1]), True)
+
+        # for wheel_index, w in enumerate(self.wheels):
+        #     # Steer each wheel
+        #     if w.is_front:
+        #         # print(f'w.steer : {w.steer}, joint.angle : {w.joint.angle}')
+        #         steer_direction = np.sign(w.steer - w.joint.angle)
+        #         val = abs(w.steer - (w.joint.angle - w.steer_approx)) * 5
+        #         if val < 0.1:
+        #             val = 0
+        #         w.joint.motorSpeed = steer_direction * val * float(w.brake < 0.01)
+        #
+        #     # Position => friction_limit
+        #     friction_limit = FRICTION_LIMIT * 0.6  # Grass friction if no tile
+        #     # for tile in w.tiles:
+        #     #     friction_limit = max(friction_limit, FRICTION_LIMIT * tile.road_friction)
+        #
+        #     # Force
+        #     forw = w.GetWorldVector((0, 1))
+        #     side = w.GetWorldVector((1, 0))
+        #     if w.brake > 0.9:
+        #         w.linearVelocity.x = 0
+        #         w.linearVelocity.y = 0
+        #         w.omega = 0
+        #     elif w.brake > 0:
+        #         w.linearVelocity.x /= np.exp(w.brake)
+        #         w.linearVelocity.y /= np.exp(w.brake)
+        #
+        #     v = w.linearVelocity
+        #
+        #     # print(f'linear velocity : {v[0]} {v[1]}')
+        #
+        #     vf = forw[0] * v[0] + forw[1] * v[1]  # forward speed
+        #     vs = side[0] * v[0] + side[1] * v[1]  # side speed
+        #
+        #     # WHEEL_MOMENT_OF_INERTIA*np.square(w.omega)/2 = E -- energy
+        #     # WHEEL_MOMENT_OF_INERTIA*w.omega * domega/dt = dE/dt = W -- power
+        #     # domega = dt*W/WHEEL_MOMENT_OF_INERTIA/w.omega
+        #     w.omega += dt * ENGINE_POWER * w.gas / WHEEL_MOMENT_OF_INERTIA / (abs(w.omega) + 5.0)
+        #     # small coef not to divide by zero
+        #     self.fuel_spent += dt * ENGINE_POWER * w.gas
+        #
+        #     if w.brake >= 0.9:
+        #         w.omega = 0
+        #     elif w.brake > 0:
+        #         BRAKE_FORCE = 15  # radians per second
+        #         steer_direction = -np.sign(w.omega)
+        #         val = BRAKE_FORCE * w.brake
+        #         if abs(val) > abs(w.omega):
+        #             w.omega = 0
+        #     w.phase += w.omega * dt
+        #
+        #     # print(f'w.omega : {w.omega}')
+        #
+        #     vr = w.omega * w.wheel_rad  # rotating wheel speed
+        #     f_force = -vf + vr  # force direction is direction of speed difference
+        #     p_force = -vs
+        #
+        #     # Physically correct is to always apply friction_limit until speed is equal.
+        #     # But dt is finite, that will lead to oscillations if difference is already near zero.
+        #     f_force *= 205000 * SIZE * SIZE
+        #     # Random coefficient to cut oscillations in few steps (have no effect on friction_limit)
+        #     p_force *= 205000 * SIZE * SIZE
+        #     force = np.sqrt(np.square(f_force) + np.square(p_force))
+        #
+        #     if abs(force) > friction_limit:
+        #         f_force /= force
+        #         p_force /= force
+        #         force = friction_limit  # Correct physics here
+        #         f_force *= force
+        #         p_force *= force
+        #
+        #     w.omega -= dt * f_force * w.wheel_rad / WHEEL_MOMENT_OF_INERTIA
+        #
+        #     w.ApplyForceToCenter((
+        #         p_force * side[0] + f_force * forw[0],
+        #         p_force * side[1] + f_force * forw[1]), True)
 
     def destroy(self):
         """

@@ -75,13 +75,12 @@ class ValueNet(nn.Module):
 
         State[vector with shape of len 1 or 3] -> Advantage[single number]
     """
-    def __init__(self, state_description: Union[spaces.Dict, spaces.Box], action_size, hidden_size, device):
-        assert isinstance(state_description, (spaces.Dict, spaces.Box)), \
-            "state_description must be spaces.Dict or spaces.Box"
+    def __init__(self, state_shape: Tuple, action_size, hidden_size, device):
+        assert isinstance(state_shape, tuple)
         super(ValueNet, self).__init__()
         self._device = device
 
-        self._state_layer = StateLayer(state_description, hidden_size, device)
+        self._state_layer = StateLayer(state_shape, hidden_size, device)
 
         self._dense2 = nn.Linear(in_features=hidden_size,out_features=hidden_size).to(self._device)
         torch.nn.init.xavier_uniform_(self._dense2.weight)
@@ -118,16 +117,15 @@ class Policy(nn.Module):
         State[vector with shape of len 1 or 3] -> Policy[2 * actoin_size numbers (or just action_size numbers)]
     """
     def __init__(
-            self, state_description: Union[spaces.Dict, spaces.Box], action_size, hidden_size, device,
+            self, state_shape: Tuple, action_size, hidden_size, device,
             double_action_size_on_output=True
     ):
-        assert isinstance(state_description, (spaces.Dict, spaces.Box)), \
-            "state_description must be spaces.Dict or spaces.Box"
+        assert isinstance(state_shape, tuple)
         super(Policy, self).__init__()
         self._device = device
         self._action_size = action_size
 
-        self._state_layer: StateLayer = StateLayer(state_description, hidden_size, device)
+        self._state_layer: StateLayer = StateLayer(state_shape, hidden_size, device)
 
         self._dense2 = nn.Linear(in_features=self._state_layer.get_out_shape_for_in(), out_features=hidden_size).to(self._device)
         torch.nn.init.xavier_uniform_(self._dense2.weight)
@@ -160,11 +158,10 @@ class Policy(nn.Module):
 
 class ActorCritic(nn.Module):
     def __init__(
-            self, state_description: Union[spaces.Dict, spaces.Box], action_size: int, hidden_size: int, device: str,
+            self, state_shape: Tuple, action_size: int, hidden_size: int, device: str,
             double_action_size_on_output=True, action_std=Optional[float],
     ):
-        assert isinstance(state_description, (spaces.Dict, spaces.Box)), \
-            "state_description must be spaces.Dict or spaces.Box"
+        assert isinstance(state_shape, tuple)
         super(ActorCritic, self).__init__()
         self.double_action_size_on_output = double_action_size_on_output
         self.action_size = action_size
@@ -175,14 +172,14 @@ class ActorCritic(nn.Module):
             raise ValueError("provide one of 'action_std', 'double_action_size_on_output'")
 
         self.actor = Policy(
-            state_description=state_description,
+            state_shape=state_shape,
             action_size=self.action_size,
             device=self.device,
             hidden_size=hidden_size,
             double_action_size_on_output=self.double_action_size_on_output,
         )
         self.critic = ValueNet(
-            state_description=state_description,
+            state_shape=state_shape,
             action_size=self.action_size,
             device=self.device,
             hidden_size=hidden_size,

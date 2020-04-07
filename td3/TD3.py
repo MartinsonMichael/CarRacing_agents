@@ -35,13 +35,13 @@ class TD3:
         self.memory = Torch_Arbitrary_Replay_Buffer(
             buffer_size=20 ** 5,
             batch_size=256,
+            phi=config.phi,
             seed=0,
             device=self.device,
             sample_order=['state', 'action', 'reward', 'done', 'next_state'],
             do_it_auto=False,
         )
-        assert isinstance(self.env.observation_space, gym.spaces.Box)
-        state_shape = self.env.observation_space.shape
+        state_shape = config.phi(self.env.reset()).shape
         self.action_size = self.env.action_space.shape[0]
 
         self.actor = StateAdaptiveActor(state_shape, self.action_size, self.device).to(self.device)
@@ -83,7 +83,7 @@ class TD3:
         if self.global_step_number < self.hyperparameters['start_to_learn_time_point']:
             return np.random.uniform(-1, 1, size=self.action_size)
 
-        not_noisy_action = self.actor(state).cpu().data.numpy().flatten()
+        not_noisy_action = self.actor(self.config.phi(state)).cpu().data.numpy().flatten()
 
         action = (
             not_noisy_action

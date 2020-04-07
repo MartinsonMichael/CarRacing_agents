@@ -5,9 +5,8 @@ from collections import defaultdict
 import wandb
 
 from common_agents_utils import Config
-from env import DiscreteWrapper, get_state_type_from_settings
-from env.common_envs_utils.env_makers import get_state_type_from_settings_path
-from env.common_envs_utils.rainbow_env_makers import get_EnvCreator_with_memory_safe_combiner
+from env import DiscreteWrapper
+from env.common_envs_utils.env_makers import get_EnvCreator_with_memory_safe_combiner, get_state_type_from_settings
 from rainbow.rainbow import Rainbow
 
 os.environ["MKL_NUM_THREADS"] = "1"
@@ -31,7 +30,7 @@ def create_config(_args):
     env_settings_json = json.load(open(_args.env_settings))
 
     mode = get_state_type_from_settings(env_settings_json)
-    env_creator = get_EnvCreator_with_memory_safe_combiner(env_settings_json, DiscreteWrapper)
+    env_creator, config.phi = get_EnvCreator_with_memory_safe_combiner(env_settings_json, DiscreteWrapper)
 
     config.environment_make_function = env_creator
     config.test_environment_make_function = config.environment_make_function

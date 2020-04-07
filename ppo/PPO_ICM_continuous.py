@@ -5,6 +5,7 @@ import time
 from itertools import chain
 from multiprocessing import Process
 
+import gym
 import torch
 import torch.nn as nn
 import numpy as np
@@ -35,38 +36,29 @@ class PPO_ICM:
         self.memory = Torch_Arbitrary_Replay_Buffer(
             buffer_size=10 ** 4,
             batch_size=10 ** 4,
+            phi=config.phi,
             seed=0,
             device=self.device,
             sample_order=['state', 'action', 'reward', 'log_prob', 'done', 'next_state'],
             do_it_auto=False,
         )
 
-        state_description = self.test_env.observation_space
+        state_shape = config.phi(self.test_env.reset()).shape
         action_size = self.test_env.action_space.shape[0]
 
-        if self.hyperparameters['use_icm']:
-            self._icm: ICM = ICM(
-                state_description=state_description,
-                action_size=action_size,
-                encoded_state_size=6,
-                device=self.device,
-                batch_size=256,
-                buffer_size=10**5,
-                update_per_step=1,
-                config=config.hyperparameters['icm_config']
-            )
-            # self._icm: ICM = ICM(
-            #     state_description=state_description,
-            #     action_size=action_size,
-            #     encoded_state_size=100 if self.hyperparameters['mode'] == 'vector' else 256,
-            #     device=self.device,
-            #     batch_size=256 if self.hyperparameters['mode'] == 'vector' else 64,
-            #     buffer_size=10**4 if self.hyperparameters['mode'] == 'vector' else 10**6,
-            #     update_per_step=50 if self.hyperparameters['mode'] == 'vector' else 250,
-            #     config=config.hyperparameters['icm_config']
-            # )
+        # if self.hyperparameters['use_icm']:
+        #     self._icm: ICM = ICM(
+        #         state_description=state_description,
+        #         action_size=action_size,
+        #         encoded_state_size=6,
+        #         device=self.device,
+        #         batch_size=256,
+        #         buffer_size=10**5,
+        #         update_per_step=1,
+        #         config=config.hyperparameters['icm_config']
+        #     )
         self.ac: ActorCritic = ActorCritic(
-            state_description=state_description,
+            state_shape=state_shape,
             action_size=action_size,
             hidden_size=128,
             device=self.device,
@@ -74,16 +66,17 @@ class PPO_ICM:
             double_action_size_on_output=False,
         )
         self.optimizer = torch.optim.Adam(
-            chain(
-                self.ac.parameters(),
-                self._icm.parameters()
-            ) if self.hyperparameters['use_icm'] else self.ac.parameters(),
+            self.ac.parameters(),
+            # chain(
+            #     self.ac.parameters(),
+            #     self._icm.parameters()
+            # ) if self.hyperparameters['use_icm'] else self.ac.parameters(),
             lr=config.hyperparameters['lr'],
             betas=config.hyperparameters['betas'],
         )
 
         self.ac_old: ActorCritic = ActorCritic(
-            state_description=state_description,
+            state_shape=state_shape,
             action_size=action_size,
             hidden_size=128,
             device=self.device,
@@ -298,7 +291,7 @@ class PPO_ICM:
 
         while not done:
             # Running policy_old:
-            action, log_prob, _ = self.ac.sample_action(state, to_numpy=True, remove_batch=True)
+            action, log_prob, _ = self.ac.sample_action(self._config.phi(state), to_numpy=True, remove_batch=True)
             next_state, reward, done, info = self.env.step(action)
             self.global_step_number += 1
             self.update_current_game_stats(reward, done, info)

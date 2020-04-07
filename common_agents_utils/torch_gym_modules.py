@@ -111,13 +111,12 @@ class PictureProcessor(nn.Module):
 
 class StateLayer(nn.Module):
     def __init__(
-            self, state_description: Union[spaces.Dict, spaces.Box],
+            self, state_shape: Tuple,
             hidden_size: int,
             device: str,
             activation_for_picture: Optional = None,
     ):
-        assert isinstance(state_description, (spaces.Dict, spaces.Box)), \
-            "state_description must be spaces.Dict or spaces.Box"
+        assert isinstance(state_shape, tuple)
         super(StateLayer, self).__init__()
         self._device = device
 
@@ -128,17 +127,13 @@ class StateLayer(nn.Module):
         self._picture_head = None
         self._vector_layer = None
 
-        print(f'StateLayer -> state_description : {state_description}')
+        print(f'StateLayer -> state_shape : {state_shape}')
 
-        if isinstance(state_description, (spaces.Dict, dict)):
-            raise ValueError('State layer dont support Dict now :(')
+        if len(state_shape) == 3:
+            self._init_picture_layers(state_shape)
 
-        if isinstance(state_description, spaces.Box):
-            if len(state_description.shape) == 3:
-                self._init_picture_layers(state_description.shape)
-
-            if len(state_description.shape) == 1:
-                self._init_vector_layer(state_description.shape[0])
+        if len(state_shape) == 1:
+            self._init_vector_layer(state_shape[0])
 
     def _init_picture_layers(self, input_shape):
         self._picture_layer: PictureProcessor = PictureProcessor(input_shape[0], device=self._device)

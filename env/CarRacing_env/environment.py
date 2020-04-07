@@ -4,6 +4,7 @@ from shapely import geometry
 from typing import List, Union, Dict
 import Box2D
 import gym
+import time
 import numpy as np
 from gym import spaces
 from gym.utils import seeding, EzPickle
@@ -91,7 +92,9 @@ class CarRacingEnv(gym.Env, EzPickle):
         )
         self.time = 0
         self.np_random, _ = seeding.np_random(42)
-        self.reset()
+        self.reset(first=True)
+        time.sleep(0.5)
+        self.reset(first=True)
 
     def _init_world(self):
         """
@@ -127,7 +130,7 @@ class CarRacingEnv(gym.Env, EzPickle):
                 bot_car.destroy()
                 del bot_car
 
-    def reset(self, force=False):
+    def reset(self, force=False, first=False):
         """
         recreate agent car and bots cars_full
         :return: initial state
@@ -143,6 +146,14 @@ class CarRacingEnv(gym.Env, EzPickle):
 
         if force:
             return self.step(None)[0], 0, False, {'was_reset': True}
+
+        if first:
+            delta_time = 1.0 / FPS
+            for _ in range(50):
+                for car in [self.car] + self.bot_cars:
+                    car.brake(1)
+                    car.step(delta_time, test=True)
+                self.world.Step(delta_time, 6 * 30, 2 * 30)
 
         return self.step(None)[0]
 

@@ -74,21 +74,6 @@ class Rainbow:
 
         # function to prepare row observation to chainer format
         print(f"rainbow mode : {self.hyperparameters['mode']}")
-        if self.hyperparameters['mode'] == 'image':
-            def phi(x):
-                return np.asarray(x, dtype=np.float32) / 255
-        elif self.hyperparameters['mode'] == 'vector':
-            def phi(x):
-                return x
-        elif self.hyperparameters['mode'] == 'both':
-            def phi(x):
-                # x is tuple
-                image, vector = x
-                vector_channel = np.ones(shape=list(image.shape[:-1]) + [len(vector)], dtype=np.float32) * vector
-                combined = np.concatenate([image.astype(np.float32) / 255, vector_channel], axis=-1)
-                return np.transpose(combined, (2, 1, 0))
-        else:
-            raise ValueError(f"unknown mode : {self.hyperparameters['mode']}")
 
         n_actions = self.test_env.action_space.n
 
@@ -96,7 +81,7 @@ class Rainbow:
         v_max = 10
         v_min = -10
         q_func = DistributionalDuelingDQN_VectorPicture(
-            phi(self.test_env.reset()).shape,
+            config.phi(self.test_env.reset()).shape,
             n_actions, n_atoms, v_min, v_max,
         )
 
@@ -124,8 +109,6 @@ class Rainbow:
             normalize_by_max='memory',
         )
 
-
-
         self.agent = agents.CategoricalDoubleDQN(
             q_func, opt, rbuf, gpu=self.hyperparameters['gpu'], gamma=0.99,
             explorer=explorer, minibatch_size=32,
@@ -133,7 +116,7 @@ class Rainbow:
             target_update_interval=32000,
             update_interval=update_interval,
             batch_accumulator='mean',
-            phi=phi,
+            phi=config.phi,
         )
 
         self.folder_save_path = os.path.join('model_saves', 'Rainbow', self.name)

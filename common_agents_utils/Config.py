@@ -1,4 +1,4 @@
-from typing import Dict, Union, Any
+from typing import Dict, Union, Any, Callable
 
 
 class Config(object):
@@ -13,6 +13,7 @@ class Config(object):
         self.tf_writer = None
         self.debug: bool = False
         self.table_path: str = "."
+        self.phi = None
 
 
 def config_to_key_value(config: Config) -> Dict[str, Union[str, int, float]]:

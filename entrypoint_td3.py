@@ -8,7 +8,7 @@ import tensorflow as tf
 import wandb
 
 from common_agents_utils import Config
-from env import get_state_type_from_settings_path, get_EnvCreator_by_settings
+from env.common_envs_utils.env_makers import get_EnvCreator_with_memory_safe_combiner, get_state_type_from_settings
 from td3.TD3 import TD3
 
 
@@ -16,11 +16,12 @@ def create_config(_args):
     config = Config()
     config.environment = None
 
-    mode = get_state_type_from_settings_path(_args.env_settings)
+    env_settings_json = json.load(open(_args.env_settings))
 
-    env_creator = get_EnvCreator_by_settings(_args.env_settings)
-    config.environment_make_function = env_creator(_args.env_settings)
+    mode = get_state_type_from_settings(env_settings_json)
+    config.environment_make_function, config.phi = get_EnvCreator_with_memory_safe_combiner(env_settings_json)
     config.test_environment_make_function = config.environment_make_function
+
     config.name = _args.name
     config.debug = _args.debug
 
@@ -40,7 +41,7 @@ def create_config(_args):
         "mode": mode,
         "seed": 12,
         "device": _args.device,
-        "env_settings": json.load(open(_args.env_settings)),
+        "env_settings": env_settings_json,
 
         "log_interval": 20,
         "animation_record_frequency": 100,

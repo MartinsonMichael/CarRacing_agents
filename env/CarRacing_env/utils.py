@@ -39,7 +39,7 @@ class DataSupporter:
         # in XY coordinates, not in a IMAGE coordinates
         self._image_size = np.array([self._background_image.shape[1], self._background_image.shape[0]])
         # just two numbers of field in pyBox2D coordinate system
-        self._playfield_size = np.array([80 * self._background_image.shape[1] / self._background_image.shape[0], 80])
+        self._playfield_size = np.array([335 * self._background_image.shape[1] / self._background_image.shape[0], 335])
         # technical field
         self._data = CvatDataset()
         self._data.load(self._settings['annotation_path'])
