@@ -194,7 +194,7 @@ class Rainbow:
                 episode_len[end] = 0
                 state[end] = self.env.force_reset(end)
 
-                if self.batch_step_number % self.hyperparameters['animation_record_step_frequency']:
+                if self.batch_step_number % self.hyperparameters['animation_record_step_frequency'] == 0:
                     self._run_eval_episode()
 
         finally:
