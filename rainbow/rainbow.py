@@ -29,7 +29,7 @@ class Rainbow:
         self.name = config.name
         self.stat_logger: Logger = Logger(
             config,
-            log_interval=config.hyperparameters.get('log_interval', 20),
+            log_interval=config.hyperparameters['log_interval'] * self.hyperparameters['parallel_env_num'],
         )
         self.hyperparameters = config.hyperparameters
         if self.hyperparameters.get('use_parallel_envs', False):
@@ -193,7 +193,14 @@ class Rainbow:
                 total_reward[end] = 0
                 episode_len[end] = 0
                 if np.any(end):
-                    state[end] = self.env.force_reset(np.arange(num_env)[end])
+                    inds = np.arange(num_env)[end]
+                    print('end ', end)
+                    print('inds ', inds)
+
+                    print('type state', type(state))
+
+                    state = np.array(state)
+                    state[inds, :] = self.env.force_reset(inds)
 
                 if self.batch_step_number % self.hyperparameters['animation_record_step_frequency'] == 0:
                     self._run_eval_episode()
