@@ -161,12 +161,9 @@ class CarRacingEnv(gym.Env, EzPickle):
         self.car = DummyCar(
             world=self.world,
             car_image=self._data_loader.peek_car_image(is_for_agent=True),
-            track=DataSupporter.do_with_points(
-                self._data_loader.peek_track(
-                    is_for_agent=True,
-                    expand_points=self._settings['reward']['track_checkpoint_expanding'],
-                ),
-                self._data_loader.convertIMG2PLAY,
+            track=self._data_loader.peek_track(
+                is_for_agent=True,
+                expand_points=self._settings['reward']['track_checkpoint_expanding'],
             ),
             data_loader=self._data_loader,
             bot=False,
@@ -175,10 +172,7 @@ class CarRacingEnv(gym.Env, EzPickle):
         self.car.update_stats()
 
     def create_bot_car(self):
-        track = DataSupporter.do_with_points(
-            self._data_loader.peek_track(is_for_agent=False, expand_points=50),
-            self._data_loader.convertIMG2PLAY,
-        )
+        track = self._data_loader.peek_track(is_for_agent=False, expand_points=50)
         collided_indexes = self.initial_track_check(track)
         if len(collided_indexes) == 0:
             bot_car = DummyCar(
@@ -199,11 +193,11 @@ class CarRacingEnv(gym.Env, EzPickle):
         init_pos = DataSupporter.get_track_initial_position(track)
         collided_indexes = []
         for bot_index, bot_car in enumerate(self.bot_cars):
-            if DataSupporter.dist(init_pos, bot_car.position_PLAY) < 5:
+            if DataSupporter.dist(init_pos, bot_car.position_PLAY) < 30:
                 collided_indexes.append(bot_index)
 
         if self.car is not None:
-            if DataSupporter.dist(self.car.position_PLAY, init_pos) < 5:
+            if DataSupporter.dist(self.car.position_PLAY, init_pos) < 30:
                 collided_indexes.append(-1)
 
         return collided_indexes
@@ -238,9 +232,9 @@ class CarRacingEnv(gym.Env, EzPickle):
         for index, bot_car in enumerate(self.bot_cars):
             bot_car.update_stats()
 
-            # print(f'BOT {index}')
-            # print(bot_car.stats)
-            # print()
+            print(f'BOT {index}')
+            print(bot_car.stats)
+            print()
 
             if bot_car.stats['is_finish'] or bot_car.stats['is_out_of_road'] or bot_car.stats['is_out_of_map']:
                 bot_car.destroy()

@@ -151,10 +151,26 @@ class DummyCar:
             position=(init_x, init_y),
             angle=init_angle,
             fixtures=[
-                fixtureDef(shape=polygonShape(vertices=[(x * SIZE, y * SIZE) for x, y in HULL_POLY1]), density=1.0),
-                fixtureDef(shape=polygonShape(vertices=[(x * SIZE, y * SIZE) for x, y in HULL_POLY2]), density=1.0),
-                fixtureDef(shape=polygonShape(vertices=[(x * SIZE, y * SIZE) for x, y in HULL_POLY3]), density=1.0),
-                fixtureDef(shape=polygonShape(vertices=[(x * SIZE, y * SIZE) for x, y in HULL_POLY4]), density=1.0)
+                fixtureDef(
+                    shape=polygonShape(vertices=[(x * SIZE, y * SIZE) for x, y in HULL_POLY1]),
+                    density=1.0,
+                    userData='body',
+                ),
+                fixtureDef(
+                    shape=polygonShape(vertices=[(x * SIZE, y * SIZE) for x, y in HULL_POLY2]),
+                    density=1.0,
+                    userData='body',
+                ),
+                fixtureDef(
+                    shape=polygonShape(vertices=[(x * SIZE, y * SIZE) for x, y in HULL_POLY3]),
+                    density=1.0,
+                    userData='body',
+                ),
+                fixtureDef(
+                    shape=polygonShape(vertices=[(x * SIZE, y * SIZE) for x, y in HULL_POLY4]),
+                    density=1.0,
+                    userData='body',
+                )
             ]
         )
 

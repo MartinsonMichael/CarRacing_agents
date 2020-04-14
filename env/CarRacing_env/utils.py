@@ -317,7 +317,7 @@ class DataSupporter:
 
             self._tracks[int(index)] = {
                 'polygon': Polygon(self.convertIMG2PLAY(track_polygons[index])),
-                'line': track_line,
+                'line': self.convertIMG2PLAY(track_line),
             }
 
     def _extract_bot_tracks(self):
@@ -329,7 +329,7 @@ class DataSupporter:
                 continue
             self._bot_tracks[int(item['attributes']['index'])] = {
                 'polygon': None,
-                'line': np.array(item['points']),
+                'line': self.convertIMG2PLAY(np.array(item['points'])),
             }
 
     @staticmethod

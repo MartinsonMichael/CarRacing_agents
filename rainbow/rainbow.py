@@ -1,7 +1,7 @@
 from collections import defaultdict
 from multiprocessing import Process
 
-from common_agents_utils import Config
+from common_agents_utils import Config, SubprocVecEnv_tf2
 import time
 import argparse
 import json
@@ -10,49 +10,12 @@ import os
 import chainer
 import numpy as np
 
-import chainerrl
 from chainerrl import agents
-from chainerrl import experiments
 from chainerrl import explorers
 from chainerrl import links
-from chainerrl import misc
-from chainerrl.q_functions import DistributionalDuelingDQN
 from chainerrl import replay_buffer
 
 
-# parser = argparse.ArgumentParser()
-# parser.add_argument('--env', type=str, default='BreakoutNoFrameskip-v4')
-# parser.add_argument('--outdir', type=str, default='results',
-#                     help='Directory path to save output files.'
-#                          ' If it does not exist, it will be created.')
-# parser.add_argument('--seed', type=int, default=0,
-#                     help='Random seed [0, 2 ** 31)')
-# parser.add_argument('--gpu', type=int, default=0)
-# parser.add_argument('--demo', action='store_true', default=False)
-# parser.add_argument('--load-pretrained', action='store_true',
-#                     default=False)
-# parser.add_argument('--pretrained-type', type=str, default="best",
-#                     choices=['best', 'final'])
-# parser.add_argument('--load', type=str, default=None)
-# parser.add_argument('--use-sdl', action='store_true', default=False)
-# parser.add_argument('--eval-epsilon', type=float, default=0.0)
-# parser.add_argument('--noisy-net-sigma', type=float, default=0.5)
-# parser.add_argument('--steps', type=int, default=5 * 10 ** 7)
-# parser.add_argument('--max-frames', type=int,
-#                     default=30 * 60 * 60,  # 30 minutes with 60 fps
-#                     help='Maximum number of frames for each episode.')
-# parser.add_argument('--replay-start-size', type=int, default=2 * 10 ** 4)
-# parser.add_argument('--eval-n-steps', type=int, default=125000)
-# parser.add_argument('--eval-interval', type=int, default=250000)
-# parser.add_argument('--logging-level', type=int, default=20,
-#                     help='Logging level. 10:DEBUG, 20:INFO etc.')
-# parser.add_argument('--render', action='store_true', default=False,
-#                     help='Render env states in a GUI window.')
-# parser.add_argument('--monitor', action='store_true', default=False,
-#                     help='Monitor env. Videos and additional information'
-#                          ' are saved as output files.')
-# parser.add_argument('--n-best-episodes', type=int, default=200)
-# args = parser.parse_args()
 from common_agents_utils.logger import Logger
 from env.common_envs_utils.visualizer import save_as_mp4
 from rainbow.rainbow_tools import DistributionalDuelingDQN_VectorPicture
@@ -69,7 +32,17 @@ class Rainbow:
             log_interval=config.hyperparameters.get('log_interval', 20),
         )
         self.hyperparameters = config.hyperparameters
-        self.env = config.environment_make_function()
+        if self.hyperparameters.get('use_parallel_envs', False):
+            self.env = SubprocVecEnv_tf2(
+                [
+                    config.environment_make_function
+                    for _ in range(self.hyperparameters['parallel_env_num'])
+                ],
+                state_flatter=None,
+            )
+        else:
+            self.env = config.environment_make_function()
+
         self.test_env = config.test_environment_make_function()
 
         # function to prepare row observation to chainer format
@@ -122,6 +95,7 @@ class Rainbow:
         self.folder_save_path = os.path.join('model_saves', 'Rainbow', self.name)
         self.episode_number = 0
         self.global_step_number = 0
+        self.batch_step_number = 0
         self._total_grad_steps = 0
         self.current_game_stats = None
         self.flush_stats()
@@ -147,11 +121,39 @@ class Rainbow:
         self.current_game_stats = defaultdict(float, {})
 
     def train(self) -> None:
+        if self.hyperparameters['use_parallel_envs']:
+            self._batch_train()
+        else:
+            raise NotImplemented
+
+    def _batch_train(self) -> None:
+        num_env = self.hyperparameters['parallel_env_num']
+        total_reward = np.zeros(num_env, dtype=np.float32)
+        episode_len = np.zeros(num_env, dtype=np.int32)
+        state = self.env.reset()
         try:
-            for index in range(self.hyperparameters['num_episodes_to_run']):
+            while True:
+                self.global_step_number += num_env
+                self.batch_step_number += 1
 
-                self.run_one_episode()
+                actions = self.agent.batch_act_and_train(state)
+                state, reward, dones, infos = self.env.step(actions)
 
+                total_reward += reward
+                episode_len += 1
+
+                # Compute mask for done and reset
+                resets = np.logical_or(
+                    episode_len == self.hyperparameters['max_episode_len'],
+                    np.logical_or(
+                        [info.get('needs_reset', False) for info in infos],
+                        [info.get('need_reset', False) for info in infos],
+                    ),
+                )
+                # Agent observes the consequences
+                self.agent.batch_observe_and_train(state, reward, dones, resets)
+
+                self.update_current_game_stats(reward, dones[0], infos[0])
                 self._exp_moving_track_progress = (
                         0.98 * self._exp_moving_track_progress +
                         0.02 * self.current_game_stats.get('track_progress', 0)
@@ -164,11 +166,37 @@ class Rainbow:
                 self.stat_logger.log_it(self.current_game_stats)
                 if self._exp_moving_track_progress >= self.hyperparameters.get('track_progress_success_threshold', 10):
                     break
+                if self.global_step_number > self.hyperparameters['num_steps_to_run']:
+                    break
 
                 self.flush_stats()
 
                 if self.episode_number % self.hyperparameters['save_frequency_episode'] == 0:
                     self.save()
+
+                # Make mask. 0 if done/reset, 1 if pass
+                end = np.logical_or(resets, dones)
+                not_end = np.logical_not(end)
+
+                self.episode_number += int(end.sum())
+
+                # For episodes that ends, do the following:
+                #   1. increment the episode count
+                #   2. record the return
+                #   3. clear the record of rewards
+                #   4. clear the record of the number of steps
+                #   5. reset the env to start a new episode
+                # 3-5 are skipped when training is already finished.
+                # episode_idx += end
+                # recent_returns.extend(episode_r[end])
+
+                total_reward[end] = 0
+                episode_len[end] = 0
+                state[end] = self.env.force_reset(end)
+
+                if self.batch_step_number % self.hyperparameters['animation_record_step_frequency']:
+                    self._run_eval_episode()
+
         finally:
             self.stat_logger.on_training_end()
             self.save(suffix='final')
@@ -179,8 +207,8 @@ class Rainbow:
 
     def run_one_episode(self):
         record_anim = (
-                self.episode_number % self.hyperparameters.get('animation_record_frequency', 1e6) == 0 and
-                self.hyperparameters.get('record_animation', False)
+            self.episode_number % self.hyperparameters.get('animation_record_frequency', 1e6) == 0 and
+            self.hyperparameters.get('record_animation', False)
         )
 
         done = False
@@ -228,4 +256,46 @@ class Rainbow:
                 if info.get('need_reset', False):
                     print('Was made panic env reset...')
                     raise ValueError
+                break
+
+    def _run_eval_episode(self):
+        # record_anim = (
+        #         self.batch_step_number % self.hyperparameters.get('animation_record_frequency', 1e6) == 0 and
+        #         self.hyperparameters.get('record_animation', False)
+        # )
+        record_anim = True
+
+        done = False
+        self.episode_number += 1
+        total_reward = 0
+        episode_len = 0
+        images = []
+
+        state = self.test_env.reset()
+
+        while not done:
+
+            action = self.agent.act(state)
+            next_state, reward, done, info = self.env.step(action)
+
+            if record_anim:
+                images.append(self.env.render(full_image=True))
+
+            total_reward += reward
+            episode_len += 1
+
+            if done \
+                    or info.get('need_reset', False) \
+                    or episode_len > self.hyperparameters['max_episode_len'] \
+                    or info.get('needs_reset', False):
+
+                if record_anim:
+                    Process(
+                        target=save_as_mp4,
+                        args=(
+                            images,
+                            f'animation/Rainbow/{self.name}/_R:_{total_reward}_Time:_{episode_len}_{time.time()}.mp4',
+                            self.stat_logger
+                        ),
+                    ).start()
                 break

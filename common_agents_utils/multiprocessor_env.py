@@ -1,5 +1,6 @@
 import multiprocessing
 from collections import OrderedDict
+from typing import Union, Callable
 
 import gym
 import numpy as np
@@ -371,7 +372,7 @@ class SubprocVecEnv_tf2(VecEnv):
            Defaults to 'forkserver' on available platforms, and 'spawn' otherwise.
     """
 
-    def __init__(self, env_fns, start_method=None):
+    def __init__(self, env_fns, start_method=None, state_flatter: Union[str, Callable, None] = 'standard'):
         self.waiting = False
         self.closed = False
         n_envs = len(env_fns)
@@ -397,6 +398,14 @@ class SubprocVecEnv_tf2(VecEnv):
         self.remotes[0].send(('get_spaces', None))
         observation_space, action_space = self.remotes[0].recv()
         VecEnv.__init__(self, len(env_fns), observation_space, action_space)
+        self._last_state = []
+
+        if state_flatter == 'standard':
+            self.state_flatter = lambda x: _flatten_obs(x, self.observation_space)
+        elif state_flatter is None:
+            self.state_flatter = lambda x: x
+        else:
+            self.state_flatter = state_flatter
 
     def step_async(self, actions):
         for remote, action in zip(self.remotes, actions):
@@ -407,20 +416,30 @@ class SubprocVecEnv_tf2(VecEnv):
         results = [remote.recv() for remote in self.remotes]
         self.waiting = False
         obs, rews, dones, infos = zip(*results)
-        return _flatten_obs(obs, self.observation_space), np.stack(rews), np.stack(dones), infos
+        self._last_state = self.state_flatter(obs)
+        return self._last_state, np.stack(rews), np.stack(dones), infos
 
-    def reset(self):
-        for remote in self.remotes:
-            remote.send(('reset', None))
-        obs = [remote.recv() for remote in self.remotes]
-        return _flatten_obs(obs, self.observation_space)
+    def reset(self, indices=None):
+        if indices is None:
+            for remote in self.remotes:
+                remote.send(('reset', None))
+            obs = [remote.recv() for remote in self.remotes]
+            self._last_state = self.state_flatter(obs)
+            return self._last_state
+        else:
+            target_remotes = self._get_target_remotes(indices)
+            for remote in target_remotes:
+                remote.send(('reset', None))
+            obs = [remote.recv() for remote in self.remotes]
+            self._last_state = _flatten_obs(obs, self.observation_space)
+            return self._last_state
 
     def force_reset(self, indices):
         target_remotes = self._get_target_remotes(indices)
         for remote in target_remotes:
             remote.send(('reset', None))
         obs = [remote.recv() for remote in target_remotes]
-        return _flatten_obs(obs, self.observation_space)
+        return self.state_flatter(obs)
 
     def seed(self, seed):
         for index, remote in enumerate(self.remotes):
