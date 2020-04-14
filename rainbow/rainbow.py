@@ -27,11 +27,12 @@ class Rainbow:
         print('start to init rainbow')
         self.config = config
         self.name = config.name
+        self.hyperparameters = config.hyperparameters
+
         self.stat_logger: Logger = Logger(
             config,
             log_interval=config.hyperparameters['log_interval'] * self.hyperparameters['parallel_env_num'],
         )
-        self.hyperparameters = config.hyperparameters
         if self.hyperparameters.get('use_parallel_envs', False):
             self.env = SubprocVecEnv_tf2(
                 [
