@@ -154,7 +154,7 @@ class Rainbow:
                 # Agent observes the consequences
                 self.agent.batch_observe_and_train(state, reward, dones, resets)
 
-                self.update_current_game_stats(reward, dones[0], infos[0])
+                self.update_current_game_stats(reward[0], dones[0], infos[0])
                 self._exp_moving_track_progress = (
                         0.98 * self._exp_moving_track_progress +
                         0.02 * self.current_game_stats.get('track_progress', 0)
@@ -169,15 +169,15 @@ class Rainbow:
                     break
                 if self.global_step_number > self.hyperparameters['num_steps_to_run']:
                     break
-
-                self.flush_stats()
+                if dones[0]:
+                    self.flush_stats()
 
                 if self.episode_number % self.hyperparameters['save_frequency_episode'] == 0:
                     self.save()
 
                 # Make mask. 0 if done/reset, 1 if pass
                 end = np.logical_or(resets, dones)
-                not_end = np.logical_not(end)
+                # not_end = np.logical_not(end)
 
                 self.episode_number += int(end.sum())
 
