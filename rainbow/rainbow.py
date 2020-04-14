@@ -192,7 +192,8 @@ class Rainbow:
 
                 total_reward[end] = 0
                 episode_len[end] = 0
-                state[end] = self.env.force_reset(end)
+                if np.any(end):
+                    state[end] = self.env.force_reset(np.arange(num_env)[end])
 
                 if self.batch_step_number % self.hyperparameters['animation_record_step_frequency'] == 0:
                     self._run_eval_episode()
