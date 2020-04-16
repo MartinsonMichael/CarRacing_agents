@@ -180,8 +180,8 @@ class Rainbow:
                 if self.episode_number % self.hyperparameters['save_frequency_episode'] == 0:
                     self.save()
 
-                print(dones)
-                print(resets)
+                # print(dones)
+                # print(resets)
 
                 # Make mask. 0 if done/reset, 1 if pass
                 end = np.logical_or(resets, dones)
