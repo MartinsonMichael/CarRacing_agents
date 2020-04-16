@@ -1,6 +1,6 @@
 import multiprocessing
 from collections import OrderedDict
-from typing import Union, Callable
+from typing import Union, Callable, Optional, Tuple, List, Dict
 
 import gym
 import numpy as np
@@ -398,7 +398,7 @@ class SubprocVecEnv_tf2(VecEnv):
         self.remotes[0].send(('get_spaces', None))
         observation_space, action_space = self.remotes[0].recv()
         VecEnv.__init__(self, len(env_fns), observation_space, action_space)
-        self._last_state = []
+        self._last_state: np.ndarray = np.array(self.num_envs, dtype=np.object)
 
         if state_flatter == 'standard':
             self.state_flatter = lambda x: _flatten_obs(x, self.observation_space)
@@ -412,25 +412,34 @@ class SubprocVecEnv_tf2(VecEnv):
             remote.send(('step', action))
         self.waiting = True
 
-    def step_wait(self):
+    def step_wait(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[Dict]]:
         results = [remote.recv() for remote in self.remotes]
         self.waiting = False
         obs, rews, dones, infos = zip(*results)
         self._last_state = self.state_flatter(obs)
         return self._last_state, np.stack(rews), np.stack(dones), infos
 
-    def reset(self, indexes=None):
+    def reset(self, indexes: Optional[np.ndarray] = None) -> np.ndarray:
         """
         :param indexes: indexes to reset, if None reset will be call for all
         :return: states for ALL environment;
             for all envs, whose don't mention in indexes, last state will be returned
         """
         if indexes is None:
-            indexes = np.arange(self.num_envs)
+            for remote in self.remotes:
+                remote.send(('reset', None))
+            obs = [remote.recv() for remote in self.remotes]
+            self._last_state = self.state_flatter(obs)
+            return self._last_state
+        
+        indexes = np.array(indexes)
         target_remotes = self._get_target_remotes(indexes)
         for remote in target_remotes:
             remote.send(('reset', None))
         obs = [remote.recv() for remote in self.remotes]
+        print('obs')
+        print(type(obs[0]))
+        print(type)
         self._last_state[indexes] = self.state_flatter(obs)
         return self._last_state
 
