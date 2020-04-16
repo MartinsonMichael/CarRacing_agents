@@ -272,10 +272,10 @@ class Rainbow:
         while not done:
 
             action = self.agent.act(state)
-            next_state, reward, done, info = self.env.step(action)
+            next_state, reward, done, info = self.test_env.step(action)
 
             if record_anim:
-                images.append(self.env.render(full_image=True))
+                images.append(self.test_env.render(full_image=True))
 
             total_reward += reward
             episode_len += 1
