@@ -412,17 +412,12 @@ class SubprocVecEnv_tf2(VecEnv):
             remote.send(('step', action))
         self.waiting = True
 
-    def step_wait(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[Dict]]:
+    def step_wait(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         results = [remote.recv() for remote in self.remotes]
         self.waiting = False
         obs, rews, dones, infos = zip(*results)
         self._last_state = self.state_flatter(obs)
-
-        print(type(infos))
-        print(infos)
-        print(type(infos[0]))
-
-        return self._last_state, np.stack(rews), np.stack(dones), infos
+        return self._last_state, np.stack(rews), np.stack(dones), np.stack(infos)
 
     def reset(self, indexes: Optional[np.ndarray] = None) -> np.ndarray:
         """
