@@ -174,6 +174,14 @@ class Rainbow:
                 #     self.save()
 
                 end = np.logical_or(resets, dones)
+
+                print(f'reset : {resets}')
+                print(f'dones : {dones}')
+                print(f'end : {end}')
+
+                if self.batch_step_number > 100:
+                    break
+
                 if end[0]:
                     self.flush_stats()
 
