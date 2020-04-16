@@ -437,9 +437,6 @@ class SubprocVecEnv_tf2(VecEnv):
         for remote in target_remotes:
             remote.send(('reset', None))
         obs = [remote.recv() for remote in self.remotes]
-        print('obs')
-        print(type(obs[0]))
-        print(type)
         self._last_state[indexes] = self.state_flatter(obs)
         return self._last_state
 

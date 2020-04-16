@@ -145,7 +145,7 @@ class Rainbow:
 
                 # Compute mask for done and reset
                 resets = np.logical_or(
-                    episode_len == self.hyperparameters['max_episode_len'],
+                    episode_len >= self.hyperparameters['max_episode_len'],
                     np.logical_or(
                         [info.get('needs_reset', False) for info in infos],
                         [info.get('need_reset', False) for info in infos],
@@ -173,16 +173,14 @@ class Rainbow:
                 # if self.global_step_number % self.hyperparameters['save_frequency_episode'] == 0:
                 #     self.save()
 
-                # print(dones)
-                # print(resets)
-
-                # Make mask. 0 if done/reset, 1 if pass
                 end = np.logical_or(resets, dones)
                 if end[0]:
                     self.flush_stats()
-                # not_end = np.logical_not(end)
 
                 self.episode_number += int(end.sum())
+
+                total_reward[end] = 0
+                episode_len[end] = 0
 
                 if np.any(end):
                     print('end : ', end)
@@ -190,8 +188,6 @@ class Rainbow:
                     print('len : ', episode_len)
 
                     state = self.env.reset(np.arange(num_env)[end])
-                    total_reward[end] = 0
-                    episode_len[end] = 0
 
                 if self.batch_step_number % self.hyperparameters['animation_record_step_frequency'] == 0:
                     self._run_eval_episode()
