@@ -146,79 +146,78 @@ class Rainbow:
         total_reward = np.zeros(num_env, dtype=np.float32)
         episode_len = np.zeros(num_env, dtype=np.int32)
         state = self.env.reset()
-        try:
-            while True:
-                self.global_step_number += num_env
-                self.batch_step_number += 1
+        while True:
+            self.global_step_number += num_env
+            self.batch_step_number += 1
 
-                actions = self.agent.batch_act_and_train(state)
-                state, reward, dones, infos = self.env.step(actions)
+            actions = self.agent.batch_act_and_train(state)
+            state, reward, dones, infos = self.env.step(actions)
 
-                total_reward += reward
-                episode_len += 1
+            total_reward += reward
+            episode_len += 1
 
-                # Compute mask for done and reset
-                resets = np.logical_or(
-                    episode_len >= self.hyperparameters['max_episode_len'],
-                    np.logical_or(
-                        [info.get('needs_reset', False) for info in infos],
-                        [info.get('need_reset', False) for info in infos],
-                    ),
+            # Compute mask for done and reset
+            resets = np.logical_or(
+                episode_len >= self.hyperparameters['max_episode_len'],
+                np.logical_or(
+                    [info.get('needs_reset', False) for info in infos],
+                    [info.get('need_reset', False) for info in infos],
+                ),
+            )
+            # Agent observes the consequences
+            self.agent.batch_observe_and_train(state, reward, dones, resets)
+
+            self.update_current_game_stats(reward[0], dones[0], infos[0])
+
+            if self.global_step_number > self.hyperparameters['num_steps_to_run']:
+                break
+
+            # if self.global_step_number % self.hyperparameters['save_frequency_episode'] == 0:
+            #     self.save()
+
+            end = np.logical_or(resets, dones)
+
+            # print(f'reset : {resets}')
+            # print(f'dones : {dones}')
+            # print(f'end : {end}')
+
+            if self.batch_step_number > 100:
+                break
+
+            if end[0]:
+                self._exp_moving_track_progress = (
+                        0.98 * self._exp_moving_track_progress +
+                        0.02 * self.current_game_stats.get('track_progress', 0)
                 )
-                # Agent observes the consequences
-                self.agent.batch_observe_and_train(state, reward, dones, resets)
-
-                self.update_current_game_stats(reward[0], dones[0], infos[0])
-
-                if self.global_step_number > self.hyperparameters['num_steps_to_run']:
+                self.current_game_stats.update({
+                    'moving_track_progress': self._exp_moving_track_progress,
+                    'total_env_episode': self.episode_number,
+                    'total_grad_steps': self._total_grad_steps,
+                })
+                self.stat_logger.log_it(self.current_game_stats)
+                if self._exp_moving_track_progress >= \
+                        self.hyperparameters.get('track_progress_success_threshold', 10):
                     break
+                self.flush_stats()
 
-                # if self.global_step_number % self.hyperparameters['save_frequency_episode'] == 0:
-                #     self.save()
+            self.episode_number += int(end.sum())
 
-                end = np.logical_or(resets, dones)
+            total_reward[end] = 0
+            episode_len[end] = 0
 
-                # print(f'reset : {resets}')
-                # print(f'dones : {dones}')
-                # print(f'end : {end}')
+            if np.any(end):
+                # print('end : ', end)
+                # print('reward : ', total_reward)
+                # print('len : ', episode_len)
 
-                if self.batch_step_number > 100:
-                    break
+                state = self.env.reset(np.arange(num_env)[end])
 
-                if end[0]:
-                    self._exp_moving_track_progress = (
-                            0.98 * self._exp_moving_track_progress +
-                            0.02 * self.current_game_stats.get('track_progress', 0)
-                    )
-                    self.current_game_stats.update({
-                        'moving_track_progress': self._exp_moving_track_progress,
-                        'total_env_episode': self.episode_number,
-                        'total_grad_steps': self._total_grad_steps,
-                    })
-                    self.stat_logger.log_it(self.current_game_stats)
-                    if self._exp_moving_track_progress >= \
-                            self.hyperparameters.get('track_progress_success_threshold', 10):
-                        break
-                    self.flush_stats()
+            if self.batch_step_number % self.hyperparameters['animation_record_step_frequency'] == 0:
+                self._run_eval_episode()
 
-                self.episode_number += int(end.sum())
-
-                total_reward[end] = 0
-                episode_len[end] = 0
-
-                if np.any(end):
-                    # print('end : ', end)
-                    # print('reward : ', total_reward)
-                    # print('len : ', episode_len)
-
-                    state = self.env.reset(np.arange(num_env)[end])
-
-                if self.batch_step_number % self.hyperparameters['animation_record_step_frequency'] == 0:
-                    self._run_eval_episode()
-
-        finally:
-            self.stat_logger.on_training_end()
-            self.save(suffix='final')
+        # finally:
+        #     self.stat_logger.on_training_end()
+        #     self.save(suffix='final')
 
     def save(self, suffix=None):
         pass
