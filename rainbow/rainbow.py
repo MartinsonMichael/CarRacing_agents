@@ -125,7 +125,21 @@ class Rainbow:
         if self.hyperparameters['use_parallel_envs']:
             self._batch_train()
         else:
-            raise NotImplemented
+            for _ in range(self.hyperparameters['num_episodes_to_run']):
+                self.run_one_episode()
+                self._exp_moving_track_progress = (
+                        0.98 * self._exp_moving_track_progress +
+                        0.02 * self.current_game_stats.get('track_progress', 0)
+                )
+                self.current_game_stats.update({
+                    'moving_track_progress': self._exp_moving_track_progress,
+                    'total_env_episode': self.episode_number,
+                    'total_grad_steps': self._total_grad_steps,
+                })
+                self.stat_logger.log_it(self.current_game_stats)
+                if self._exp_moving_track_progress >= self.hyperparameters.get('track_progress_success_threshold', 10):
+                    break
+                self.flush_stats()
 
     def _batch_train(self) -> None:
         num_env = self.hyperparameters['parallel_env_num']
