@@ -54,7 +54,7 @@ def create_config(_args):
 
         "save_frequency_episode": 500,
         "log_interval": 20,
-        "animation_record_step_frequency": 10**2,
+        "animation_record_step_frequency": 10**3,
         "record_animation": _args.record_animation,
         "use_parallel_envs": True,
         "parallel_env_num": 6,
