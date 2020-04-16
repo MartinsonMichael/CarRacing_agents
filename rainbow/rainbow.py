@@ -140,9 +140,6 @@ class Rainbow:
                 actions = self.agent.batch_act_and_train(state)
                 state, reward, dones, infos = self.env.step(actions)
 
-                assert isinstance(infos, list)
-                assert isinstance(infos[0], dict)
-
                 total_reward += reward
                 episode_len += 1
 
