@@ -419,27 +419,28 @@ class SubprocVecEnv_tf2(VecEnv):
         self._last_state = self.state_flatter(obs)
         return self._last_state, np.stack(rews), np.stack(dones), infos
 
-    def reset(self, indices=None):
-        if indices is None:
-            for remote in self.remotes:
-                remote.send(('reset', None))
-            obs = [remote.recv() for remote in self.remotes]
-            self._last_state = self.state_flatter(obs)
-            return self._last_state
-        else:
-            target_remotes = self._get_target_remotes(indices)
-            for remote in target_remotes:
-                remote.send(('reset', None))
-            obs = [remote.recv() for remote in self.remotes]
-            self._last_state = _flatten_obs(obs, self.observation_space)
-            return self._last_state
+    def reset(self, indexes=None):
+        """
+        :param indexes: indexes to reset, if None reset will be call for all
+        :return: states for ALL environment;
+            for all envs, whose don't mention in indexes, last state will be returned
+        """
+        if indexes is None:
+            indexes = np.arange(self.num_envs)
+        target_remotes = self._get_target_remotes(indexes)
+        for remote in target_remotes:
+            remote.send(('reset', None))
+        obs = [remote.recv() for remote in self.remotes]
+        self._last_state[indexes] = self.state_flatter(obs)
+        return self._last_state
 
     def force_reset(self, indices):
         target_remotes = self._get_target_remotes(indices)
         for remote in target_remotes:
             remote.send(('reset', None))
-        obs = [remote.recv() for remote in target_remotes]
-        return self.state_flatter(obs)
+        obs = self.state_flatter([remote.recv() for remote in target_remotes])
+        self._last_state[indices] = obs
+        return obs
 
     def seed(self, seed):
         for index, remote in enumerate(self.remotes):

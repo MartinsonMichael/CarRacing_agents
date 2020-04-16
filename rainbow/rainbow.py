@@ -140,10 +140,8 @@ class Rainbow:
                 actions = self.agent.batch_act_and_train(state)
                 state, reward, dones, infos = self.env.step(actions)
 
-                # print(type(state))
-                # print(type(state[0]))
-                # print(state)
-                # exit(1)
+                assert isinstance(infos, list)
+                assert isinstance(infos[0], dict)
 
                 total_reward += reward
                 episode_len += 1
@@ -174,41 +172,32 @@ class Rainbow:
                     break
                 if self.global_step_number > self.hyperparameters['num_steps_to_run']:
                     break
-                if dones[0]:
-                    self.flush_stats()
 
-                if self.episode_number % self.hyperparameters['save_frequency_episode'] == 0:
-                    self.save()
+                # if self.global_step_number % self.hyperparameters['save_frequency_episode'] == 0:
+                #     self.save()
 
                 # print(dones)
                 # print(resets)
 
                 # Make mask. 0 if done/reset, 1 if pass
                 end = np.logical_or(resets, dones)
+                if end[0]:
+                    self.flush_stats()
                 # not_end = np.logical_not(end)
 
                 self.episode_number += int(end.sum())
 
-                # For episodes that ends, do the following:
-                #   1. increment the episode count
-                #   2. record the return
-                #   3. clear the record of rewards
-                #   4. clear the record of the number of steps
-                #   5. reset the env to start a new episode
-                # 3-5 are skipped when training is already finished.
-                # episode_idx += end
-                # recent_returns.extend(episode_r[end])
-
-                total_reward[end] = 0
-                episode_len[end] = 0
                 if np.any(end):
+                    total_reward[end] = 0
+                    episode_len[end] = 0
+
                     inds = np.arange(num_env)[end]
                     print('end ', end)
                     print('inds ', inds)
 
                     print('type state', type(state))
 
-                    state[inds] = self.env.force_reset(inds)
+                    state[end] = self.env.force_reset(inds)
 
                 if self.batch_step_number % self.hyperparameters['animation_record_step_frequency'] == 0:
                     self._run_eval_episode()
@@ -275,6 +264,7 @@ class Rainbow:
                 break
 
     def _run_eval_episode(self):
+        print('run eval episode')
         # record_anim = (
         #         self.batch_step_number % self.hyperparameters.get('animation_record_frequency', 1e6) == 0 and
         #         self.hyperparameters.get('record_animation', False)
