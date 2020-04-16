@@ -417,6 +417,11 @@ class SubprocVecEnv_tf2(VecEnv):
         self.waiting = False
         obs, rews, dones, infos = zip(*results)
         self._last_state = self.state_flatter(obs)
+
+        print(type(infos))
+        print(infos)
+        print(type(infos[0]))
+
         return self._last_state, np.stack(rews), np.stack(dones), infos
 
     def reset(self, indexes: Optional[np.ndarray] = None) -> np.ndarray:
@@ -431,7 +436,7 @@ class SubprocVecEnv_tf2(VecEnv):
             obs = [remote.recv() for remote in self.remotes]
             self._last_state = self.state_flatter(obs)
             return self._last_state
-        
+
         indexes = np.array(indexes)
         target_remotes = self._get_target_remotes(indexes)
         for remote in target_remotes:
