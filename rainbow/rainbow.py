@@ -140,6 +140,11 @@ class Rainbow:
                 actions = self.agent.batch_act_and_train(state)
                 state, reward, dones, infos = self.env.step(actions)
 
+                # print(type(state))
+                # print(type(state[0]))
+                # print(state)
+                # exit(1)
+
                 total_reward += reward
                 episode_len += 1
 
@@ -175,6 +180,9 @@ class Rainbow:
                 if self.episode_number % self.hyperparameters['save_frequency_episode'] == 0:
                     self.save()
 
+                print(dones)
+                print(resets)
+
                 # Make mask. 0 if done/reset, 1 if pass
                 end = np.logical_or(resets, dones)
                 # not_end = np.logical_not(end)
@@ -200,8 +208,7 @@ class Rainbow:
 
                     print('type state', type(state))
 
-                    state = np.array(state)
-                    state[inds, :] = self.env.force_reset(inds)
+                    state[inds] = self.env.force_reset(inds)
 
                 if self.batch_step_number % self.hyperparameters['animation_record_step_frequency'] == 0:
                     self._run_eval_episode()

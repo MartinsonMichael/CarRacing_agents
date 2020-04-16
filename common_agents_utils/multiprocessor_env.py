@@ -403,7 +403,7 @@ class SubprocVecEnv_tf2(VecEnv):
         if state_flatter == 'standard':
             self.state_flatter = lambda x: _flatten_obs(x, self.observation_space)
         elif state_flatter is None:
-            self.state_flatter = lambda x: x
+            self.state_flatter = lambda x: np.stack(x)
         else:
             self.state_flatter = state_flatter
 

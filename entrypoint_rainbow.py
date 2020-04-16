@@ -57,7 +57,7 @@ def create_config(_args):
         "animation_record_step_frequency": 10**4,
         "record_animation": _args.record_animation,
         "use_parallel_envs": True,
-        "parallel_env_num": 20,
+        "parallel_env_num": 6,
         "track_progress_success_threshold": 0.95,
 
         "replay_start_size": 2 * 10**4,
