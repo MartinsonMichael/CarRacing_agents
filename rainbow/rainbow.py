@@ -169,18 +169,7 @@ class Rainbow:
                 self.agent.batch_observe_and_train(state, reward, dones, resets)
 
                 self.update_current_game_stats(reward[0], dones[0], infos[0])
-                self._exp_moving_track_progress = (
-                        0.98 * self._exp_moving_track_progress +
-                        0.02 * self.current_game_stats.get('track_progress', 0)
-                )
-                self.current_game_stats.update({
-                    'moving_track_progress': self._exp_moving_track_progress,
-                    'total_env_episode': self.episode_number,
-                    'total_grad_steps': self._total_grad_steps,
-                })
-                self.stat_logger.log_it(self.current_game_stats)
-                if self._exp_moving_track_progress >= self.hyperparameters.get('track_progress_success_threshold', 10):
-                    break
+
                 if self.global_step_number > self.hyperparameters['num_steps_to_run']:
                     break
 
@@ -189,14 +178,27 @@ class Rainbow:
 
                 end = np.logical_or(resets, dones)
 
-                print(f'reset : {resets}')
-                print(f'dones : {dones}')
-                print(f'end : {end}')
+                # print(f'reset : {resets}')
+                # print(f'dones : {dones}')
+                # print(f'end : {end}')
 
                 if self.batch_step_number > 100:
                     break
 
                 if end[0]:
+                    self._exp_moving_track_progress = (
+                            0.98 * self._exp_moving_track_progress +
+                            0.02 * self.current_game_stats.get('track_progress', 0)
+                    )
+                    self.current_game_stats.update({
+                        'moving_track_progress': self._exp_moving_track_progress,
+                        'total_env_episode': self.episode_number,
+                        'total_grad_steps': self._total_grad_steps,
+                    })
+                    self.stat_logger.log_it(self.current_game_stats)
+                    if self._exp_moving_track_progress >= \
+                            self.hyperparameters.get('track_progress_success_threshold', 10):
+                        break
                     self.flush_stats()
 
                 self.episode_number += int(end.sum())
@@ -205,9 +207,9 @@ class Rainbow:
                 episode_len[end] = 0
 
                 if np.any(end):
-                    print('end : ', end)
-                    print('reward : ', total_reward)
-                    print('len : ', episode_len)
+                    # print('end : ', end)
+                    # print('reward : ', total_reward)
+                    # print('len : ', episode_len)
 
                     state = self.env.reset(np.arange(num_env)[end])
 
@@ -217,7 +219,6 @@ class Rainbow:
         finally:
             self.stat_logger.on_training_end()
             self.save(suffix='final')
-            pass
 
     def save(self, suffix=None):
         pass
