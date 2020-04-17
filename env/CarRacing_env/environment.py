@@ -168,8 +168,6 @@ class CarRacingEnv(gym.Env, EzPickle):
             data_loader=self._data_loader,
             bot=False,
         )
-        self.car.update_stats()
-        self.car.update_stats()
 
     def create_bot_car(self):
         track = self._data_loader.peek_track(is_for_agent=False, expand_points=50)
@@ -227,14 +225,14 @@ class CarRacingEnv(gym.Env, EzPickle):
 
         self.world.Step(delta_time, 6 * 30, 2 * 30)
         self.time += delta_time
-        self.car.update_stats()
+        self.car.after_world_step()
 
         for index, bot_car in enumerate(self.bot_cars):
-            bot_car.update_stats()
+            bot_car.after_world_step()
 
-            print(f'BOT {index}')
-            print(bot_car.stats)
-            print()
+            # print(f'BOT {index}')
+            # print(bot_car.stats)
+            # print()
 
             if bot_car.stats['is_finish'] or bot_car.stats['is_out_of_road'] or bot_car.stats['is_out_of_map']:
                 bot_car.destroy()

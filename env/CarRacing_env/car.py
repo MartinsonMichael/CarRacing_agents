@@ -293,10 +293,10 @@ class DummyCar:
     def get_vector_state(self, bot_list=None) -> np.ndarray:
         """Return vector this car features, list of features to include into vector provided in env setting file"""
         state = []
-        self.update_stats()
         CAR_FEATURES = {
             'hull_position', 'hull_angle', 'car_speed', 'wheels_positions',
-            'track_sensor', 'road_sensor', 'finish_sensor', 'cross_road_sensor', 'collide_sensor',
+            'track_sensor', 'road_sensor', 'finish_sensor', 'cross_road_sensor',
+            'collide_sensor', 'checkpoint_sensor'
             'car_radar_1', 'car_radar_2', 'car_radar_3', 'time',
         }
         if len(set(self.data_loader.car_features_list) - CAR_FEATURES) > 0:
@@ -348,6 +348,9 @@ class DummyCar:
             state.append(float(self._state_data['left_sensor']))
             state.append(float(self._state_data['right_sensor']))
             state.append(float(self._state_data['is_collided']))
+
+        if 'checkpoint_sensor' in self.data_loader.car_features_list:
+            state.append(1.0 if self._state_data['new_tiles_count'] > 0 else 0.0)
 
         if 'time' in self.data_loader.car_features_list:
             state.append(float(np.sin(self._state_data['time'])))
@@ -518,7 +521,11 @@ class DummyCar:
             'last_action': [0.0, 0.0, 0.0]
         }
 
-    def update_stats(self):
+    def after_world_step(self) -> None:
+        """Call this function after step of world"""
+        self._update_stats()
+
+    def _update_stats(self):
         """
         Update car statistic with current car state. Statistic is available as stat property of car.
         """
@@ -644,7 +651,6 @@ class DummyCar:
         """
         Set car params to move one step to current goal. Bots use this function.
         """
-        self.update_stats()
 
         if self._state_data['right_sensor']:
             self.brake(0.8)

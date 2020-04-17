@@ -18,7 +18,7 @@
   },
   "state_config": {
     "picture": false,
-    "vector_car_features": ["hull_angle", "hull_position", "wheels_positions", "car_speed"],
+    "vector_car_features": ["hull_angle", "hull_position", "checkpoint_sensor", "car_speed"],
     "vector_env_features": []
   },
   "reward": {
