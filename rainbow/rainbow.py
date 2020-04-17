@@ -1,10 +1,7 @@
 from collections import defaultdict
 from multiprocessing import Process
 
-from common_agents_utils import Config, SubprocVecEnv_tf2
 import time
-import argparse
-import json
 import os
 
 import chainer
@@ -15,7 +12,7 @@ from chainerrl import explorers
 from chainerrl import links
 from chainerrl import replay_buffer
 
-
+from common_agents_utils import Config, SubprocVecEnv_tf2
 from common_agents_utils.logger import Logger
 from env.common_envs_utils.visualizer import save_as_mp4
 from rainbow.rainbow_tools import DistributionalDuelingDQN_VectorPicture

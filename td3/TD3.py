@@ -83,12 +83,15 @@ class TD3:
         if self.global_step_number < self.hyperparameters['start_to_learn_time_point']:
             return np.random.uniform(-1, 1, size=self.action_size)
 
-        not_noisy_action = self.actor(self.config.phi(state)).cpu().data.numpy().flatten()
+        action = self.actor(self.config.phi(state)).cpu().data.numpy().flatten()
 
-        action = (
-            not_noisy_action
-            + np.random.normal(0, 1 * self.hyperparameters['expl_noise'], size=self.action_size)
-        )
+        if self.episode_number < self.hyperparameters['expl_noise_linear_decay_episodes']:
+            noise_variance = self.hyperparameters['expl_noise'] * \
+                             (1 - self.episode_number / self.hyperparameters['expl_noise_linear_decay_episodes'])
+            action = (
+                action
+                + np.random.normal(0, noise_variance, size=self.action_size)
+            )
 
         return action
 
@@ -190,8 +193,8 @@ class TD3:
     def run_one_episode(self):
         state = self.env.reset()
         record_anim = (
-                self.episode_number % self.hyperparameters.get('animation_record_frequency', 1e6) == 0 and
-                self.hyperparameters.get('record_animation', False)
+            self.episode_number % self.hyperparameters.get('animation_record_frequency', 1e6) == 0 and
+            self.hyperparameters.get('record_animation', False)
         )
 
         done = False

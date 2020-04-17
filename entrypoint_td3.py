@@ -50,8 +50,9 @@ def create_config(_args):
         "num_episodes_to_run": 50 * 10 ** 3,
         "max_episode_len": 500,
         "track_progress_success_threshold": 0.99,
-        "start_to_learn_time_point": 25e+3,
+        "start_to_learn_time_point": 25 * 10**3,
 
+        "expl_noise_linear_decay_episodes": 10**3,
         "expl_noise": 0.1,
         "discount_rate": 0.99,
 
