@@ -156,6 +156,15 @@ class Rainbow:
             actions = self.agent.batch_act_and_train(state)
             state, reward, dones, infos = self.env.step(actions)
 
+            print('state')
+            print(state)
+            print(type(state), state.shape)
+            print(type(state[0]), state[0].shape)
+            print(type(state[0][0]), state[0][0].shape)
+            print(type(state[0][1]), state[0][1].shape)
+
+            exit(1)
+
             print(f"make action, end : {np.sum(dones)}")
 
             total_reward += reward
@@ -169,9 +178,12 @@ class Rainbow:
                     [info.get('need_reset', False) for info in infos],
                 ),
             )
+
+            print('make batch train')
             # Agent observes the consequences
             self.agent.batch_observe_and_train(state, reward, dones, resets)
 
+            print('update stats')
             self.update_current_game_stats(reward[0], dones[0], infos[0])
 
             if self.global_step_number > self.hyperparameters['num_steps_to_run']:
@@ -222,7 +234,7 @@ class Rainbow:
 
             if self.batch_step_number % self.hyperparameters['animation_record_step_frequency'] == 0:
                 self._run_eval_episode()
-                
+
 
         # finally:
         #     self.stat_logger.on_training_end()
