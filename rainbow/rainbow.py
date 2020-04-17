@@ -123,8 +123,10 @@ class Rainbow:
 
     def train(self) -> None:
         if self.hyperparameters['use_parallel_envs']:
+            print('Rainbow  batch+env multiprocessing training start')
             self._batch_train()
         else:
+            print('Rainbow single env training')
             for _ in range(self.hyperparameters['num_episodes_to_run']):
                 self.run_one_episode()
                 self._exp_moving_track_progress = (
@@ -146,12 +148,15 @@ class Rainbow:
         total_reward = np.zeros(num_env, dtype=np.float32)
         episode_len = np.zeros(num_env, dtype=np.int32)
         state = self.env.reset()
+        print('start loop')
         while True:
             self.global_step_number += num_env
             self.batch_step_number += 1
 
             actions = self.agent.batch_act_and_train(state)
             state, reward, dones, infos = self.env.step(actions)
+
+            print(f"make action, end : {np.sum(dones)}")
 
             total_reward += reward
             episode_len += 1
@@ -185,6 +190,7 @@ class Rainbow:
                 break
 
             if end[0]:
+                print('log 0')
                 self._exp_moving_track_progress = (
                         0.98 * self._exp_moving_track_progress +
                         0.02 * self.current_game_stats.get('track_progress', 0)
@@ -206,14 +212,17 @@ class Rainbow:
             episode_len[end] = 0
 
             if np.any(end):
-                # print('end : ', end)
-                # print('reward : ', total_reward)
-                # print('len : ', episode_len)
+                print('any end')
+
+                print('end : ', end)
+                print('reward : ', total_reward)
+                print('len : ', episode_len)
 
                 state = self.env.reset(np.arange(num_env)[end])
 
             if self.batch_step_number % self.hyperparameters['animation_record_step_frequency'] == 0:
                 self._run_eval_episode()
+                
 
         # finally:
         #     self.stat_logger.on_training_end()
