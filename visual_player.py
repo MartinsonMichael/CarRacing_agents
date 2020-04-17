@@ -53,6 +53,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--delay", type=float, default=None, help="time in s between actions")
     parser.add_argument("--debug", action='store_true', default=False, help="debug mode")
+    parser.add_argument("--stop-on-finish", action='store_true', default=False,
+                        help="do no restart simulation after finish")
+    parser.add_argument("--stop-on-fail", action='store_true', default=False,
+                        help="do not restart simulation after fail")
     parser.add_argument(
         "--env-settings",
         type=str,
@@ -98,6 +102,14 @@ def main():
 
             if start_to_use_pause:
                 time.sleep(1.0)
+
+            if done and args.stop_on_finish and info.get('is_finish', False):
+                print('Exit on finish')
+                exit(0)
+
+            if done and args.stop_on_fail:
+                print('Exit on fail')
+                exit(0)
 
             if done or restart or info.get('need_reset', False):
                 print('restart')

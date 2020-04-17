@@ -346,32 +346,28 @@ class DataSupporter:
         As a result track_obj['line'] will contain more points.
         """
         track = np.array(track_obj['line'])
-        first_point = track[0].copy()
-        expanded_track = [first_point.copy()]
+        expanded_track = [track[0]]
 
         for index in range(1, len(track)):
-            next_point = track[index]
-            vector = next_point - first_point
-            vector_len = np.sqrt(np.sum((vector ** 2)))
-            if vector_len < 1e-8:
-                print(vector)
-                raise ValueError('oops, something went wrong, ask Michael Martinson, tg @MichaelMD')
-            vector = vector / vector_len * max_dist
+            first, second = track[index - 1], track[index]
+            num_points_to_insert = int((DataSupporter._dist(first, second) - max_dist * 0.7) / max_dist)
+            if num_points_to_insert == 0:
+                expanded_track.append(second)
+                continue
 
-            if index == len(track) - 1 or DataSupporter._dist(next_point, first_point) > 1.2 * max_dist:
-                expanded_point = first_point + vector
-                while DataSupporter._dist(next_point, expanded_point) > 1.3 * max_dist:
-                    expanded_track.append(expanded_point.copy())
-                    expanded_point += vector
-                expanded_track.append(expanded_point.copy())
-            expanded_track.append(next_point.copy())
-            first_point = next_point.copy()
+            vector_to_add = (second - first) / DataSupporter._vector_len(second - first) * max_dist
+            for i in range(1, num_points_to_insert + 1):
+                expanded_track.append(first + vector_to_add * i)
+            expanded_track.append(second)
 
-        expanded_track.append(track[-1])
         return {
             'polygon': track_obj['polygon'],
             'line': np.array(expanded_track),
         }
+
+    @staticmethod
+    def _vector_len(v: np.ndarray) -> float:
+        return float(np.sqrt((v**2).sum()))
 
     def peek_car_image(self, is_for_agent: bool, index: Optional[int] = None):
         """

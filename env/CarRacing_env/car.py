@@ -115,36 +115,8 @@ class DummyCar:
         # all coordinates in XY format, not in IMAGE coordinates
         init_x, init_y = DataSupporter.get_track_initial_position(self.track['line'])
         init_angle = DataSupporter.get_track_angle(track) - np.pi / 2
-        width_y, height_x = self.car_image.size
+        # width_y, height_x = self.car_image.size
 
-        # CAR_HULL_POLY4 = [
-        #     (-height_x / 2, -width_y / 2), (+height_x / 2, -width_y / 2),
-        #     (-height_x / 2, +width_y / 2), (+height_x / 2, +width_y / 2)
-        # ]
-        # N_SENSOR_BOT = [
-        #     (-height_x / 2 * 1.11, +width_y / 2 * 1.0), (+height_x / 2 * 1.11, +width_y / 2 * 1.0),
-        #     # (-height_x/2*1.11, +width_y/2*1.11), (+height_x/2*1.11, +width_y/2*1.11),
-        #     (-height_x / 2 * 0.8, +width_y / 2 * 3), (+height_x / 2 * 0.8, +width_y / 2 * 3)
-        #     # (-height_x/2*0.22, +width_y/2*2), (+height_x/2*0.22, +width_y/2*2)
-        # ]
-        # WHEELPOS = [
-        #     (-height_x / 2, +width_y / 2 / 2), (+height_x / 2, +width_y / 2 / 2),
-        #     (-height_x / 2, -width_y / 2 / 2), (+height_x / 2, -width_y / 2 / 2)
-        # ]
-        #
-        # LEFT_SENSOR = [
-        #     (0, width_y), (+height_x, width_y),
-        #     (0, +width_y * 1.5), (+height_x, +width_y * 1.5)
-        # ]
-        #
-        # RIGHT_SENSOR = [
-        #     (-height_x, width_y), (0, width_y),
-        #     (-height_x, +width_y * 1.5), (0, +width_y * 1.5)
-        # ]
-        #
-        # N_SENSOR_SHAPE = CAR_HULL_POLY4
-        #
-        # SENSOR = N_SENSOR_BOT if bot else N_SENSOR_SHAPE
         self.world = world
 
         self._hull = self.world.CreateDynamicBody(
@@ -585,11 +557,9 @@ class DummyCar:
                         self._state_data['is_out_of_track'] = True
 
         # update track progress
-        self._update_track_point()
+        self._update_track_point(hard=True)
         self.update_finish()
-        self._state_data['track_progress'] = self._track_point / (
-            len(self.track['line']) - 1 if len(self.track['line']) >= 2 else 1
-        )
+        self._state_data['track_progress'] = self._track_point / len(self.track['line'])
         self._state_data['last_action'] = self._last_action
 
         # update collision from contact listener
@@ -616,7 +586,7 @@ class DummyCar:
     def update_finish(self):
         """Just update is_finish sensor, check if car enough close to target point (last point in track)"""
         self._state_data['is_finish'] = False
-        if self._is_car_closely_to(self.track['line'][-1], 1.0):
+        if self._is_car_closely_to(self.track['line'][-1], 10):
             self._state_data['is_finish'] = True
 
     def _update_track_point(self, hard=False):
@@ -625,14 +595,16 @@ class DummyCar:
 
         Goal point is index in track point array, which represent current car progress.
         """
-        for track_index in range(self._track_point, len(self.track['line']), 1):
-            if self._is_car_closely_to(self.track['line'][track_index], 1.25):
-                continue
+        track_index = self._track_point
+        for track_index in range(self._track_point, len(self.track['line']) + 1, 1):
+            if track_index != len(self.track['line']):
+                if self._is_car_closely_to(self.track['line'][track_index], 10):
+                    continue
             if hard:
                 self._old_track_point = self._track_point
                 self._track_point = track_index
             break
-        self._state_data['new_tiles_count'] = self._track_point - self._old_track_point
+        self._state_data['new_tiles_count'] = track_index - self._old_track_point
 
     def gas(self, gas):
         """
@@ -640,11 +612,11 @@ class DummyCar:
         """
         gas = np.clip(gas, 0, 1)
         self._last_action[0] = float(gas)
-        gas /= 10
+        gas /= 2
         for w in self.wheels[2:4]:
             diff = gas - w.gas
-            if diff > 0.01:
-                diff = 0.01  # gradually increase, but stop immediately
+            if diff > 0.1:
+                diff = 0.1  # gradually increase, but stop immediately
             w.gas += diff
 
     def brake(self, b):
@@ -721,10 +693,10 @@ class DummyCar:
         Only god know how does this function work...
         """
         if not test:
-            self._update_track_point(hard=True)
             self._time += 1
 
             if self.is_bot:
+                self._update_track_point(hard=True)
                 self.go_to_target()
 
         for w in self.wheels:
@@ -799,82 +771,6 @@ class DummyCar:
             w.ApplyForceToCenter((
                 p_force * side[0] + f_force * forw[0],
                 p_force * side[1] + f_force * forw[1]), True)
-
-        # for wheel_index, w in enumerate(self.wheels):
-        #     # Steer each wheel
-        #     if w.is_front:
-        #         # print(f'w.steer : {w.steer}, joint.angle : {w.joint.angle}')
-        #         steer_direction = np.sign(w.steer - w.joint.angle)
-        #         val = abs(w.steer - (w.joint.angle - w.steer_approx)) * 5
-        #         if val < 0.1:
-        #             val = 0
-        #         w.joint.motorSpeed = steer_direction * val * float(w.brake < 0.01)
-        #
-        #     # Position => friction_limit
-        #     friction_limit = FRICTION_LIMIT * 0.6  # Grass friction if no tile
-        #     # for tile in w.tiles:
-        #     #     friction_limit = max(friction_limit, FRICTION_LIMIT * tile.road_friction)
-        #
-        #     # Force
-        #     forw = w.GetWorldVector((0, 1))
-        #     side = w.GetWorldVector((1, 0))
-        #     if w.brake > 0.9:
-        #         w.linearVelocity.x = 0
-        #         w.linearVelocity.y = 0
-        #         w.omega = 0
-        #     elif w.brake > 0:
-        #         w.linearVelocity.x /= np.exp(w.brake)
-        #         w.linearVelocity.y /= np.exp(w.brake)
-        #
-        #     v = w.linearVelocity
-        #
-        #     # print(f'linear velocity : {v[0]} {v[1]}')
-        #
-        #     vf = forw[0] * v[0] + forw[1] * v[1]  # forward speed
-        #     vs = side[0] * v[0] + side[1] * v[1]  # side speed
-        #
-        #     # WHEEL_MOMENT_OF_INERTIA*np.square(w.omega)/2 = E -- energy
-        #     # WHEEL_MOMENT_OF_INERTIA*w.omega * domega/dt = dE/dt = W -- power
-        #     # domega = dt*W/WHEEL_MOMENT_OF_INERTIA/w.omega
-        #     w.omega += dt * ENGINE_POWER * w.gas / WHEEL_MOMENT_OF_INERTIA / (abs(w.omega) + 5.0)
-        #     # small coef not to divide by zero
-        #     self.fuel_spent += dt * ENGINE_POWER * w.gas
-        #
-        #     if w.brake >= 0.9:
-        #         w.omega = 0
-        #     elif w.brake > 0:
-        #         BRAKE_FORCE = 15  # radians per second
-        #         steer_direction = -np.sign(w.omega)
-        #         val = BRAKE_FORCE * w.brake
-        #         if abs(val) > abs(w.omega):
-        #             w.omega = 0
-        #     w.phase += w.omega * dt
-        #
-        #     # print(f'w.omega : {w.omega}')
-        #
-        #     vr = w.omega * w.wheel_rad  # rotating wheel speed
-        #     f_force = -vf + vr  # force direction is direction of speed difference
-        #     p_force = -vs
-        #
-        #     # Physically correct is to always apply friction_limit until speed is equal.
-        #     # But dt is finite, that will lead to oscillations if difference is already near zero.
-        #     f_force *= 205000 * SIZE * SIZE
-        #     # Random coefficient to cut oscillations in few steps (have no effect on friction_limit)
-        #     p_force *= 205000 * SIZE * SIZE
-        #     force = np.sqrt(np.square(f_force) + np.square(p_force))
-        #
-        #     if abs(force) > friction_limit:
-        #         f_force /= force
-        #         p_force /= force
-        #         force = friction_limit  # Correct physics here
-        #         f_force *= force
-        #         p_force *= force
-        #
-        #     w.omega -= dt * f_force * w.wheel_rad / WHEEL_MOMENT_OF_INERTIA
-        #
-        #     w.ApplyForceToCenter((
-        #         p_force * side[0] + f_force * forw[0],
-        #         p_force * side[1] + f_force * forw[1]), True)
 
     def destroy(self):
         """
