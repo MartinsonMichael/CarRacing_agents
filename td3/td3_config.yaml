@@ -1,0 +1,12 @@
+# TD3 specific config
+num_episodes_to_run: 20000
+max_episode_len: 500
+track_progress_success_threshold: 0.99
+start_to_learn_time_point: 25000
+
+expl_noise_linear_decay_episodes: 1000
+expl_noise: 0.1
+discount_rate: 0.99
+lr: 0.001
+
+gradient_clipping_norm: 0.5

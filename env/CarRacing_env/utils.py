@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import List, NamedTuple, Any, Optional, Tuple, Union, Dict, Set
 import cv2
 import numpy as np
@@ -5,7 +6,7 @@ from shapely.geometry import Polygon
 from skimage.measure import label, regionprops
 import copy
 
-from env.CarRacing_env.cvat import CvatDataset
+from env.CarRacing_env.cvat_loader import CvatDataset
 
 
 class CarImage(NamedTuple):
@@ -48,17 +49,15 @@ class DataSupporter:
         self._load_car_images(self._settings['cars_path'])
 
         # list of tracks
-        self._tracks: Dict[int, Dict[str, Union[np.ndarray, Polygon]]] = {}
-        self._bot_tracks: Dict[int, Dict[str, Union[np.ndarray, Polygon]]] = {}
+        self._tracks: Dict[str, Dict[str, Union[np.ndarray, Polygon]]] = {}
         self._agent_track_list = self._settings['agent_tracks']
         self._bot_track_list = self._settings['bots_tracks']
         self._extract_tracks()
-        self._extract_bot_tracks()
 
         # index of image -> [dict of angle index -> [image] ]
         self._image_memory = {}
 
-        self.FULL_RENDER_COEFF = 0.5
+        self.FULL_RENDER_COEFF = self._settings['image_scale']['image_scale_for_animation_records']
         self._render_back = None
         self._true_image_memory = {}
 
@@ -70,7 +69,7 @@ class DataSupporter:
 
     @property
     def car_features_list(self) -> Set[str]:
-        return set(self._settings['state_config'].get('vector_car_features', []))
+        return set(self._settings['state'].get('vector_car_features', []))
 
     @property
     def get_background_image_scale(self) -> float:
@@ -302,35 +301,38 @@ class DataSupporter:
         """
         Technical function for track loading.
         """
-        track_lines = {}
+        tracks = defaultdict(lambda: {'line': None, 'polygon': None}, {})
         for item in self._data.get_polylines(0):
             if item['label'] == 'track_line':
-                track_lines[item['attributes']['index']] = np.array(item['points'])
-        track_polygons = {}
+                tracks[item['attributes']['title']]['line'] = np.array(item['points'])
+
         for item in self._data.get_polygons(0):
-            if item['label'] == 'track':
-                track_polygons[item['attributes']['index']] = np.array(item['points'])
-        for index, track_line in track_lines.items():
-            if index not in track_polygons.keys():
-                print(f'skip track index index {index}')
+            if item['label'] == 'track_polygon':
+                tracks[item['attributes']['title']]['polygon'] = np.array(item['points'])
+
+        self._agent_track_list = set(self._agent_track_list)
+
+        for track_title, track_object in tracks.items():
+
+            if track_object['line'] is None:
+                print(f"Skip track {track_title}, because it hasn't got track line")
                 continue
 
-            self._tracks[int(index)] = {
-                'polygon': Polygon(self.convertIMG2PLAY(track_polygons[index])),
-                'line': self.convertIMG2PLAY(track_line),
+            if track_object['polygon'] is None:
+                self._agent_track_list = self._agent_track_list - {track_title}
+                continue
+
+            self._tracks[track_title] = {
+                'polygon': Polygon(self.convertIMG2PLAY(track_object['polygon'])),
+                'line': self.convertIMG2PLAY(track_object['line']),
             }
 
-    def _extract_bot_tracks(self):
-        """
-        Technical function for track loading.
-        """
-        for item in self._data.get_polylines(0):
-            if item['label'] != 'bot_track_line':
-                continue
-            self._bot_tracks[int(item['attributes']['index'])] = {
-                'polygon': None,
-                'line': self.convertIMG2PLAY(np.array(item['points'])),
-            }
+        self._agent_track_list = np.array(list(self._agent_track_list))
+        self._bot_track_list = np.array(list(self._bot_track_list))
+
+        print(f"Agent track list : {type(self._agent_track_list)} {self._agent_track_list}")
+        print(f"Bot track list : {type(self._bot_track_list)} {self._bot_track_list}")
+
 
     @staticmethod
     def _dist(pointA, pointB) -> float:
@@ -394,7 +396,7 @@ class DataSupporter:
             track = self._tracks[index]
         else:
             index = np.random.choice(self._bot_track_list)
-            track = self._bot_tracks[index]
+            track = self._tracks[index]
 
         if expand_points is not None:
             return DataSupporter._expand_track(track, expand_points)

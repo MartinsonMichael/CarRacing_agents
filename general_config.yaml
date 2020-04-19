@@ -1,0 +1,4 @@
+# This part of config s common for all agents and contain technical params.
+log_interval: 20
+animation_record_frequency: 100
+record_animation: true

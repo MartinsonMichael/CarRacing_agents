@@ -44,7 +44,7 @@ env_settings = {
     "angle_steer": False,
     "angle_steer_multiplication": 5.0
   },
-  "state_config": {
+  "state": {
     "picture": False,
     "vector_car_features": None,
     "vector_env_features": []
@@ -138,7 +138,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
             # {
             #     "track_type": "",
             #     "env_settings": {
-            #         "state_config": {"picture": False, "vector_car_features": []},
+            #         "state": {"picture": False, "vector_car_features": []},
             #         "bot_number": 0,
             #     },
             # },
@@ -147,7 +147,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
             # {
             #     "track_type": "line",
             #     "env_settings": {
-            #         "state_config": {"picture": False, "vector_car_features": [
+            #         "state": {"picture": False, "vector_car_features": [
             #             "hull_position"
             #         ]},
             #         "bot_number": 0,
@@ -155,7 +155,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
             # }, {
             #     "track_type": "line",
             #     "env_settings": {
-            #         "state_config": {"picture": False, "vector_car_features": [
+            #         "state": {"picture": False, "vector_car_features": [
             #             "wheels_positions"
             #         ]},
             #         "bot_number": 0,
@@ -163,7 +163,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
             # }, {
             #     "track_type": "line",
             #     "env_settings": {
-            #         "state_config": {"picture": False, "vector_car_features": [
+            #         "state": {"picture": False, "vector_car_features": [
             #             "wheels_positions", "hull_angle",
             #         ]},
             #         "bot_number": 0,
@@ -171,7 +171,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
             # }, {
             #     "track_type": "line",
             #     "env_settings": {
-            #         "state_config": {"picture": False, "vector_car_features": [
+            #         "state": {"picture": False, "vector_car_features": [
             #             "hull_position", "hull_angle",
             #         ]},
             #         "bot_number": 0,
@@ -184,7 +184,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
             # {
             #     "track_type": "line",
             #     "env_settings": {
-            #         "state_config": {"picture": False, "vector_car_features": [
+            #         "state": {"picture": False, "vector_car_features": [
             #             "hull_position", "hull_angle", "car_speed",
             #         ]},
             #         "bot_number": 0,
@@ -192,7 +192,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
             # }, {
             #     "track_type": "line",
             #     "env_settings": {
-            #         "state_config": {"picture": False, "vector_car_features": [
+            #         "state": {"picture": False, "vector_car_features": [
             #             "hull_position", "hull_angle", "track_sensor",
             #         ]},
             #         "bot_number": 0,
@@ -200,7 +200,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
             # }, {
             #     "track_type": "line",
             #     "env_settings": {
-            #         "state_config": {"picture": False, "vector_car_features": [
+            #         "state": {"picture": False, "vector_car_features": [
             #             "hull_position", "hull_angle", "wheels_positions",
             #         ]},
             #         "bot_number": 0,
@@ -208,7 +208,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
             # }, {
             #     "track_type": "line",
             #     "env_settings": {
-            #         "state_config": {"picture": False, "vector_car_features": [
+            #         "state": {"picture": False, "vector_car_features": [
             #             "hull_position", "hull_angle", "finish_sensor",
             #         ]},
             #         "bot_number": 0,
@@ -216,7 +216,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
             # }, {
             #     "track_type": "line",
             #     "env_settings": {
-            #         "state_config": {"picture": False, "vector_car_features": [
+            #         "state": {"picture": False, "vector_car_features": [
             #             "hull_position", "hull_angle", "road_sensor",
             #         ]},
             #         "bot_number": 0,
@@ -224,7 +224,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
             # }, {
             #     "track_type": "line",
             #     "env_settings": {
-            #         "state_config": {"picture": False, "vector_car_features": [
+            #         "state": {"picture": False, "vector_car_features": [
             #             "hull_position", "hull_angle", "time",
             #         ]},
             #         "bot_number": 0,
@@ -236,7 +236,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
             # {
             #     "track_type": "rotate",
             #     "env_settings": {
-            #         "state_config": {"picture": False, "vector_car_features": [
+            #         "state": {"picture": False, "vector_car_features": [
             #             "hull_position", "hull_angle", "car_speed", "cross_road_sensor",
             #         ]},
             #         "bot_number": 0,
@@ -244,7 +244,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
             # }, {
             #     "track_type": "rotate",
             #     "env_settings": {
-            #         "state_config": {"picture": False, "vector_car_features": [
+            #         "state": {"picture": False, "vector_car_features": [
             #             "hull_position", "hull_angle", "track_sensor", "cross_road_sensor",
             #         ]},
             #         "bot_number": 0,
@@ -252,7 +252,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
             # }, {
             #     "track_type": "rotate",
             #     "env_settings": {
-            #         "state_config": {"picture": False, "vector_car_features": [
+            #         "state": {"picture": False, "vector_car_features": [
             #             "hull_position", "hull_angle", "wheels_positions", "cross_road_sensor",
             #         ]},
             #         "bot_number": 0,
@@ -260,7 +260,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
             # }, {
             #     "track_type": "rotate",
             #     "env_settings": {
-            #         "state_config": {"picture": False, "vector_car_features": [
+            #         "state": {"picture": False, "vector_car_features": [
             #             "hull_position", "hull_angle", "finish_sensor", "cross_road_sensor",
             #         ]},
             #         "bot_number": 0,
@@ -268,7 +268,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
             # }, {
             #     "track_type": "rotate",
             #     "env_settings": {
-            #         "state_config": {"picture": False, "vector_car_features": [
+            #         "state": {"picture": False, "vector_car_features": [
             #             "hull_position", "hull_angle", "road_sensor", "cross_road_sensor",
             #         ]},
             #         "bot_number": 0,
@@ -276,7 +276,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
             # }, {
             #     "track_type": "rotate",
             #     "env_settings": {
-            #         "state_config": {"picture": False, "vector_car_features": [
+            #         "state": {"picture": False, "vector_car_features": [
             #             "hull_position", "hull_angle", "time", "cross_road_sensor",
             #         ]},
             #         "bot_number": 0,
@@ -288,7 +288,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
             {
                 "track_type": "line",
                 "env_settings": {
-                    "state_config": {"picture": False, "vector_car_features": [
+                    "state": {"picture": False, "vector_car_features": [
                         "hull_position", "hull_angle",
                     ]},
                     "bot_number": 4, "bot_tracks": [0],
@@ -297,7 +297,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
             {
                 "track_type": "line",
                 "env_settings": {
-                    "state_config": {"picture": False, "vector_car_features": [
+                    "state": {"picture": False, "vector_car_features": [
                         "hull_position", "hull_angle", "cross_road_sensor",
                     ]},
                     "bot_number": 4, "bot_tracks": [0],
@@ -306,7 +306,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
             {
                 "track_type": "line",
                 "env_settings": {
-                    "state_config": {"picture": False, "vector_car_features": [
+                    "state": {"picture": False, "vector_car_features": [
                         "hull_position", "hull_angle", "car_radar_2",
                     ]},
                     "bot_number": 4, "bot_tracks": [0],
@@ -315,7 +315,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
             {
                 "track_type": "line",
                 "env_settings": {
-                    "state_config": {"picture": False, "vector_car_features": [
+                    "state": {"picture": False, "vector_car_features": [
                         "hull_position", "hull_angle", "car_radar_2", "cross_road_sensor",
                     ]},
                     "bot_number": 4, "bot_tracks": [0],
@@ -353,7 +353,7 @@ def iterate_over_configs(_args) -> Iterable[Tuple[Config, str]]:
                 os.makedirs(config.table_path)
 
             wandb_note = f"Track : {config.hyperparameters['track_type']}. Use " + ", ".join(
-                config.hyperparameters['env_settings']['state_config']['vector_car_features']
+                config.hyperparameters['env_settings']['state']['vector_car_features']
             )
 
             yield config, wandb_note

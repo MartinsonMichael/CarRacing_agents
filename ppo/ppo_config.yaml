@@ -1,0 +1,26 @@
+# Basic ppo specific config
+---
+use_icm: false
+icm_config:
+    phi: 'config.phi'
+    icm_gradient_clipping: 1.5
+
+#save_frequency_episode: 500
+#log_interval: 20
+#animation_record_frequency: 100
+#record_animation: _args.record_animation
+
+num_episodes_to_run: 50 * 10 ** 3
+max_episode_len: 500
+
+update_every_n_steps: 5000
+learning_updates_per_learning_session: 1
+
+discount_rate: 0.99
+eps_clip: 0.2  # clip parameter for PPO
+
+# parameters for Adam optimizer
+lr: 1e-4
+gradient_clipping_norm: 0.3
+betas: [0.9, 0.999]
+...

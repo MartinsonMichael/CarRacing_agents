@@ -15,8 +15,8 @@ def get_state_type_from_settings_path(settings_path: str) -> str:
 
 
 def get_state_type_from_settings(settings: Dict[str, Any]) -> str:
-    have_image = settings['state_config']['picture']
-    have_vector = len(settings['state_config']['vector_car_features']) != 0
+    have_image = settings['state']['picture']
+    have_vector = len(settings['state']['vector_car_features']) != 0
     if have_image and have_vector:
         return 'both'
     elif have_vector:

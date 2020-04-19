@@ -29,28 +29,26 @@ class TD3:
         self.config = config
         self.hyperparameters = config.hyperparameters
         self.env = config.environment_make_function()
-        self.device = self.hyperparameters['device']
-        self.name = config.name
 
         self.memory = Torch_Arbitrary_Replay_Buffer(
             buffer_size=20 ** 5,
             batch_size=256,
             phi=config.phi,
             seed=0,
-            device=self.device,
+            device=self.config.device,
             sample_order=['state', 'action', 'reward', 'done', 'next_state'],
             do_it_auto=False,
         )
         state_shape = config.phi(self.env.reset()).shape
         self.action_size = self.env.action_space.shape[0]
 
-        self.actor = StateAdaptiveActor(state_shape, self.action_size, self.device).to(self.device)
+        self.actor = StateAdaptiveActor(state_shape, self.action_size, self.config.device).to(self.config.device)
         self.actor_target: nn.Module = copy.deepcopy(self.actor)
-        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=3e-4)
+        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=self.hyperparameters['lr'])
 
-        self.critic = DoubleStateAdaptiveCritic(state_shape, self.action_size, self.device).to(self.device)
+        self.critic = DoubleStateAdaptiveCritic(state_shape, self.action_size, self.config.device).to(self.config.device)
         self.critic_target: nn.Module = copy.deepcopy(self.critic)
-        self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=3e-4)
+        self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=self.hyperparameters['lr'])
 
         self.tau = tau
         self.policy_noise = policy_noise
@@ -59,17 +57,13 @@ class TD3:
 
         self.total_it = 0
 
-        self.stat_logger: Logger = Logger(
-            config,
-            log_interval=config.hyperparameters.get('log_interval', 20),
-        )
+        self.stat_logger: Logger = Logger(config, log_interval=self.config.log_interval)
 
         self.episode_number = 0
         self.global_step_number = 0
         self._total_grad_steps = 0
         self.current_game_stats = None
         self.flush_stats()
-        self.tf_writer = config.tf_writer
 
         self.accumulated_reward_mean = None
         self.accumulated_reward_std = None
@@ -193,8 +187,7 @@ class TD3:
     def run_one_episode(self):
         state = self.env.reset()
         record_anim = (
-            self.episode_number % self.hyperparameters.get('animation_record_frequency', 1e6) == 0 and
-            self.hyperparameters.get('record_animation', False)
+            self.episode_number % self.config.animation_record_frequency == 0 and self.config.record_animation
         )
 
         done = False
@@ -234,7 +227,7 @@ class TD3:
                         target=save_as_mp4,
                         args=(
                             images,
-                            f'animation/TD3/{self.name}/_R:_{total_reward}_Time:_{episode_len}_{time.time()}.mp4',
+                            f'animation/TD3/{self.config.name}/_R:_{total_reward}_Time:_{episode_len}_{time.time()}.mp4',
                             self.stat_logger
                         ),
                     ).start()

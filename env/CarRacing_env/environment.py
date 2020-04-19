@@ -242,7 +242,7 @@ class CarRacingEnv(gym.Env, EzPickle):
         if len(self.bot_cars) < self.num_bots:
             self.create_bot_car()
 
-        if self._settings['state_config']['picture']:
+        if self._settings['state']['picture']:
             try:
                 self.picture_state = self.render()
             except:
@@ -263,18 +263,18 @@ class CarRacingEnv(gym.Env, EzPickle):
         return {
             'picture':
                 self.picture_state.astype(np.uint8)
-                if self._settings['state_config']['picture']
+                if self._settings['state']['picture']
                 else None,
             'car_vector':
                 self.car.get_vector_state(self.bot_cars).astype(np.float32)
-                if len(self._settings['state_config']['vector_car_features']) != 0
+                if len(self._settings['state']['vector_car_features']) != 0
                 else None,
             'env_vector': self._create_vector_env_static_description().astype(np.float32),
         }
 
     @lru_cache(maxsize=None)
     def _create_vector_env_static_description(self) -> np.ndarray:
-        params_to_use = self._settings['state_config']['vector_env_features']
+        params_to_use = self._settings['state']['vector_env_features']
         # that a have, just to remaind:
         # * agent car - NOT in this function
         # * bots car [optionaly] - NOT in this function
