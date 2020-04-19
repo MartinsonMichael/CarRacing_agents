@@ -204,7 +204,7 @@ if __name__ == "__main__":
                 not _args.no_save_launch,
             )
         ))
-        process_list[-1].run()
+        process_list[-1].start()
 
     print(f"Wait for {process_list} process...")
     for pr in process_list:
