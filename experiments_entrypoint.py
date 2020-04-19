@@ -87,7 +87,7 @@ def create_single_launch_name(env_config: Dict, agent_class_name: str) -> str:
             state_record += "_&_"
         state_record += "_&_".join(sorted(state_config['vector_car_features']))
 
-    return agent_class_name + state_record + "_TIME" + str(time.time)
+    return agent_class_name + state_record + "_TIME" + str(time.time())
 
 
 def launch(exp_config: Dict[str, Any]) -> None:
