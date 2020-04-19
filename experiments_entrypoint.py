@@ -1,9 +1,10 @@
 import argparse
 import collections
 import os
-import time
+import numpy as np
 from typing import Any, Dict, List
 
+import wandb
 import yaml
 from multiprocessing import Process
 
@@ -81,13 +82,13 @@ def deep_dict_update(d: Dict, u: Dict) -> Dict:
 
 def create_single_launch_name(env_config: Dict, agent_class_name: str) -> str:
     state_config = env_config['state']
-    state_record = 'Image' if state_config['picture'] is True else ""
+    state_record = 'image' if state_config['picture'] is True else ""
     if len(state_config['vector_car_features']) != 0:
         if len(state_record) != 0:
-            state_record += "_&_"
-        state_record += "_&_".join(sorted(state_config['vector_car_features']))
+            state_record += "__"
+        state_record += "__".join(sorted(state_config['vector_car_features']))
 
-    return agent_class_name + state_record + "_TIME" + str(time.time())
+    return agent_class_name + '__' + state_record + '__' + str(np.random.randint(0, 10**6))
 
 
 def launch(exp_config: Dict[str, Any]) -> None:
@@ -103,10 +104,11 @@ def launch(exp_config: Dict[str, Any]) -> None:
     final_agent_config.record_animation = True
     final_agent_config.device = exp_config['device']
 
+    launch_name = create_single_launch_name(changed_env_config, exp_config['agent_class_name']),
     final_agent_config.table_path = os.path.join(
         'exp_tables',
         exp_config['exp_series_name'],
-        create_single_launch_name(changed_env_config, exp_config['agent_class_name']),
+        launch_name,
     )
     if not os.path.exists(final_agent_config.table_path):
         os.makedirs(final_agent_config.table_path)
@@ -122,6 +124,18 @@ def launch(exp_config: Dict[str, Any]) -> None:
 
     print('final config:')
     print(final_agent_config)
+
+    wandb.init(
+        project='EXP',
+        name=launch_name,
+        config={
+            'exp_name': exp_config['exp_series_name'],
+            'agent_class': final_agent_config.agent_class,
+            'mode': final_agent_config.mode,
+            'env_config': final_agent_config.env_config,
+            'hyperparameters': final_agent_config.hyperparameters,
+        },
+    )
 
     print('start to create agent..')
     agent = exp_config['agent_class'](final_agent_config)
@@ -208,4 +222,7 @@ if __name__ == "__main__":
 
     print(f"Wait for {process_list} process...")
     for pr in process_list:
-        pr.join()
+        try:
+            pr.join()
+        except:
+            pass
