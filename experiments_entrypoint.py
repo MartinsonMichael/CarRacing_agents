@@ -92,7 +92,8 @@ def launch(exp_config: Dict[str, Any]) -> None:
     final_agent_config.agent_class = exp_config['agent_class']
     final_agent_config.env_config = changed_env_config
     final_agent_config.mode = get_state_type_from_settings(changed_env_config)
-    final_agent_config.hyperparameters = exp_config['hyperparameters']
+    final_agent_config.hyperparameters = \
+        deep_dict_update(exp_config['hyperparameters'], exp_config['agent_change'])
     final_agent_config.environment_make_function, final_agent_config.phi = \
         get_EnvCreator_with_memory_safe_combiner(changed_env_config)
     final_agent_config.test_environment_make_function = final_agent_config.environment_make_function
