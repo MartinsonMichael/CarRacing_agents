@@ -1,6 +1,9 @@
 import argparse
 import collections
-from typing import Callable, Any, Dict, List, Optional
+import os
+import time
+from typing import Any, Dict, List
+
 import yaml
 from multiprocessing import Process
 
@@ -76,6 +79,17 @@ def deep_dict_update(d: Dict, u: Dict) -> Dict:
     return d
 
 
+def create_single_launch_name(env_config: Dict, agent_class_name: str) -> str:
+    state_config = env_config['state']
+    state_record = 'Image' if state_config['picture'] is True else ""
+    if len(state_config['vector_car_features']) != 0:
+        if len(state_record) != 0:
+            state_record += "_&_"
+        state_record += "_&_".join(sorted(state_config['vector_car_features']))
+
+    return agent_class_name + state_record + "_TIME" + str(time.time)
+
+
 def launch(exp_config: Dict[str, Any]) -> None:
 
     for key, value in exp_config.items():
@@ -89,6 +103,14 @@ def launch(exp_config: Dict[str, Any]) -> None:
     final_agent_config.record_animation = True
     final_agent_config.device = exp_config['device']
 
+    final_agent_config.table_path = os.path.join(
+        'exp_tables',
+        exp_config['exp_series_name'],
+        create_single_launch_name(changed_env_config, exp_config['agent_class']),
+    )
+    if not os.path.exists(final_agent_config.table_path):
+        os.makedirs(final_agent_config.table_path)
+        
     final_agent_config.agent_class = exp_config['agent_class']
     final_agent_config.env_config = changed_env_config
     final_agent_config.mode = get_state_type_from_settings(changed_env_config)
@@ -126,12 +148,15 @@ def _exp_worker_function(exp_list: List[Dict], device: str, save_launch: bool) -
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--no-record-animation', default=False, action='store_true', help='use icm')
-    parser.add_argument('--name', type=str, help='name for experiment')
+    parser.add_argument('--name', type=str, default=None, help='name for experiment')
     parser.add_argument('--exp-settings', type=str, help='path to experiment config')
     parser.add_argument('--device', type=str, help='name for experiment')
     parser.add_argument('--no-save-launch', default=False, action='store_true', help='use or not save launch')
     _args = parser.parse_args()
     _args.record_animation = not _args.no_record_animation
+
+    if _args.name is None:
+        raise ValueError('set name')
 
     exp_series_config = yaml.load(open(_args.exp_settings, 'r'))
 
@@ -150,6 +175,7 @@ if __name__ == "__main__":
                     get(agent_for_exp['agent_class_name'], [{}]):
 
                 launch_list.append({
+                    'exp_series_name': _args.name,
                     'agent_class_name': agent_for_exp['agent_class_name'],
                     'agent_class': agent_for_exp['agent_class'],
                     'hyperparameters': agent_for_exp['hyperparameters'],
@@ -168,7 +194,7 @@ if __name__ == "__main__":
     for index, device in enumerate(device_list):
         print(f"device : {device} will deal with indexes "
               f"{index * num_exp_per_device} - {(index + 1) * num_exp_per_device}")
-        if index * num_exp_per_device >= len(launch_list):
+        if index * num_exp_per_device + 1 >= len(launch_list):
             break
         process_list.append(Process(
             target=_exp_worker_function,
