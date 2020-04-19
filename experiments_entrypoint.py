@@ -93,18 +93,20 @@ def create_single_launch_name(env_config: Dict, agent_class_name: str) -> str:
 
 def launch(exp_config: Dict[str, Any]) -> None:
 
-    for key, value in exp_config.items():
-        print(key)
-        print(value)
-        print()
+    # for key, value in exp_config.items():
+    #     print(key)
+    #     print(value)
+    #     print()
 
     final_agent_config = make_single_config(exp_config['common_config'])
     changed_env_config = deep_dict_update(exp_config['env_config'], exp_config['env_change'])
+    launch_note = create_single_launch_name(changed_env_config, exp_config['agent_class_name'])
+    launch_id = exp_config['exp_series_name'] + '__' + exp_config['agent_class_name'] + '__' + str(np.random.randint(0, 10**6))
+    final_agent_config.name = launch_id
 
     final_agent_config.record_animation = True
     final_agent_config.device = exp_config['device']
 
-    launch_name = create_single_launch_name(changed_env_config, exp_config['agent_class_name'])
     final_agent_config.table_path = os.path.join('exp_tables', exp_config['exp_series_name'])
     if not os.path.exists(final_agent_config.table_path):
         os.makedirs(final_agent_config.table_path)
@@ -123,7 +125,8 @@ def launch(exp_config: Dict[str, Any]) -> None:
 
     wandb.init(
         project='EXP',
-        name=launch_name,
+        name=launch_id,
+        notes=launch_note,
         config={
             'exp_name': exp_config['exp_series_name'],
             'agent_class': final_agent_config.agent_class,
