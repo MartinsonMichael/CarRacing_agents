@@ -164,15 +164,22 @@ if __name__ == "__main__":
     num_exp_per_device = (len(launch_list) + len(device_list) - 1) // len(device_list)
     print(f"num_exp_per_device : {num_exp_per_device}")
 
+    process_list = []
     for index, device in enumerate(device_list):
         print(f"device : {device} will deal with indexes "
               f"{index * num_exp_per_device} - {(index + 1) * num_exp_per_device}")
-        
-        Process(
+        if index * num_exp_per_device >= len(launch_list):
+            break
+        process_list.append(Process(
             target=_exp_worker_function,
             args=(
                 launch_list[index * num_exp_per_device : (index + 1) * num_exp_per_device],
                 device,
                 _args.no_save_launch,
             )
-        )
+        ))
+        process_list[-1].run()
+
+    print(f"Wait for {process_list} process...")
+    for pr in process_list:
+        pr.join()
