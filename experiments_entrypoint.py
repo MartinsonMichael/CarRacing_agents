@@ -110,7 +110,7 @@ def launch(exp_config: Dict[str, Any]) -> None:
     )
     if not os.path.exists(final_agent_config.table_path):
         os.makedirs(final_agent_config.table_path)
-        
+
     final_agent_config.agent_class = exp_config['agent_class']
     final_agent_config.env_config = changed_env_config
     final_agent_config.mode = get_state_type_from_settings(changed_env_config)
@@ -150,7 +150,7 @@ if __name__ == "__main__":
     parser.add_argument('--no-record-animation', default=False, action='store_true', help='use icm')
     parser.add_argument('--name', type=str, default=None, help='name for experiment')
     parser.add_argument('--exp-settings', type=str, help='path to experiment config')
-    parser.add_argument('--device', type=str, help='name for experiment')
+    parser.add_argument('--device', type=str, default=None, help='name for experiment')
     parser.add_argument('--no-save-launch', default=False, action='store_true', help='use or not save launch')
     _args = parser.parse_args()
     _args.record_animation = not _args.no_record_animation
@@ -201,7 +201,7 @@ if __name__ == "__main__":
             args=(
                 launch_list[index * num_exp_per_device : (index + 1) * num_exp_per_device],
                 device,
-                _args.no_save_launch,
+                not _args.no_save_launch,
             )
         ))
         process_list[-1].run()
