@@ -30,9 +30,7 @@ def create_config(_args):
     env_settings_json = json.load(open(_args.env_settings))
 
     mode = get_state_type_from_settings(env_settings_json)
-    env_creator, config.phi = get_EnvCreator_with_memory_safe_combiner(env_settings_json, DiscreteWrapper)
-
-    config.environment_make_function = env_creator
+    config.environment_make_function, config.phi = get_EnvCreator_with_memory_safe_combiner(env_settings_json, DiscreteWrapper)
     config.test_environment_make_function = config.environment_make_function
     config.name = _args.name
     config.debug = _args.debug
@@ -56,22 +54,8 @@ def create_config(_args):
         "log_interval": 20,
         "animation_record_step_frequency": 10**3,
         "record_animation": _args.record_animation,
-        "use_parallel_envs": False,
-        "parallel_env_num": 6,
-        "track_progress_success_threshold": 0.95,
 
-        "replay_start_size": 2 * 10**4,
-        "num_steps_to_run": 50 * 10 ** 7,
-        "num_episodes_to_run": 150 * 10**3,
-        "max_episode_len": 500,
 
-        "discount_rate": 0.99,
-        "noisy_net_sigma": 0.5,
-
-        # parameters for Adam optimizer
-        "lr": 1e-4,
-        "gradient_clipping_norm": 0.3,
-        "betas": (0.9, 0.999),
     }
 
     if config.hyperparameters['device'] == 'cpu':

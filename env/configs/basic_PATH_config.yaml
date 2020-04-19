@@ -1,0 +1,25 @@
+# This file represent description of picture and tracks
+---
+# Path to folder with cars image and masks
+cars_path: "env/env_data/cars"
+
+# Indexes of cars images which will be used for agent's car
+agent_image_indexes: [0]
+
+# Paths to background image and CVAT annotation of this image
+background_path: "env/env_data/tracks/background_image_1520_1520.jpg"
+annotation_path: "env/env_data/tracks/named_track_annotation_v1.1.xml"
+# Possible tracks for this annotation:
+#   Agent: "rotate", "rotate-small", "rotate-over-line", "line"
+#   Bot: same as agent's + "bot-vertical-line", "bot-rotate-small", "bot-rotate-big"
+
+# Scales to resize background image and cars image,
+#   something like compression for better performance
+image_scale:
+  back_image_scale_factor: 0.12
+  car_image_scale_factor: 0.1
+
+  # Coefficient of image scaling (both background and cars) while record animation,
+  #   smth like trade-off between quality and disk memory efficiency.
+  image_scale_for_animation_records: 0.5
+...

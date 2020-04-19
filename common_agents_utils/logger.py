@@ -123,10 +123,7 @@ class Logger:
             'track_progress': float(self._keeping_stats.get('moving_track_progress', -1)),
             'total_grad_steps': int(self._keeping_stats.get('total_grad_steps', -1)),
             'env_state': state_record,
-            'track_type':
-                self.model_config.hyperparameters['track_type']
-                if 'track_type' in self.model_config.hyperparameters.keys()
-                else ', '.join(self.model_config.hyperparameters['env_settings']['agent_tracks']),
+            'track_type': ', '.join(self.model_config.hyperparameters['env_settings']['agent_tracks']),
             'icm': self.model_config.hyperparameters.get('use_icm', False),
             'lr': self.model_config.hyperparameters.get('lr', '--'),
         }

@@ -5,15 +5,34 @@ class Config(object):
     """Object to hold the config requirements for an agent/game"""
 
     def __init__(self):
-        self.environment_make_function = None
-        self.test_environment_make_function = None
-        self.name: str = ""
+        self.environment_make_function: Callable = None
+        self.test_environment_make_function: Callable = None
+        self.phi: Callable = None
+        self.env_config: Dict[str, Any] = {}
+
         self.hyperparameters: Dict[str, Any] = {}
-        self.agent_class: str = ""
-        self.tf_writer = None
-        self.debug: bool = False
-        self.table_path: str = "."
-        self.phi = None
+
+        self.mode: str = None
+        self.seed: int = None
+        self.device: str = None
+        self.agent_class: str = None
+
+        self.table_path: str = None
+        self.name: str = None
+        self.log_interval: int = None
+        self.animation_record_frequency: int = None
+        self.record_animation: bool = None
+
+    def __repr__(self) -> str:
+        s = ""
+        for attr in ['mode', 'seed', 'device', 'agent_class', 'table_path', 'name', 'log_interval',
+                     'animation_record_frequency', 'record_animation']:
+            value = self.__getattribute__(attr)
+            if value is None:
+                value = 'None'
+            s += attr + ' -> ' + str(value) + '\n'
+
+        return s
 
 
 def config_to_key_value(config: Config) -> Dict[str, Union[str, int, float]]:
