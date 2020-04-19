@@ -34,4 +34,4 @@ env_changes:
 # Local agent change
 agent_changes:
   td3:
-    - num_episodes_to_run: 20
+    - num_episodes_to_run: 200

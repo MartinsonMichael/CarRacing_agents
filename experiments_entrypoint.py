@@ -105,11 +105,7 @@ def launch(exp_config: Dict[str, Any]) -> None:
     final_agent_config.device = exp_config['device']
 
     launch_name = create_single_launch_name(changed_env_config, exp_config['agent_class_name'])
-    final_agent_config.table_path = os.path.join(
-        'exp_tables',
-        exp_config['exp_series_name'],
-        launch_name,
-    )
+    final_agent_config.table_path = os.path.join('exp_tables', exp_config['exp_series_name'])
     if not os.path.exists(final_agent_config.table_path):
         os.makedirs(final_agent_config.table_path)
 
