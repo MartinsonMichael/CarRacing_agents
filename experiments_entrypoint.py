@@ -106,12 +106,12 @@ def launch(exp_config: Dict[str, Any]) -> None:
     final_agent_config.table_path = os.path.join(
         'exp_tables',
         exp_config['exp_series_name'],
-        create_single_launch_name(changed_env_config, exp_config['agent_class']),
+        create_single_launch_name(changed_env_config, exp_config['agent_class_name']),
     )
     if not os.path.exists(final_agent_config.table_path):
         os.makedirs(final_agent_config.table_path)
 
-    final_agent_config.agent_class = exp_config['agent_class']
+    final_agent_config.agent_class = exp_config['agent_class_name']
     final_agent_config.env_config = changed_env_config
     final_agent_config.mode = get_state_type_from_settings(changed_env_config)
     final_agent_config.hyperparameters = \
