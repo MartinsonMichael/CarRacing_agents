@@ -5,17 +5,17 @@ parallel_env_num: 6
 track_progress_success_threshold: 0.95
 
 # If "use_parallel_envs" == false, "num_episodes_to_run" will be used, else "num_steps_to_run"
-num_steps_to_run: 50 * 10 ** 7
-num_episodes_to_run: 150 * 10**3
+num_steps_to_run: 500000000 # 50 * 10**7
+num_episodes_to_run: 150000
 
-replay_start_size: 2 * 10**4
+replay_start_size: 20000
 max_episode_len: 500
 
 discount_rate: 0.99
 noisy_net_sigma: 0.5
 
 # parameters for Adam optimizer
-lr: 1e-4
+lr: 0.0001
 gradient_clipping_norm: 0.3
 betas: [0.9, 0.999]
 ...

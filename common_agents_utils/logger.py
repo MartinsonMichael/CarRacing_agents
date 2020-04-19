@@ -93,11 +93,12 @@ class Logger:
             print('call wandb init, currently wandb log is disabled')
 
     def _publish_tensorboard(self) -> None:
-        if self.model_config.tf_writer is None:
-            return
-        with self.model_config.tf_writer.as_default():
-            for name, value in self._stats.items():
-                tf.summary.scalar(name=name, data=value, step=self.episode_number)
+        if hasattr(self.model_config, 'tf_writer'):
+            if self.model_config.tf_writer is None:
+                return
+            with self.model_config.tf_writer.as_default():
+                for name, value in self._stats.items():
+                    tf.summary.scalar(name=name, data=value, step=self.episode_number)
 
     def _publish_console(self) -> None:
         print("Episode %d\tR %.4f\tTime %.1f\tTrack %.2f" % (
@@ -111,7 +112,7 @@ class Logger:
     def _create_final_stat_dict(self) -> Dict[str, Union[int, float, str, bool]]:
 
         # create record about env observation format
-        state_config = self.model_config.hyperparameters['env_settings']['state_config']
+        state_config = self.model_config.env_config['state']
         state_record = 'Image' if state_config['picture'] is True else ""
         if len(state_config['vector_car_features']) != 0:
             if len(state_record) != 0:
@@ -123,7 +124,7 @@ class Logger:
             'track_progress': float(self._keeping_stats.get('moving_track_progress', -1)),
             'total_grad_steps': int(self._keeping_stats.get('total_grad_steps', -1)),
             'env_state': state_record,
-            'track_type': ', '.join(self.model_config.hyperparameters['env_settings']['agent_tracks']),
+            'agent_track': ', '.join(self.model_config.env_config['agent_tracks']),
             'icm': self.model_config.hyperparameters.get('use_icm', False),
             'lr': self.model_config.hyperparameters.get('lr', '--'),
         }

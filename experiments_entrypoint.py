@@ -2,6 +2,7 @@ import argparse
 import collections
 from typing import Callable, Any, Dict, List, Optional
 import yaml
+from multiprocessing import Process
 
 from common_agents_utils import Config
 from env.common_envs_utils.env_makers import get_state_type_from_settings, get_EnvCreator_with_memory_safe_combiner
@@ -58,7 +59,7 @@ def make_general_agents_config(exp_agents_config: Dict[str, str], common_config_
         agent_common_config = yaml.load(open(common_config_path, 'r'))
 
         general_agents_config_list.append({
-            'agent_name': agent_type,
+            'agent_class_name': agent_type,
             'common_config': agent_common_config,
             'agent_class': AGENT_TYPE_MAP[agent_type],
             'hyperparameters': agent_hyperparameters,
@@ -75,10 +76,6 @@ def deep_dict_update(d: Dict, u: Dict) -> Dict:
     return d
 
 
-def update_agent_config():
-    pass
-
-
 def launch(exp_config: Dict[str, Any]) -> None:
 
     for key, value in exp_config.items():
@@ -92,6 +89,7 @@ def launch(exp_config: Dict[str, Any]) -> None:
     final_agent_config.record_animation = True
     final_agent_config.device = exp_config['device']
 
+    final_agent_config.agent_class = exp_config['agent_class']
     final_agent_config.env_config = changed_env_config
     final_agent_config.mode = get_state_type_from_settings(changed_env_config)
     final_agent_config.hyperparameters = exp_config['hyperparameters']
@@ -109,16 +107,30 @@ def launch(exp_config: Dict[str, Any]) -> None:
     agent.train()
 
 
+def _exp_worker_function(exp_list: List[Dict], device: str, save_launch: bool) -> None:
+    for exp_config in exp_list:
+        exp_config['device'] = device
+
+        if save_launch:
+            try:
+                launch(exp_config)
+            except:
+                print(f"EXPERIMENT WORKER {device} : FAIL DURING EXPERIMENT")
+        else:
+            launch(exp_config)
+
+    print(f"EXPERIMENT WORKER {device} : DONE.")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--no-record-animation', default=False, action='store_true', help='use icm')
     parser.add_argument('--name', type=str, help='name for experiment')
     parser.add_argument('--exp-settings', type=str, help='path to experiment config')
     parser.add_argument('--device', type=str, help='name for experiment')
+    parser.add_argument('--no-save-launch', default=False, action='store_true', help='use or not save launch')
     _args = parser.parse_args()
     _args.record_animation = not _args.no_record_animation
-
-    devices = ['cuda:0', 'cuda:1', 'cuda:2', 'cuda:3']
 
     exp_series_config = yaml.load(open(_args.exp_settings, 'r'))
 
@@ -130,17 +142,36 @@ if __name__ == "__main__":
         exp_series_config['general_config'],
     )
 
+    launch_list = []
     for env_change in exp_series_config.get('env_changes', [{}]):
         for agent_for_exp in general_agents_config:
-            # for agent_change in exp_series_config.get('agent_changes', [{}]):
-            agent_change = {}
+            for agent_change in exp_series_config.get('agent_changes', {}).\
+                    get(agent_for_exp['agent_class_name'], [{}]):
 
-            launch({
-                'agent_class': agent_for_exp['agent_class'],
-                'hyperparameters': agent_for_exp['hyperparameters'],
-                'env_config': general_env_config,
-                'env_change': env_change,
-                'agent_change': agent_change,
-                'device': _args.device,
-                'common_config': agent_for_exp['common_config'],
-            })
+                launch_list.append({
+                    'agent_class_name': agent_for_exp['agent_class_name'],
+                    'agent_class': agent_for_exp['agent_class'],
+                    'hyperparameters': agent_for_exp['hyperparameters'],
+                    'env_config': general_env_config,
+                    'env_change': env_change,
+                    'agent_change': agent_change,
+                    'device': _args.device,
+                    'common_config': agent_for_exp['common_config'],
+                })
+
+    device_list = ['cuda:0', 'cuda:1', 'cuda:2', 'cuda:3']
+    num_exp_per_device = (len(launch_list) + len(device_list) - 1) // len(device_list)
+    print(f"num_exp_per_device : {num_exp_per_device}")
+
+    for index, device in enumerate(device_list):
+        print(f"device : {device} will deal with indexes "
+              f"{index * num_exp_per_device} - {(index + 1) * num_exp_per_device}")
+        
+        Process(
+            target=_exp_worker_function,
+            args=(
+                launch_list[index * num_exp_per_device : (index + 1) * num_exp_per_device],
+                device,
+                _args.no_save_launch,
+            )
+        )

@@ -69,7 +69,7 @@ class DataSupporter:
 
     @property
     def car_features_list(self) -> Set[str]:
-        return set(self._settings['state_config'].get('vector_car_features', []))
+        return set(self._settings['state'].get('vector_car_features', []))
 
     @property
     def get_background_image_scale(self) -> float:
@@ -327,7 +327,12 @@ class DataSupporter:
                 'line': self.convertIMG2PLAY(track_object['line']),
             }
 
-        self._agent_track_list = np.array(self._agent_track_list)
+        self._agent_track_list = np.array(list(self._agent_track_list))
+        self._bot_track_list = np.array(list(self._bot_track_list))
+
+        print(f"Agent track list : {type(self._agent_track_list)} {self._agent_track_list}")
+        print(f"Bot track list : {type(self._bot_track_list)} {self._bot_track_list}")
+
 
     @staticmethod
     def _dist(pointA, pointB) -> float:
