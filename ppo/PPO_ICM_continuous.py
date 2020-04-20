@@ -2,15 +2,13 @@ import os
 import pickle
 from collections import defaultdict
 import time
-from itertools import chain
 from multiprocessing import Process
 
-import gym
 import torch
 import torch.nn as nn
 import numpy as np
 
-from common_agents_utils import Config, ActorCritic, ICM, Torch_Arbitrary_Replay_Buffer
+from common_agents_utils import Config, ActorCritic, Torch_Arbitrary_Replay_Buffer
 from common_agents_utils.logger import Logger
 from env.common_envs_utils.visualizer import save_as_mp4
 
@@ -20,25 +18,23 @@ class PPO_ICM:
         self.name = config.name
         self.stat_logger: Logger = Logger(
             config,
-            log_interval=config.hyperparameters.get('log_interval', 20),
+            log_interval=config.log_interval,
         )
-        self.debug = config.debug
+        self.config = config
         self.hyperparameters = config.hyperparameters
         self.eps_clip = config.hyperparameters['eps_clip']
-        self.device = config.hyperparameters['device']
 
         self.test_env = config.test_environment_make_function()
         self.action_size = self.test_env.action_space.shape[0]
-        self._config = config
         self.env = None
-        self.create_env(config)
+        self.create_env()
 
         self.memory = Torch_Arbitrary_Replay_Buffer(
             buffer_size=10 ** 4,
             batch_size=10 ** 4,
             phi=config.phi,
             seed=0,
-            device=self.device,
+            device=self.config.device,
             sample_order=['state', 'action', 'reward', 'log_prob', 'done', 'next_state'],
             do_it_auto=False,
         )
@@ -61,7 +57,7 @@ class PPO_ICM:
             state_shape=state_shape,
             action_size=action_size,
             hidden_size=128,
-            device=self.device,
+            device=self.config.device,
             action_std=0.5,
             double_action_size_on_output=False,
         )
@@ -79,7 +75,7 @@ class PPO_ICM:
             state_shape=state_shape,
             action_size=action_size,
             hidden_size=128,
-            device=self.device,
+            device=self.config.device,
             action_std=0.5,
             double_action_size_on_output=False,
         )
@@ -92,22 +88,20 @@ class PPO_ICM:
         self._total_grad_steps = 0
         self.current_game_stats = None
         self.flush_stats()
-        self.tf_writer = config.tf_writer
 
         self.accumulated_reward_mean = None
         self.accumulated_reward_std = None
 
         self._exp_moving_track_progress = 0.0
 
-    def create_env(self, config):
-        self.env = config.environment_make_function()
+    def create_env(self):
+        self.env = self.config.environment_make_function()
 
-        if config.hyperparameters.get('seed', None) is not None:
-            print("Random Seed: {}".format(config.hyperparameters['seed']))
-            torch.manual_seed(config.hyperparameters['seed'])
-            self.env.seed(config.hyperparameters['seed'])
-            self.test_env.seed(config.hyperparameters['seed'])
-            np.random.seed(config.hyperparameters['seed'])
+        print("Random Seed: {}".format(self.config.hyperparameters['seed']))
+        torch.manual_seed(self.config.seed)
+        self.env.seed(self.config.seed)
+        self.test_env.seed(self.config.seed)
+        np.random.seed(self.config.seed)
 
     def update_old_policy(self):
         self.ac_old.load_state_dict(self.ac.state_dict())
@@ -166,7 +160,7 @@ class PPO_ICM:
             discount_reward.insert(0, [buffer_reward])
         discount_reward = torch.from_numpy(
             np.array(discount_reward, dtype=np.float32)
-        ).to(self.device).detach()
+        ).to(self.config.device).detach()
         discount_reward = (discount_reward - discount_reward.mean()) / (discount_reward.std() + 1e-5)
 
         self.current_game_stats.update({
@@ -174,29 +168,29 @@ class PPO_ICM:
             'discount_reward MAX': float(discount_reward.detach().cpu().numpy().max()),
         })
 
-        intrinsic_loss = 0
-        if self.hyperparameters['use_icm']:
-            self._icm.add_experience(
-                is_single=False,
-                state=states.detach().cpu().numpy(),
-                action=actions.detach().cpu().numpy(),
-                next_state=next_states.detach().cpu().numpy(),
-            )
-            intrinsic_reward, intrinsic_loss, intrinsic_stats = self._icm.get_intrinsic_reward_with_loss(
-                state=states, action=actions, next_state=next_states, return_stats=True, print_debug=True,
-            )
-            self.current_game_stats.update(intrinsic_stats)
-            discount_reward += torch.from_numpy(np.clip(intrinsic_reward, -3, 3)).to(self.device)
-
-            icm_update_stat = self._icm.update(return_stat=True)
-            self.current_game_stats.update(icm_update_stat)
-
-            self.current_game_stats.update({
-                'intrinsic_reward MEAN': intrinsic_reward.mean(),
-                'intrinsic_reward MAX': intrinsic_reward.max(),
-                'total_reward MEAN': float(discount_reward.detach().cpu().numpy().mean()),
-                'total_reward MAX': float(discount_reward.detach().cpu().numpy().max()),
-            })
+        # intrinsic_loss = 0
+        # if self.hyperparameters['use_icm']:
+        #     self._icm.add_experience(
+        #         is_single=False,
+        #         state=states.detach().cpu().numpy(),
+        #         action=actions.detach().cpu().numpy(),
+        #         next_state=next_states.detach().cpu().numpy(),
+        #     )
+        #     intrinsic_reward, intrinsic_loss, intrinsic_stats = self._icm.get_intrinsic_reward_with_loss(
+        #         state=states, action=actions, next_state=next_states, return_stats=True, print_debug=True,
+        #     )
+        #     self.current_game_stats.update(intrinsic_stats)
+        #     discount_reward += torch.from_numpy(np.clip(intrinsic_reward, -3, 3)).to(self.device)
+        #
+        #     icm_update_stat = self._icm.update(return_stat=True)
+        #     self.current_game_stats.update(icm_update_stat)
+        #
+        #     self.current_game_stats.update({
+        #         'intrinsic_reward MEAN': intrinsic_reward.mean(),
+        #         'intrinsic_reward MAX': intrinsic_reward.max(),
+        #         'total_reward MEAN': float(discount_reward.detach().cpu().numpy().mean()),
+        #         'total_reward MAX': float(discount_reward.detach().cpu().numpy().max()),
+        #     })
 
         sum_ppo_loss = 0.0
         sum_ppo_critic_loss = 0.0
@@ -231,10 +225,11 @@ class PPO_ICM:
 
             self.optimizer.zero_grad()
             if self.hyperparameters['use_icm']:
-                (loss.mean() + 0.5 * intrinsic_loss.mean()).backward(retain_graph=True)
-                torch.nn.utils.clip_grad_norm_(
-                    self._icm.parameters(), self.hyperparameters['icm_config'].get('icm_gradient_clipping', 1.0)
-                )
+                pass
+                # (loss.mean() + 0.5 * intrinsic_loss.mean()).backward(retain_graph=True)
+                # torch.nn.utils.clip_grad_norm_(
+                #     self._icm.parameters(), self.hyperparameters['icm_config'].get('icm_gradient_clipping', 1.0)
+                # )
             else:
                 loss.mean().backward()
             torch.nn.utils.clip_grad_norm_(self.ac.parameters(), self.hyperparameters['gradient_clipping_norm'])
@@ -269,8 +264,8 @@ class PPO_ICM:
 
                 self.flush_stats()
 
-                if self.episode_number % self.hyperparameters['save_frequency_episode'] == 0:
-                    self.save()
+                # if self.episode_number % self.hyperparameters['save_frequency_episode'] == 0:
+                #     self.save()
         finally:
             self.stat_logger.on_training_end()
             self.save(suffix='final')
@@ -279,8 +274,8 @@ class PPO_ICM:
     def run_one_episode(self):
         state = self.env.reset()
         record_anim = (
-                self.episode_number % self.hyperparameters.get('animation_record_frequency', 1e6) == 0 and
-                self.hyperparameters.get('record_animation', False)
+            self.episode_number % self.config.animation_record_frequency == 0 and
+            self.config.record_animation
         )
 
         done = False
@@ -291,7 +286,7 @@ class PPO_ICM:
 
         while not done:
             # Running policy_old:
-            action, log_prob, _ = self.ac.sample_action(self._config.phi(state), to_numpy=True, remove_batch=True)
+            action, log_prob, _ = self.ac.sample_action(self.config.phi(state), to_numpy=True, remove_batch=True)
             next_state, reward, done, info = self.env.step(action)
             self.global_step_number += 1
             self.update_current_game_stats(reward, done, info)

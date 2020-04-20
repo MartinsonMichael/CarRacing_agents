@@ -26,17 +26,13 @@ EPSILON = 1e-6
 
 
 class SAC:
-    """Soft Actor-Critic model based on the 2018 paper https://arxiv.org/abs/1812.05905 and on this github implementation
-      https://github.com/pranz24/pytorch-soft-actor-critic. It is an actor-critic algorithm where the agent is also trained
-      to maximise the entropy of their actions as well as their cumulative reward"""
-    agent_name = "SAC"
 
     def __init__(self, config: Config):
         self.name = config.name
-        self.tf_writer = config.tf_writer
+        # self.tf_writer = config.tf_writer
+        self.config = config
         self.environment = config.environment_make_function()
         self.action_size = self.environment.action_space.shape[0]
-        self.device = config.hyperparameters['device']
 
         self.hyperparameters = config.hyperparameters
 
@@ -46,13 +42,13 @@ class SAC:
             state_description=self.environment.observation_space,
             action_size=self.action_size,
             hidden_size=256,
-            device=self.device,
+            device=self.config.device,
         )
         self.critic_local_2 = QNet(
             state_description=self.environment.observation_space,
             action_size=self.action_size,
             hidden_size=256,
-            device=self.device,
+            device=self.config.device,
         )
 
         self.critic_optimizer = torch.optim.Adam(
@@ -70,13 +66,13 @@ class SAC:
             state_description=self.environment.observation_space,
             action_size=self.action_size,
             hidden_size=256,
-            device=self.device,
+            device=self.config.device,
         )
         self.critic_target_2 = QNet(
             state_description=self.environment.observation_space,
             action_size=self.action_size,
             hidden_size=256,
-            device=self.device,
+            device=self.config.device,
         )
         SAC.copy_model_over(self.critic_local, self.critic_target)
         SAC.copy_model_over(self.critic_local_2, self.critic_target_2)
@@ -85,7 +81,7 @@ class SAC:
             self.hyperparameters["buffer_size"],
             self.hyperparameters["batch_size"],
             self.hyperparameters["seed"],
-            device=self.device,
+            device=self.config.device,
             state_extractor=get_state_combiner_by_settings_file(self.hyperparameters['env_settings_file_path']),
             state_producer=from_image_vector_to_combined_state,
         )
@@ -94,7 +90,7 @@ class SAC:
             state_description=self.environment.observation_space,
             action_size=self.action_size,
             hidden_size=256,
-            device=self.device,
+            device=self.config.device,
         )
         self.actor_optimizer = torch.optim.Adam(
             self.actor_local.parameters(),

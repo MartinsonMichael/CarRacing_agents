@@ -15,6 +15,7 @@ class Config(object):
         self.mode: str = None
         self.seed: int = None
         self.device: str = None
+        self.rainbow_gpu: int = None
         self.agent_class: str = None
 
         self.table_path: str = None

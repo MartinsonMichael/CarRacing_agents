@@ -28,9 +28,10 @@ class Rainbow:
 
         self.stat_logger: Logger = Logger(
             config,
-            log_interval=config.hyperparameters['log_interval'] * self.hyperparameters['parallel_env_num'],
+            log_interval=config.log_interval *\
+                         (1 + self.hyperparameters['parallel_env_num'] * self.hyperparameters['parallel_env_num']),
         )
-        if self.hyperparameters.get('use_parallel_envs', False):
+        if self.hyperparameters['use_parallel_envs']:
             self.env = SubprocVecEnv_tf2(
                 [
                     config.environment_make_function
@@ -44,7 +45,7 @@ class Rainbow:
         self.test_env = config.test_environment_make_function()
 
         # function to prepare row observation to chainer format
-        print(f"rainbow mode : {self.hyperparameters['mode']}")
+        print(f"rainbow mode : {self.config.mode}")
 
         n_actions = self.test_env.action_space.n
 
@@ -81,7 +82,7 @@ class Rainbow:
         )
 
         self.agent = agents.CategoricalDoubleDQN(
-            q_func, opt, rbuf, gpu=self.hyperparameters['gpu'], gamma=0.99,
+            q_func, opt, rbuf, gpu=self.config.rainbow_gpu, gamma=0.99,
             explorer=explorer, minibatch_size=32,
             replay_start_size=self.hyperparameters['replay_start_size'],
             target_update_interval=32000,
@@ -90,14 +91,14 @@ class Rainbow:
             phi=config.phi,
         )
 
-        self.folder_save_path = os.path.join('model_saves', 'Rainbow', self.name)
+        # self.folder_save_path = os.path.join('model_saves', 'Rainbow', self.name)
         self.episode_number = 0
         self.global_step_number = 0
         self.batch_step_number = 0
         self._total_grad_steps = 0
         self.current_game_stats = None
         self.flush_stats()
-        self.tf_writer = config.tf_writer
+        # self.tf_writer = config.tf_writer
 
         self.accumulated_reward_mean = None
         self.accumulated_reward_std = None
@@ -136,11 +137,12 @@ class Rainbow:
                     'total_grad_steps': self._total_grad_steps,
                 })
                 self.stat_logger.log_it(self.current_game_stats)
-                if self._exp_moving_track_progress >= self.hyperparameters.get('track_progress_success_threshold', 10):
+                if self._exp_moving_track_progress >= self.hyperparameters['track_progress_success_threshold']:
                     break
                 self.flush_stats()
 
     def _batch_train(self) -> None:
+        raise NotImplemented
         num_env = self.hyperparameters['parallel_env_num']
         total_reward = np.zeros(num_env, dtype=np.float32)
         episode_len = np.zeros(num_env, dtype=np.int32)
@@ -153,14 +155,14 @@ class Rainbow:
             actions = self.agent.batch_act_and_train(state)
             state, reward, dones, infos = self.env.step(actions)
 
-            print('state')
-            print(state)
-            print(type(state), state.shape)
-            print(type(state[0]), state[0].shape)
-            print(type(state[0][0]), state[0][0].shape)
-            print(type(state[0][1]), state[0][1].shape)
-
-            exit(1)
+            # print('state')
+            # print(state)
+            # print(type(state), state.shape)
+            # print(type(state[0]), state[0].shape)
+            # print(type(state[0][0]), state[0][0].shape)
+            # print(type(state[0][1]), state[0][1].shape)
+            #
+            # exit(1)
 
             print(f"make action, end : {np.sum(dones)}")
 
@@ -242,8 +244,8 @@ class Rainbow:
 
     def run_one_episode(self):
         record_anim = (
-            self.episode_number % self.hyperparameters.get('animation_record_frequency', 1e6) == 0 and
-            self.hyperparameters.get('record_animation', False)
+            self.episode_number % self.config.animation_record_frequency == 0 and
+            self.config.record_animation
         )
 
         done = False

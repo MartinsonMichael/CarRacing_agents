@@ -9,6 +9,7 @@ import yaml
 from multiprocessing import Process
 
 from common_agents_utils import Config
+from env import DiscreteWrapper
 from env.common_envs_utils.env_makers import get_state_type_from_settings, get_EnvCreator_with_memory_safe_combiner
 from ppo.PPO_ICM_continuous import PPO_ICM
 from rainbow.rainbow import Rainbow
@@ -106,6 +107,8 @@ def launch(exp_config: Dict[str, Any]) -> None:
 
     final_agent_config.record_animation = True
     final_agent_config.device = exp_config['device']
+    # setup gpu params for rainbow, -1 for cpu, and cuda card number for gpu
+    final_agent_config.rainbow_gpu = -1 if exp_config['device'] == 'cpu' else int(exp_config['device'].split(':')[1])
 
     final_agent_config.table_path = os.path.join('exp_tables', exp_config['exp_series_name'])
     if not os.path.exists(final_agent_config.table_path):
@@ -116,8 +119,12 @@ def launch(exp_config: Dict[str, Any]) -> None:
     final_agent_config.mode = get_state_type_from_settings(changed_env_config)
     final_agent_config.hyperparameters = \
         deep_dict_update(exp_config['hyperparameters'], exp_config['agent_change'])
-    final_agent_config.environment_make_function, final_agent_config.phi = \
-        get_EnvCreator_with_memory_safe_combiner(changed_env_config)
+    if exp_config['agent_class_name'] == 'rainbow':
+        final_agent_config.environment_make_function, final_agent_config.phi = \
+            get_EnvCreator_with_memory_safe_combiner(changed_env_config, DiscreteWrapper)
+    else:
+        final_agent_config.environment_make_function, final_agent_config.phi = \
+            get_EnvCreator_with_memory_safe_combiner(changed_env_config)
     final_agent_config.test_environment_make_function = final_agent_config.environment_make_function
 
     print('final config:')

@@ -7,7 +7,7 @@ env:
 
 # Agents to use, with theirs configs
 agents:
-  td3: td3/td3_config.yaml
+  rainbow: rainbow/rainbow_config.yaml
 
 # Common part of logger config
 general_config: general_config.yaml
@@ -23,15 +23,18 @@ general_config: general_config.yaml
 env_changes:
   - state:
       picture: false
-      vector_car_features: ["hull_angle", "hull_position", "checkpoint_sensor", "car_speed"]
-  - state:
-      picture: true
-      vector_car_features: ["hull_angle", "hull_position", "checkpoint_sensor", "car_speed"]
+      vector_car_features: ["hull_angle", "hull_position", "car_speed"]
+
   - state:
       picture: true
       vector_car_features: []
+      
+  - state:
+      picture: true
+      vector_car_features: ["hull_angle", "hull_position", "car_speed"]
+
 
 # Local agent change
-agent_changes:
-  td3:
-    - num_episodes_to_run: 80
+#agent_changes:
+#  td3:
+#    - num_episodes_to_run: 200
