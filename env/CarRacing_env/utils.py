@@ -330,8 +330,8 @@ class DataSupporter:
         self._agent_track_list = np.array(list(self._agent_track_list))
         self._bot_track_list = np.array(list(self._bot_track_list))
 
-        print(f"Agent track list : {type(self._agent_track_list)} {self._agent_track_list}")
-        print(f"Bot track list : {type(self._bot_track_list)} {self._bot_track_list}")
+        # print(f"Agent track list : {type(self._agent_track_list)} {self._agent_track_list}")
+        # print(f"Bot track list : {type(self._bot_track_list)} {self._bot_track_list}")
 
 
     @staticmethod
@@ -341,12 +341,12 @@ class DataSupporter:
         """
         return np.sqrt(np.sum((pointA - pointB)**2))
 
-    @staticmethod
-    def _expand_track(track_obj, max_dist: float = 10.0) -> Dict[str, Any]:
+    def _expand_track(self, track_obj, max_dist: float = 10.0) -> Dict[str, Any]:
         """
         Insert point in existing polyline, while dist between point more then max_dist.
         As a result track_obj['line'] will contain more points.
         """
+        max_dist /= self._background_image.shape[0] / self._playfield_size[0]
         track = np.array(track_obj['line'])
         expanded_track = [track[0]]
 
@@ -398,8 +398,10 @@ class DataSupporter:
             index = np.random.choice(self._bot_track_list)
             track = self._tracks[index]
 
+        # track['line'] = self.convertIMG2PLAY(track['line'])
+
         if expand_points is not None:
-            return DataSupporter._expand_track(track, expand_points)
+            return self._expand_track(track, expand_points)
         return track
 
     @staticmethod

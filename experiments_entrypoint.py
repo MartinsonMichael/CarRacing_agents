@@ -25,7 +25,7 @@ AGENT_TYPE_MAP = {
 }
 
 
-def make_general_env_config(exp_env_config: Dict[str, str]) -> Dict[str, Any]:
+def make_common_env_config(exp_env_config: Dict[str, str]) -> Dict[str, Any]:
     assert isinstance(exp_env_config, dict)
     for config_part_name in ['path_config', 'reward_config', 'state_config']:
         assert config_part_name in exp_env_config.keys()
@@ -200,7 +200,7 @@ def main(_args):
 
     print(exp_series_config)
 
-    general_env_config = make_general_env_config(exp_series_config['env'])
+    general_env_config = make_common_env_config(exp_series_config['env'])
     general_agents_config = make_general_agents_config(
         exp_series_config['agents'],
         exp_series_config['general_config'],

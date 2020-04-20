@@ -1,5 +1,8 @@
 import argparse
 import time
+from typing import Dict, Any
+
+import yaml
 from gym.envs.classic_control.rendering import SimpleImageViewer
 from pyglet.window import key
 
@@ -48,6 +51,22 @@ def key_release(k, modifier):
         action = 0
 
 
+def make_common_env_config(exp_env_config: Dict[str, str]) -> Dict[str, Any]:
+    assert isinstance(exp_env_config, dict)
+    for config_part_name in ['path_config', 'reward_config', 'state_config']:
+        assert config_part_name in exp_env_config.keys()
+        assert isinstance(exp_env_config[config_part_name], str)
+
+    env_config = dict()
+    for config_part_name in ['path_config', 'reward_config', 'state_config']:
+        config_part = yaml.load(open(exp_env_config[config_part_name], 'r'))
+        env_config.update(config_part)
+
+    print(env_config)
+
+    return env_config
+
+
 def main():
     global restart, action
     parser = argparse.ArgumentParser()
@@ -57,16 +76,20 @@ def main():
                         help="do no restart simulation after finish")
     parser.add_argument("--stop-on-fail", action='store_true', default=False,
                         help="do not restart simulation after fail")
-    parser.add_argument(
-        "--env-settings",
-        type=str,
-        default='settings_sets/env_settings__TEST.json',
-        help="debug mode"
-    )
+    parser.add_argument("--exp-settings", type=str)
+    parser.add_argument("--env-settings", type=str, help="debug mode")
     args = parser.parse_args()
 
-    # create env by settings
-    env = CarRacingEnv(args.env_settings)
+    if args.exp_settings is not None:
+        print('make env by exp-settings')
+        env = CarRacingEnv(make_common_env_config(yaml.load(open(args.exp_settings, 'r'))['env']))
+    elif args.env_settings is not None:
+        print('make env by json settings')
+        # create env by settings
+        env = CarRacingEnv(args.env_settings)
+    else:
+        raise ValueError('provide settings to use')
+
     env = DiscreteWrapper(env)
 
     env.reset()

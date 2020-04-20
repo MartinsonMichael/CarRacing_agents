@@ -1,4 +1,3 @@
-import json
 from typing import Union, Dict, Any
 from collections import deque
 import numpy as np
@@ -14,6 +13,9 @@ class Rewarder:
         self._settings_done: Dict[str, Any] = settings['done']
         self._finish_times: int = 0
         self._prev_coordinates = deque(maxlen=10)
+
+        print(f"reward : {settings['reward']}")
+        print(f"done : {settings['done']}")
 
     def get_step_reward(self, car_stats: Dict[str, Any]) -> float:
         """
