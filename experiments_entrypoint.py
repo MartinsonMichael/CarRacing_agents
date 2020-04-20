@@ -158,18 +158,35 @@ def _exp_worker_function(exp_list: List[Dict], device: str, save_launch: bool) -
     print(f"EXPERIMENT WORKER {device} : DONE.")
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--no-record-animation', default=False, action='store_true', help='use icm')
-    parser.add_argument('--name', type=str, default=None, help='name for experiment')
-    parser.add_argument('--exp-settings', type=str, help='path to experiment config')
-    parser.add_argument('--device', type=str, default=None, help='name for experiment')
-    parser.add_argument('--no-save-launch', default=False, action='store_true', help='use or not save launch')
-    _args = parser.parse_args()
-    _args.record_animation = not _args.no_record_animation
+def multi_procecc_launch(device_list, launch_list) -> None:
+    num_exp_per_device = (len(launch_list) + len(device_list) - 1) // len(device_list)
+    print(f"num_exp_per_device : {num_exp_per_device}")
 
-    if _args.name is None:
-        raise ValueError('set name')
+    process_list = []
+    for index, device in enumerate(device_list):
+        print(f"device : {device} will deal with indexes "
+              f"{index * num_exp_per_device} - {(index + 1) * num_exp_per_device}")
+        if index * num_exp_per_device + 1 >= len(launch_list):
+            break
+        process_list.append(Process(
+            target=_exp_worker_function,
+            args=(
+                launch_list[index * num_exp_per_device: (index + 1) * num_exp_per_device],
+                device,
+                not _args.no_save_launch,
+            )
+        ))
+        process_list[-1].start()
+
+    print(f"Wait for {process_list} process...")
+    for pr in process_list:
+        try:
+            pr.join()
+        except:
+            pass
+
+
+def main(_args):
 
     exp_series_config = yaml.load(open(_args.exp_settings, 'r'))
 
@@ -199,29 +216,26 @@ if __name__ == "__main__":
                     'common_config': agent_for_exp['common_config'],
                 })
 
-    device_list = ['cuda:0', 'cuda:1', 'cuda:2', 'cuda:3']
-    num_exp_per_device = (len(launch_list) + len(device_list) - 1) // len(device_list)
-    print(f"num_exp_per_device : {num_exp_per_device}")
+    if _args.multi_launch:
+        device_list = ['cuda:0', 'cuda:1', 'cuda:2', 'cuda:3']
+        multi_procecc_launch(device_list, launch_list)
+        return
+    else:
+        _exp_worker_function(launch_list, _args.device, not _args.no_save_launch)
 
-    process_list = []
-    for index, device in enumerate(device_list):
-        print(f"device : {device} will deal with indexes "
-              f"{index * num_exp_per_device} - {(index + 1) * num_exp_per_device}")
-        if index * num_exp_per_device + 1 >= len(launch_list):
-            break
-        process_list.append(Process(
-            target=_exp_worker_function,
-            args=(
-                launch_list[index * num_exp_per_device : (index + 1) * num_exp_per_device],
-                device,
-                not _args.no_save_launch,
-            )
-        ))
-        process_list[-1].start()
 
-    print(f"Wait for {process_list} process...")
-    for pr in process_list:
-        try:
-            pr.join()
-        except:
-            pass
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--no-record-animation', default=False, action='store_true', help='use icm')
+    parser.add_argument('--name', type=str, default=None, help='name for experiment')
+    parser.add_argument('--exp-settings', type=str, help='path to experiment config')
+    parser.add_argument('--device', type=str, default=None, help='name for experiment')
+    parser.add_argument('--no-save-launch', default=False, action='store_true', help='use or not save launch')
+    parser.add_argument('--multi-launch', default=False, action='store_true')
+    _args = parser.parse_args()
+    _args.record_animation = not _args.no_record_animation
+
+    if _args.name is None:
+        raise ValueError('set name')
+
+    main(_args)
