@@ -14,9 +14,6 @@ class Rewarder:
         self._finish_times: int = 0
         self._prev_coordinates = deque(maxlen=10)
 
-        print(f"reward : {settings['reward']}")
-        print(f"done : {settings['done']}")
-
     def get_step_reward(self, car_stats: Dict[str, Any]) -> float:
         """
         function to compute reward for current step
