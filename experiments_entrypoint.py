@@ -132,6 +132,7 @@ def launch(exp_config: Dict[str, Any]) -> None:
 
     wandb.init(
         project='EXP',
+        reinit=True,
         name=launch_id,
         notes=launch_note,
         config={
