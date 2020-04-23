@@ -1,0 +1,87 @@
+# Global settings
+env:
+  path_config: env/configs/basic_PATH_config.yaml
+  reward_config: env/configs/minimal_REWARD_config.yaml
+  state_config: env/configs/vector_line_STATE_config.yaml
+
+
+# Agents to use, with theirs configs
+agents:
+  ppo: ppo/ppo_config.yaml
+  rainbow: rainbow/rainbow_config.yaml
+  td3: td3/td3_config.yaml
+
+
+
+# Common part of logger config
+general_config: general_config.yaml
+
+#   All possible features names:
+#     'hull_position', 'hull_angle', 'car_speed', 'wheels_positions',
+#     'track_sensor', 'road_sensor', 'finish_sensor', 'cross_road_sensor',
+#     'collide_sensor', 'checkpoint_sensor',
+#     'car_radar_1', 'car_radar_2', 'car_radar_3',
+#     'time'
+
+# Local env changes
+
+repeat_num: 4
+
+env_changes:
+  # line track
+  - state:
+      vector_car_features: ["hull_position"]
+  - state:
+      vector_car_features: ["wheels_positions"]
+  - state:
+      vector_car_features: ["hull_angle", "hull_position"]
+  - state:
+      vector_car_features: ["hull_angle", "wheels_positions"]
+  - state:
+      vector_car_features: ["hull_angle", "hull_position", "checkpoint_sensor"]
+  - state:
+      vector_car_features: ["hull_angle", "hull_position", "car_speed"]
+  - state:
+      vector_car_features: ["hull_angle", "hull_position", "wheels_positions"]
+  - state:
+      vector_car_features: ["hull_angle", "hull_position", "track_sensor"]
+  - state:
+      vector_car_features: ["hull_angle", "hull_position", "time"]
+
+
+  # rotate track / state same as line track
+  - state:
+      vector_car_features: ["hull_position"]
+    agent_tracks : ["rotate"]
+
+  - state:
+      vector_car_features: ["wheels_positions"]
+    agent_tracks : ["rotate"]
+
+  - state:
+      vector_car_features: ["hull_angle", "hull_position"]
+    agent_tracks : ["rotate"]
+
+  - state:
+      vector_car_features: ["hull_angle", "wheels_positions"]
+    agent_tracks : ["rotate"]
+
+  - state:
+      vector_car_features: ["hull_angle", "hull_position", "checkpoint_sensor"]
+    agent_tracks : ["rotate"]
+
+  - state:
+      vector_car_features: ["hull_angle", "hull_position", "car_speed"]
+    agent_tracks : ["rotate"]
+
+  - state:
+      vector_car_features: ["hull_angle", "hull_position", "wheels_positions"]
+    agent_tracks : ["rotate"]
+
+  - state:
+      vector_car_features: ["hull_angle", "hull_position", "track_sensor"]
+    agent_tracks : ["rotate"]
+
+  - state:
+      vector_car_features: ["hull_angle", "hull_position", "time"]
+    agent_tracks : ["rotate"]

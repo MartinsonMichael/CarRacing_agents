@@ -205,22 +205,23 @@ def main(_args):
     )
 
     launch_list = []
-    for env_change in exp_series_config.get('env_changes', [{}]):
-        for agent_for_exp in general_agents_config:
-            for agent_change in exp_series_config.get('agent_changes', {}).\
-                    get(agent_for_exp['agent_class_name'], [{}]):
+    for _ in range(exp_series_config.get('repeat_num', 1)):
+        for env_change in exp_series_config.get('env_changes', [{}]):
+            for agent_for_exp in general_agents_config:
+                for agent_change in exp_series_config.get('agent_changes', {}).\
+                        get(agent_for_exp['agent_class_name'], [{}]):
 
-                launch_list.append({
-                    'exp_series_name': _args.name,
-                    'agent_class_name': agent_for_exp['agent_class_name'],
-                    'agent_class': agent_for_exp['agent_class'],
-                    'hyperparameters': agent_for_exp['hyperparameters'],
-                    'env_config': general_env_config,
-                    'env_change': env_change,
-                    'agent_change': agent_change,
-                    'device': _args.device,
-                    'common_config': agent_for_exp['common_config'],
-                })
+                    launch_list.append({
+                        'exp_series_name': _args.name,
+                        'agent_class_name': agent_for_exp['agent_class_name'],
+                        'agent_class': agent_for_exp['agent_class'],
+                        'hyperparameters': agent_for_exp['hyperparameters'],
+                        'env_config': general_env_config,
+                        'env_change': env_change,
+                        'agent_change': agent_change,
+                        'device': _args.device,
+                        'common_config': agent_for_exp['common_config'],
+                    })
 
     if _args.multi_launch:
         device_list = ['cuda:0', 'cuda:1', 'cuda:2', 'cuda:3']
