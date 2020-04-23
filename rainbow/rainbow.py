@@ -188,6 +188,7 @@ class Rainbow:
             self.update_current_game_stats(reward[0], dones[0], infos[0])
 
             if self.global_step_number > self.hyperparameters['num_steps_to_run']:
+                print("exit due to 'num_steps_to_run'")
                 break
 
             # if self.global_step_number % self.hyperparameters['save_frequency_episode'] == 0:
