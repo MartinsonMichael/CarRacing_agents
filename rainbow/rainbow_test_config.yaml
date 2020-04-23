@@ -5,8 +5,8 @@ parallel_env_num: 6
 track_progress_success_threshold: 0.95
 
 # If "use_parallel_envs" == false, "num_episodes_to_run" will be used, else "num_steps_to_run"
-num_steps_to_run: 5000
-num_episodes_to_run: 200
+num_steps_to_run: 2000
+num_episodes_to_run: 50
 
 replay_start_size: 500
 max_episode_len: 500

@@ -29,7 +29,7 @@ class Rainbow:
         self.stat_logger: Logger = Logger(
             config,
             log_interval=config.log_interval *\
-                         (1 + self.hyperparameters['parallel_env_num'] * self.hyperparameters['parallel_env_num']),
+                         (1 + self.hyperparameters['parallel_env_num'] * int(self.hyperparameters['use_parallel_envs'])),
         )
         if self.hyperparameters['use_parallel_envs']:
             self.env = SubprocVecEnv_tf2(
@@ -125,6 +125,7 @@ class Rainbow:
             self._batch_train()
         else:
             print('Rainbow single env training')
+            print(f"num episodes to run : {self.hyperparameters['num_episodes_to_run']}")
             for _ in range(self.hyperparameters['num_episodes_to_run']):
                 self.run_one_episode()
                 self._exp_moving_track_progress = (
