@@ -106,6 +106,7 @@ def launch(exp_config: Dict[str, Any]) -> None:
     final_agent_config.name = launch_id
 
     final_agent_config.record_animation = True
+    final_agent_config.seed = np.random.randint(0, 2**16)
     final_agent_config.device = exp_config['device']
     # setup gpu params for rainbow, -1 for cpu, and cuda card number for gpu
     final_agent_config.rainbow_gpu = -1 if exp_config['device'] == 'cpu' else int(exp_config['device'].split(':')[1])
@@ -166,7 +167,7 @@ def _exp_worker_function(exp_list: List[Dict], device: str, save_launch: bool) -
     print(f"EXPERIMENT WORKER {device} : DONE.")
 
 
-def multi_procecc_launch(device_list, launch_list) -> None:
+def multi_process_launch(device_list, launch_list) -> None:
     num_exp_per_device = (len(launch_list) + len(device_list) - 1) // len(device_list)
     print(f"num_exp_per_device : {num_exp_per_device}")
 
@@ -195,10 +196,7 @@ def multi_procecc_launch(device_list, launch_list) -> None:
 
 
 def main(_args):
-
     exp_series_config = yaml.load(open(_args.exp_settings, 'r'))
-
-    print(exp_series_config)
 
     general_env_config = make_common_env_config(exp_series_config['env'])
     general_agents_config = make_general_agents_config(
@@ -226,7 +224,7 @@ def main(_args):
 
     if _args.multi_launch:
         device_list = ['cuda:0', 'cuda:1', 'cuda:2', 'cuda:3']
-        multi_procecc_launch(device_list, launch_list)
+        multi_process_launch(device_list, launch_list)
         return
     else:
         _exp_worker_function(launch_list, _args.device, not _args.no_save_launch)

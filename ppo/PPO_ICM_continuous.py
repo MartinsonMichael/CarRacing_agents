@@ -97,7 +97,6 @@ class PPO_ICM:
     def create_env(self):
         self.env = self.config.environment_make_function()
 
-        print("Random Seed: {}".format(self.config.hyperparameters['seed']))
         torch.manual_seed(self.config.seed)
         self.env.seed(self.config.seed)
         self.test_env.seed(self.config.seed)
