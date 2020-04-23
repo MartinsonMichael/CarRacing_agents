@@ -11,6 +11,7 @@ from chainerrl import agents
 from chainerrl import explorers
 from chainerrl import links
 from chainerrl import replay_buffer
+from chainerrl.experiments import train_agent_with_evaluation
 
 from common_agents_utils import Config, SubprocVecEnv_tf2
 from common_agents_utils.logger import Logger
@@ -68,7 +69,7 @@ class Rainbow:
         #     os.path.join(args.outdir, 'model'))
 
         # Use the same hyper parameters as https://arxiv.org/abs/1707.06887
-        opt = chainer.optimizers.Adam(6.25e-5, eps=1.5 * 10 ** -4)
+        opt = chainer.optimizers.Adam(self.hyperparameters['lr'], eps=1.5 * 10 ** -4)
         opt.setup(q_func)
 
         # Prioritized Replay
@@ -143,7 +144,7 @@ class Rainbow:
                 self.flush_stats()
 
     def _batch_train(self) -> None:
-        raise NotImplemented
+        # raise NotImplemented
         num_env = self.hyperparameters['parallel_env_num']
         total_reward = np.zeros(num_env, dtype=np.float32)
         episode_len = np.zeros(num_env, dtype=np.int32)
@@ -234,7 +235,6 @@ class Rainbow:
 
             if self.batch_step_number % self.hyperparameters['animation_record_step_frequency'] == 0:
                 self._run_eval_episode()
-
 
         # finally:
         #     self.stat_logger.on_training_end()
