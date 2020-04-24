@@ -21,8 +21,11 @@ class StateAdaptiveActor(nn.Module):
         if self.is_state_picture:
             self._state_layers = nn.Sequential(
                 nn.Conv2d(state_shape[0], 32, (8, 8), (4, 4)),
+                torch.nn.ReLU(),
                 nn.Conv2d(32, 64, (4, 4), (2, 2)),
+                torch.nn.ReLU(),
                 nn.Conv2d(64, 64, (3, 3), (1, 1)),
+                torch.nn.ReLU(),
             ).to(self.device)
         else:
             self._state_layers = nn.Sequential(
