@@ -7,7 +7,7 @@ env:
 
 # Agents to use, with theirs configs
 agents:
-  td3: td3/td3_config.yaml
+  td3: td3/td3_test_image_config.yaml
 
 # Common part of logger config
 general_config: general_config.yaml
