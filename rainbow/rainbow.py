@@ -121,6 +121,7 @@ class Rainbow:
         self.current_game_stats = defaultdict(float, {})
 
     def train(self) -> None:
+        print('Start to train Rainbow')
         if self.hyperparameters['use_parallel_envs']:
             print('Rainbow  batch+env multiprocessing training start')
             self._batch_train()

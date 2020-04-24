@@ -243,6 +243,7 @@ class PPO_ICM:
         self.update_old_policy()
 
     def train(self):
+        print('Start to train PPO')
         try:
             while True:
 

@@ -146,6 +146,7 @@ class TD3:
                 target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
 
     def train(self) -> None:
+        print('Start to train TD3')
         try:
             while True:
 
