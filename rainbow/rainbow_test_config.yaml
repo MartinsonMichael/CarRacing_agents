@@ -1,12 +1,10 @@
 # Config for Rainbow parameters
 ---
-use_parallel_envs: true
+use_parallel_envs: false
 parallel_env_num: 20
 track_progress_success_threshold: 0.95
 
 # If "use_parallel_envs" == false, "num_episodes_to_run" will be used, else "num_steps_to_run"
-num_steps_to_run: 20000
-num_episodes_to_run: 500
 
 replay_start_size: 500
 max_episode_len: 500
