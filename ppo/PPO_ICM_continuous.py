@@ -264,6 +264,7 @@ class PPO_ICM:
 
                 self.flush_stats()
 
+                print(f"{self.global_step_number} / {self.config.env_steps_to_run}")
                 if self.global_step_number >= self.config.env_steps_to_run:
                     break
 
