@@ -1,0 +1,45 @@
+# This config file represents agent observation settings and env behavior settings
+---
+# List of track for agent.
+#   During env usage arbitrary one will be picked.
+#   Single track represent by string - NAME from xml CVAT file,
+#   agent track valid if it has track_polygon and track_line with same NAME
+agent_tracks : ["rotate"]
+
+# Number of bots to use
+bot_number : 0
+# List of bots tracks. In contrast with agent's track, these can be without track_polygon
+#   For each newly generated bot arbitrary track will be picked.
+bots_tracks: []
+
+# Config of agent's observation
+state:
+
+  # Use or not to use image. If "false", in observation dict it will appear as None.
+  picture: true
+
+  # List of car features to use.
+  #   Fill it as [] for empty list, in this case observation dict it will appear as None.
+  #   This field in observation dict is vector.
+  #   All features will be represented in given order.
+  #   All possible features names:
+  #     'hull_position', 'hull_angle', 'car_speed', 'wheels_positions',
+  #     'track_sensor', 'road_sensor', 'finish_sensor', 'cross_road_sensor',
+  #     'collide_sensor', 'checkpoint_sensor',
+  #     'car_radar_1', 'car_radar_2', 'car_radar_3',
+  #     'time'
+  vector_car_features: []
+
+  # Unused field, but actually env can return vector description of track's polygons
+  #   All possible features names:
+  #     'track_goal', 'track_line', 'track_polygon', 'not_road', 'cross_road'
+  vector_env_features: []
+
+# Unused for now
+#   Steer policy, if "angle_steer" == false, default steer will be used,
+#   otherwise steer will be in raw degrees, where agent out for steer will be multiplicated by
+#   "angle_steer_multiplication" and this value will be immediate car rotation in degrees
+steer_policy:
+  angle_steer: false
+  angle_steer_multiplication: 5.0
+...
