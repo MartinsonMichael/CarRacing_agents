@@ -3,5 +3,5 @@ log_interval: 2
 animation_record_frequency: 10
 record_animation: true
 
-env_steps_to_run : 750
+env_steps_to_run : 1750
 max_episode_len: 500
