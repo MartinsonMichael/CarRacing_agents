@@ -122,6 +122,7 @@ class Logger:
         final_stats = {
             'agent_class': self.model_config.agent_class,
             'total_env_episode': int(self._keeping_stats.get('total_env_episode', '-1')),
+            'total_env_steps': int(self._keeping_stats.get('total_env_steps', '-1')),
             'track_progress': float(self._keeping_stats.get('moving_track_progress', -1)),
             'total_grad_steps': int(self._keeping_stats.get('total_grad_steps', -1)),
             'env_state': state_record,

@@ -147,7 +147,7 @@ class TD3:
 
     def train(self) -> None:
         try:
-            for index in range(self.hyperparameters['num_episodes_to_run']):
+            while True:
 
                 self.run_one_episode()
 
@@ -158,6 +158,7 @@ class TD3:
                 self.current_game_stats.update({
                     'moving_track_progress': self._exp_moving_track_progress,
                     'total_env_episode': self.episode_number,
+                    'total_env_steps': self.global_step_number,
                     'total_grad_steps': self._total_grad_steps,
                 })
                 self.stat_logger.log_it(self.current_game_stats)
@@ -165,6 +166,9 @@ class TD3:
                     break
 
                 self.flush_stats()
+
+                if self.global_step_number >= self.config.env_steps_to_run:
+                    break
 
                 # if self.episode_number % self.hyperparameters['save_frequency_episode'] == 0:
                 #     self.save()
@@ -221,7 +225,8 @@ class TD3:
 
             if done \
                     or info.get('need_reset', False) \
-                    or episode_len > self.hyperparameters['max_episode_len']:
+                    or episode_len > self.config.max_episode_len \
+                    or self.global_step_number >= self.config.env_steps_to_run:
                 if record_anim:
                     Process(
                         target=save_as_mp4,

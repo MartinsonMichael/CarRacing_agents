@@ -86,7 +86,7 @@ class Rainbow:
             q_func, opt, rbuf, gpu=self.config.rainbow_gpu, gamma=0.99,
             explorer=explorer, minibatch_size=32,
             replay_start_size=self.hyperparameters['replay_start_size'],
-            target_update_interval=32000,
+            target_update_interval=16000,
             update_interval=update_interval,
             batch_accumulator='mean',
             phi=config.phi,
@@ -125,26 +125,38 @@ class Rainbow:
             print('Rainbow  batch+env multiprocessing training start')
             self._batch_train()
         else:
-            print('Rainbow single env training')
-            print(f"num episodes to run : {self.hyperparameters['num_episodes_to_run']}")
-            for _ in range(self.hyperparameters['num_episodes_to_run']):
-                self.run_one_episode()
-                self._exp_moving_track_progress = (
-                        0.98 * self._exp_moving_track_progress +
-                        0.02 * self.current_game_stats.get('track_progress', 0)
-                )
-                self.current_game_stats.update({
-                    'moving_track_progress': self._exp_moving_track_progress,
-                    'total_env_episode': self.episode_number,
-                    'total_grad_steps': self._total_grad_steps,
-                })
-                self.stat_logger.log_it(self.current_game_stats)
-                if self._exp_moving_track_progress >= self.hyperparameters['track_progress_success_threshold']:
-                    break
-                self.flush_stats()
+            try:
+                print('Rainbow single env training')
+                print(f"num episodes to run : {self.hyperparameters['num_episodes_to_run']}")
+                while True:
+
+                    self.run_one_episode()
+
+                    self._exp_moving_track_progress = (
+                            0.98 * self._exp_moving_track_progress +
+                            0.02 * self.current_game_stats.get('track_progress', 0)
+                    )
+                    self.current_game_stats.update({
+                        'moving_track_progress': self._exp_moving_track_progress,
+                        'total_env_episode': self.episode_number,
+                        'total_env_steps': self.global_step_number,
+                        'total_grad_steps': self._total_grad_steps,
+                    })
+                    self.stat_logger.log_it(self.current_game_stats)
+                    if self._exp_moving_track_progress >= self.hyperparameters['track_progress_success_threshold']:
+                        break
+                    self.flush_stats()
+
+                    if self.global_step_number >= self.config.env_steps_to_run:
+                        break
+
+            finally:
+                self.stat_logger.on_training_end()
+                # self.save(suffix='final')
+                pass
 
     def _batch_train(self) -> None:
-        # raise NotImplemented
+        raise NotImplemented
         num_env = self.hyperparameters['parallel_env_num']
         total_reward = np.zeros(num_env, dtype=np.float32)
         episode_len = np.zeros(num_env, dtype=np.int32)
@@ -277,8 +289,9 @@ class Rainbow:
 
             if done \
                     or info.get('need_reset', False) \
-                    or episode_len > self.hyperparameters['max_episode_len'] \
-                    or info.get('needs_reset', False):
+                    or info.get('needs_reset', False) \
+                    or episode_len > self.config.max_episode_len \
+                    or self.global_step_number >= self.config.env_steps_to_run:
 
                 self.agent.stop_episode_and_train(state, reward, done=done)
 

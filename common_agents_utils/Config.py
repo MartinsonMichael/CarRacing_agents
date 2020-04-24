@@ -17,6 +17,8 @@ class Config(object):
         self.device: str = None
         self.rainbow_gpu: int = None
         self.agent_class: str = None
+        self.env_steps_to_run: int = None
+        self.max_episode_len: int = 500
 
         self.table_path: str = None
         self.name: str = None

@@ -244,7 +244,7 @@ class PPO_ICM:
 
     def train(self):
         try:
-            for index in range(self.hyperparameters['num_episodes_to_run']):
+            while True:
 
                 self.run_one_episode()
 
@@ -255,6 +255,7 @@ class PPO_ICM:
                 self.current_game_stats.update({
                     'moving_track_progress': self._exp_moving_track_progress,
                     'total_env_episode': self.episode_number,
+                    'total_env_steps': self.global_step_number,
                     'total_grad_steps': self._total_grad_steps,
                 })
                 self.stat_logger.log_it(self.current_game_stats)
@@ -263,11 +264,14 @@ class PPO_ICM:
 
                 self.flush_stats()
 
+                if self.global_step_number >= self.config.env_steps_to_run:
+                    break
+
                 # if self.episode_number % self.hyperparameters['save_frequency_episode'] == 0:
                 #     self.save()
         finally:
             self.stat_logger.on_training_end()
-            self.save(suffix='final')
+            # self.save(suffix='final')
             pass
 
     def run_one_episode(self):
@@ -309,7 +313,8 @@ class PPO_ICM:
 
             if done \
                     or info.get('need_reset', False) \
-                    or episode_len > self.hyperparameters['max_episode_len']:
+                    or episode_len > self.config.max_episode_len \
+                    or self.global_step_number >= self.config.env_steps_to_run:
                 if record_anim:
                     Process(
                         target=save_as_mp4,

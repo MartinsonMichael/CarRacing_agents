@@ -223,6 +223,9 @@ def main(_args):
                         'common_config': agent_for_exp['common_config'],
                     })
 
+    if not _args.no_shuffle:
+        np.random.shuffle(launch_list)
+
     if _args.multi_launch:
         device_list = ['cuda:0', 'cuda:1', 'cuda:2', 'cuda:3']
         multi_process_launch(device_list, launch_list)
@@ -239,6 +242,7 @@ if __name__ == "__main__":
     parser.add_argument('--device', type=str, default=None, help='name for experiment')
     parser.add_argument('--no-save-launch', default=False, action='store_true', help='use or not save launch')
     parser.add_argument('--multi-launch', default=False, action='store_true')
+    parser.add_argument('--no-shuffle', default=False, action='store_true')
     _args = parser.parse_args()
     _args.record_animation = not _args.no_record_animation
 
