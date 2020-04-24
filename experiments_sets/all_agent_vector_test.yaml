@@ -14,7 +14,7 @@ agents:
 
 
 # Common part of logger config
-general_config: general_config.yaml
+general_config: general_test_config.yaml
 
 #   All possible features names:
 #     'hull_position', 'hull_angle', 'car_speed', 'wheels_positions',
