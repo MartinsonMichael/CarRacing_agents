@@ -132,7 +132,7 @@ def launch(exp_config: Dict[str, Any]) -> None:
     print(final_agent_config)
 
     wandb.init(
-        project='CarRacing_MassExp',
+        project='CarRacing_MassExp' + ('_test' if 'test' in exp_config['exp_series_name'] else ''),
         reinit=True,
         name=launch_id,
         notes=launch_note,
