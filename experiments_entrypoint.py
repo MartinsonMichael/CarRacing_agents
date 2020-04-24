@@ -206,12 +206,13 @@ def main(_args):
 
     launch_list = []
     for _ in range(exp_series_config.get('repeat_num', 1)):
+        launch_sub_list = []
         for env_change in exp_series_config.get('env_changes', [{}]):
             for agent_for_exp in general_agents_config:
                 for agent_change in exp_series_config.get('agent_changes', {}).\
                         get(agent_for_exp['agent_class_name'], [{}]):
 
-                    launch_list.append({
+                    launch_sub_list.append({
                         'exp_series_name': _args.name,
                         'agent_class_name': agent_for_exp['agent_class_name'],
                         'agent_class': agent_for_exp['agent_class'],
@@ -223,8 +224,9 @@ def main(_args):
                         'common_config': agent_for_exp['common_config'],
                     })
 
-    if not _args.no_shuffle:
-        np.random.shuffle(launch_list)
+        if not _args.no_shuffle:
+            np.random.shuffle(launch_sub_list)
+        launch_list.extend(launch_sub_list)
 
     if _args.multi_launch:
         device_list = ['cuda:0', 'cuda:1', 'cuda:2', 'cuda:3']
