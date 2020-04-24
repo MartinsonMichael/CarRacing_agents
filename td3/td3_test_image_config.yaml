@@ -1,0 +1,10 @@
+# TD3 specific config
+track_progress_success_threshold: 0.95
+start_to_learn_time_point: 25000
+
+expl_noise_linear_decay_episodes: 2500
+expl_noise: 0.1
+discount_rate: 0.99
+lr: 0.001
+
+gradient_clipping_norm: 0.1
