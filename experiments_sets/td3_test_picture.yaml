@@ -10,7 +10,7 @@ agents:
   td3: td3/td3_test_image_config.yaml
 
 # Common part of logger config
-general_config: general_config.yaml
+general_config: long_range_test_config.yaml
 
 #   All possible features names:
 #     'hull_position', 'hull_angle', 'car_speed', 'wheels_positions',
