@@ -18,14 +18,7 @@ from env.common_envs_utils.visualizer import save_as_mp4
 
 
 class TD3:
-    def __init__(
-            self,
-            config: Config,
-            tau=0.005,
-            policy_noise=0.2,
-            noise_clip=0.5,
-            policy_freq=2,
-    ):
+    def __init__(self, config: Config):
         self.config = config
         self.hyperparameters = config.hyperparameters
         self.env = config.environment_make_function()
@@ -49,11 +42,6 @@ class TD3:
         self.critic = DoubleStateAdaptiveCritic(state_shape, self.action_size, self.config.device).to(self.config.device)
         self.critic_target: nn.Module = copy.deepcopy(self.critic)
         self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=self.hyperparameters['lr'])
-
-        self.tau = tau
-        self.policy_noise = policy_noise
-        self.noise_clip = noise_clip
-        self.policy_freq = policy_freq
 
         self.total_it = 0
 
@@ -87,6 +75,8 @@ class TD3:
                 + np.random.normal(0, noise_variance, size=self.action_size)
             )
 
+        action = np.clip(action, -1, 1)
+
         return action
 
     def update(self):
@@ -101,10 +91,10 @@ class TD3:
         with torch.no_grad():
             # Select action according to policy and add clipped noise
             noise = (
-                    torch.randn_like(action) * self.policy_noise
-            ).clamp(-self.noise_clip, self.noise_clip)
+                    torch.randn_like(action) * self.hyperparameters['policy_noise']
+            ).clamp(-self.hyperparameters['noise_clip'], self.hyperparameters['noise_clip'])
 
-            next_action = self.actor_target(next_state) + noise
+            next_action = torch.clamp(self.actor_target(next_state) + noise, -1, 1)
 
             # Compute the target Q value
             target_Q1, target_Q2 = self.critic_target(next_state, next_action)
@@ -127,7 +117,7 @@ class TD3:
         self.critic_optimizer.step()
 
         # Delayed policy updates
-        if self.total_it % self.policy_freq == 0:
+        if self.total_it % self.hyperparameters['policy_update_freq'] == 0:
 
             # Compute actor losse
             actor_loss = -self.critic.Q1(state, self.actor(state)).mean()
@@ -140,10 +130,16 @@ class TD3:
 
             # Update the frozen target models
             for param, target_param in zip(self.critic.parameters(), self.critic_target.parameters()):
-                target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
+                target_param.data.copy_(
+                    self.hyperparameters['tau'] * param.data +
+                    (1 - self.hyperparameters['tau']) * target_param.data
+                )
 
             for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
-                target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
+                target_param.data.copy_(
+                    self.hyperparameters['tau'] * param.data +
+                    (1 - self.hyperparameters['tau']) * target_param.data
+                )
 
     def train(self) -> None:
         print('Start to train TD3')

@@ -2,9 +2,16 @@
 track_progress_success_threshold: 0.95
 start_to_learn_time_point: 1000
 
-expl_noise_linear_decay_episodes: 1000
-expl_noise: 0.1
 discount_rate: 0.99
 lr: 0.001
+
+tau : 0.005
+
+policy_noise : 0.5
+expl_noise_linear_decay_episodes: 500
+expl_noise: 0.5
+noise_clip: 0.5
+
+policy_update_freq: 2
 
 gradient_clipping_norm: 0.5
