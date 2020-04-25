@@ -24,14 +24,14 @@ env_changes:
   - state:
       picture: false
       vector_car_features: ["hull_angle", "hull_position", "checkpoint_sensor", "car_speed"]
-  - state:
-      picture: true
-      vector_car_features: ["hull_angle", "hull_position", "checkpoint_sensor", "car_speed"]
-  - state:
-      picture: true
-      vector_car_features: []
+#  - state:
+#      picture: true
+#      vector_car_features: ["hull_angle", "hull_position", "checkpoint_sensor", "car_speed"]
+#  - state:
+#      picture: true
+#      vector_car_features: []
 
 # Local agent change
-agent_changes:
-  td3:
-    - num_episodes_to_run: 80
+#agent_changes:
+#  td3:
+#    - num_episodes_to_run: 80
