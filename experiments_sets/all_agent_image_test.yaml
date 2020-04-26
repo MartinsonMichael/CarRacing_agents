@@ -9,7 +9,7 @@ env:
 agents:
   ppo: ppo/ppo_test_config.yaml
   rainbow: rainbow/rainbow_test_config.yaml
-  td3: td3/td3_test_config.yaml
+#  td3: td3/td3_test_config.yaml
 
 
 
