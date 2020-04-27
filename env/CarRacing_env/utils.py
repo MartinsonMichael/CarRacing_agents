@@ -320,6 +320,10 @@ class DataSupporter:
 
             if track_object['polygon'] is None:
                 self._agent_track_list = self._agent_track_list - {track_title}
+                self._tracks[track_title] = {
+                    'polygon': None,
+                    'line': self.convertIMG2PLAY(track_object['line']),
+                }
                 continue
 
             self._tracks[track_title] = {

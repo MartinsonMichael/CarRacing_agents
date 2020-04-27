@@ -24,11 +24,11 @@ class RefactoredContactListener(contactListener):
         if fixB == 'right_sensor':
             bodyB.right_sensor = True
 
-        if fixA == 'left_sensor':
-            bodyA.left_sensor = True
-
-        if fixB == 'left_sensor':
-            bodyB.left_sensor = True
+        # if fixA == 'left_sensor':
+        #     bodyA.left_sensor = True
+        #
+        # if fixB == 'left_sensor':
+        #     bodyB.left_sensor = True
 
         # if sensA and bodyA.name == 'bot_car' and (bodyB.name in {'car', 'bot_car'}):
         #     if fixB == 'body':
@@ -38,11 +38,16 @@ class RefactoredContactListener(contactListener):
         #         bodyB.stop = True
 
         # Processing Collision:
-        some_set = {'car', 'bot_car', 'wheel', 'body'}
-        if bodyA.name in some_set and bodyB.name in some_set:
-            if fixA in some_set and fixB in some_set:
-                bodyB.collision = True
-                bodyA.collision = True
+
+        # print(f"bodyA.name : {bodyA.name}")
+        # print(f"bodyB.name : {bodyB.name}")
+        # print(f"fixA : {fixA}")
+        # print(f"fixB : {fixB}")
+        # exit(1)
+
+        if fixA == 'sensor' and fixB == 'sensor':
+            bodyB.collision = True
+            bodyA.collision = True
 
     def EndContact(self, contact):
         sensA = contact.fixtureA.sensor

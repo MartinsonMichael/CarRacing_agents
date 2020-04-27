@@ -1,4 +1,4 @@
-from typing import Dict, Union
+from typing import Dict, Union, List
 
 import numpy as np
 import math
@@ -44,41 +44,6 @@ HULL_POLY4 =[
 WHEEL_COLOR = (0.0,0.0,0.0)
 WHEEL_WHITE = (0.3,0.3,0.3)
 MUD_COLOR   = (0.4,0.4,0.0)
-# SIZE = 80 / 1378.0
-# MC = SIZE / 0.02
-# ENGINE_POWER = 100000000 * SIZE * SIZE / MC / MC
-# WHEEL_MOMENT_OF_INERTIA = 4000 * SIZE * SIZE / MC / MC
-# FRICTION_LIMIT = 1000000 * SIZE * SIZE / MC / MC / 2
-# WHEEL_R = 27 / MC
-# WHEEL_W = 14 / MC
-# CENTROID = 220
-# WHEELPOS = [
-#     (-45, +60 - CENTROID), (+45, +60 - CENTROID),
-#     (-45, -70 - CENTROID), (+45, -70 - CENTROID)
-# ]
-# HULL_POLY4 = [
-#     (-45, -105 - CENTROID), (+45, -105 - CENTROID),
-#     (-45, +105 - CENTROID), (+45, +105 - CENTROID)
-# ]
-# SENSOR_SHAPE = [
-#     (-45, -105 - CENTROID), (+45, -105 - CENTROID),
-#     (-45, +105 - CENTROID), (+45, +105 - CENTROID)
-# ]
-# # Point sensor:
-# # SENSOR_BOT = [
-# #     (-10,350-CENTROID), (+10,350-CENTROID),
-# #     (-10,+360-CENTROID),  (+10,+360-CENTROID)
-# # ]
-# SENSOR_BOT = [
-#     (-50, +110 - CENTROID), (+50, +110 - CENTROID),
-#     (-10, +300 - CENTROID), (+10, +300 - CENTROID)
-# ]
-# # SENSOR_ADD = [
-# #     (-1,+110-CENTROID), (+1,+110-CENTROID),
-# #     (-50,+200-CENTROID),  (+50,+200-CENTROID)
-# # ]
-# WHEEL_COLOR = (0.0, 0.0, 0.0)
-# WHEEL_WHITE = (0.3, 0.3, 0.3)
 
 
 class DummyCar:
@@ -95,7 +60,6 @@ class DummyCar:
             car_image=None,
             track=None,
             data_loader=None,
-            bot_list=None,
     ):
         """ Constructor to define Car.
         Parameters
@@ -119,6 +83,16 @@ class DummyCar:
 
         self.world = world
 
+        RIGHT_SENSOR = [
+            (+55, +60), (+55, +270),
+            (+240, +270), (+240, +60)
+        ]
+
+        COLLID_SENSOR = [
+            (-100, +130), (+100, +130),
+            (-100, -130), (+100, -130),
+        ]
+
         self._hull = self.world.CreateDynamicBody(
             position=(init_x, init_y),
             angle=init_angle,
@@ -126,23 +100,31 @@ class DummyCar:
                 fixtureDef(
                     shape=polygonShape(vertices=[(x * SIZE, y * SIZE) for x, y in HULL_POLY1]),
                     density=1.0,
-                    userData='body',
                 ),
                 fixtureDef(
                     shape=polygonShape(vertices=[(x * SIZE, y * SIZE) for x, y in HULL_POLY2]),
                     density=1.0,
-                    userData='body',
                 ),
                 fixtureDef(
                     shape=polygonShape(vertices=[(x * SIZE, y * SIZE) for x, y in HULL_POLY3]),
                     density=1.0,
-                    userData='body',
                 ),
                 fixtureDef(
                     shape=polygonShape(vertices=[(x * SIZE, y * SIZE) for x, y in HULL_POLY4]),
                     density=1.0,
-                    userData='body',
-                )
+                ),
+
+                # sensors
+                fixtureDef(
+                    shape=polygonShape(vertices=[(x * SIZE * 4, y * SIZE * 4) for x, y in RIGHT_SENSOR]),
+                    isSensor=True,
+                    userData='right_sensor',
+                ),
+                fixtureDef(
+                    shape=polygonShape(vertices=[(x * SIZE * 3, y * SIZE * 3) for x, y in COLLID_SENSOR]),
+                    isSensor=True,
+                    userData='sensor'
+                ),
             ]
         )
 
@@ -190,15 +172,16 @@ class DummyCar:
         for index, (wx, wy) in enumerate(WHEELPOS):
             front_k = 1.0 if wy > 0 else 1.0
             w = self.world.CreateDynamicBody(
-                position = (init_x+wx*SIZE, init_y+wy*SIZE),
-                angle = init_angle,
-                fixtures = fixtureDef(
+                position=(init_x+wx*SIZE, init_y+wy*SIZE),
+                angle=init_angle,
+                fixtures=fixtureDef(
                     shape=polygonShape(vertices=[ (x*front_k*SIZE,y*front_k*SIZE) for x,y in WHEEL_POLY ]),
                     density=0.1,
                     categoryBits=0x0020,
                     maskBits=0x001,
-                    restitution=0.0)
-                    )
+                    restitution=0.0,
+                    userData='body',
+                ))
             w.wheel_rad = front_k * WHEEL_R * SIZE
             w.color = WHEEL_COLOR
             w.gas = 0.0
@@ -374,6 +357,11 @@ class DummyCar:
         else:
             return f"Car, killed"
 
+    # def check_collision(self, car_list: List) -> bool:
+    #     for car in car_list:
+    #         if _is_car_closely_to()
+
+
     @property
     def one_radar_len(self) -> int:
         """Return single integer, len of radar vector"""
@@ -400,7 +388,7 @@ class DummyCar:
                 continue
             angle_diff = (self.angle_radian - bot.angle_radian) % (2 * np.pi)
             dist = self.data_loader.dist(self.position_PLAY, bot.position_PLAY)
-            if dist > 25:
+            if dist > 80:
                 continue
             direct_to_bot = (bot.position_PLAY - self.position_PLAY) / np.linalg.norm(
                 bot.position_PLAY - self.position_PLAY
@@ -487,16 +475,18 @@ class DummyCar:
         """Return wheels position in pixel coordinates. Return np.ndarray of 4 pairs x, y"""
         return self.data_loader.convertPLAY2IMG(self.wheels_positions_PLAY)
 
-    def _is_car_closely_to(self, point, threshold=0.5) -> bool:
+    def _is_car_closely_to(self, point, threshold=0.5, threshold_center=None) -> bool:
         """
         Technical function to check is car center of any of wheels is close enough to point.
         """
+        if threshold_center is None:
+            threshold_center = threshold
         if point.shape != (2,):
             raise ValueError
         return (
                 np.any(np.sqrt(((self.wheels_positions_PLAY - point) ** 2).sum(axis=1)) < threshold)
                 or
-                ((self.position_PLAY - point) ** 2).sum() < threshold
+                ((self.position_PLAY - point) ** 2).sum() < threshold_center
         )
 
     def _flush_stats(self):
@@ -664,6 +654,11 @@ class DummyCar:
             self.gas(0)
             self.steer(0)
             self._bot_state['stop_for_next'] -= 1
+            return
+
+        if self._track_point >= len(self.track['line']) - 1:
+            self._track_point = len(self.track['line']) - 1
+            self._state_data['is_finish'] = True
             return
 
         x, y = round(self._hull.position.x, 2), round(self._hull.position.y, 2)

@@ -231,7 +231,8 @@ class CarRacingEnv(gym.Env, EzPickle):
             bot_car.after_world_step()
 
             # print(f'BOT {index}')
-            # print(bot_car.stats)
+            # print(bot_car.stats['right_sensor'])
+            # print(bot_car.stats['is_collided'])
             # print()
 
             if bot_car.stats['is_finish'] or bot_car.stats['is_out_of_road'] or bot_car.stats['is_out_of_map']:
@@ -254,7 +255,10 @@ class CarRacingEnv(gym.Env, EzPickle):
         step_reward = self.rewarder.get_step_reward(self.car.stats)
 
         info.update(self.car.stats)
-        # info.update(self.car.DEBUG_create_radar_state(2, self.bot_cars))
+        # print(f"AGENT right_sensor : {info['right_sensor']}")
+        # print(f"AGENT is_collided : {info['is_collided']}")
+        # print()
+        info.update(self.car.DEBUG_create_radar_state(2, self.bot_cars))
 
         self._was_done = done
         return self._create_state(), step_reward, done, info

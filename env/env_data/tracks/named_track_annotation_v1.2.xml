@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<annotations>
+  <version>1.1</version>
+  <meta>
+    <task>
+      <id>3</id>
+      <name>named_track_annotation</name>
+      <size>1</size>
+      <mode>annotation</mode>
+      <overlap>0</overlap>
+      <bugtracker></bugtracker>
+      <created>2020-04-17 19:01:08.415232+00:00</created>
+      <updated>2020-04-27 10:59:10.933918+00:00</updated>
+      <start_frame>0</start_frame>
+      <stop_frame>0</stop_frame>
+      <frame_filter></frame_filter>
+      <z_order>False</z_order>
+      <labels>
+        <label>
+          <name>not_road</name>
+          <attributes>
+          </attributes>
+        </label>
+        <label>
+          <name>cross_road</name>
+          <attributes>
+          </attributes>
+        </label>
+        <label>
+          <name>track_line</name>
+          <attributes>
+            <attribute>
+              <name>title</name>
+              <mutable>False</mutable>
+              <input_type>text</input_type>
+              <default_value></default_value>
+              <values></values>
+            </attribute>
+          </attributes>
+        </label>
+        <label>
+          <name>track_polygon</name>
+          <attributes>
+            <attribute>
+              <name>title</name>
+              <mutable>False</mutable>
+              <input_type>text</input_type>
+              <default_value></default_value>
+              <values></values>
+            </attribute>
+          </attributes>
+        </label>
+      </labels>
+      <segments>
+        <segment>
+          <id>3</id>
+          <start>0</start>
+          <stop>0</stop>
+          <url>http://localhost:8080/?id=3</url>
+        </segment>
+      </segments>
+      <owner>
+        <username>misha</username>
+        <email></email>
+      </owner>
+      <assignee></assignee>
+    </task>
+    <dumped>2020-04-27 10:59:13.913800+00:00</dumped>
+  </meta>
+  <image id="0" name="background_image_1520_1520.jpg" width="1520" height="1520">
+    <polygon label="track_polygon" occluded="0" points="21.36,926.98;19.84,834.60;1481.26,830.06;1484.29,931.53">
+      <attribute name="title">line</attribute>
+    </polygon>
+    <polyline label="track_line" occluded="0" points="85.87,884.58;1414.02,886.09">
+      <attribute name="title">line</attribute>
+    </polyline>
+    <polygon label="track_polygon" occluded="0" points="16.21,926.08;13.18,832.18;1090.00,828.00;1173.00,776.00;1203.52,689.82;1209.27,188.10;1286.05,185.67;1287.57,670.29;1284.54,794.47;1218.00,882.00;1119.00,931.00;971.05,932.28">
+      <attribute name="title">rotate-over-line</attribute>
+    </polygon>
+    <polyline label="track_line" occluded="0" points="84.96,886.09;664.99,883.07;1063.28,883.07;1163.23,854.29;1209.00,809.00;1240.47,733.14;1245.01,621.07;1248.04,253.06">
+      <attribute name="title">rotate-over-line</attribute>
+    </polyline>
+    <polygon label="track_polygon" occluded="0" points="894.42,932.03;894.42,831.07;1011.79,831.07;1111.49,858.83;1165.76,904.27;1198.57,969.89;1209.93,1051.92;1212.45,1137.74;1125.37,1136.48;1124.11,1051.92;1103.92,1014.06;1063.53,966.11;994.12,939.60">
+      <attribute name="title">rotate-small</attribute>
+    </polygon>
+    <polygon label="not_road" occluded="0" points="1023.00,731.00;0.00,730.00;0.00,0.00;1106.00,0.00;1110.23,628.19;1083.00,696.00">
+    </polygon>
+    <polygon label="not_road" occluded="0" points="0.00,931.53;991.00,937.00;1085.00,987.00;1121.00,1058.00;1123.86,1520.00;0.00,1520.00">
+    </polygon>
+    <polygon label="not_road" occluded="0" points="1290.00,1520.00;1286.00,1037.00;1332.00,970.00;1393.00,937.00;1520.00,935.00;1520.00,1520.00">
+    </polygon>
+    <polygon label="not_road" occluded="0" points="1285.15,0.00;1287.67,617.79;1322.00,689.00;1394.00,734.00;1520.00,734.00;1520.00,0.00">
+    </polygon>
+    <polyline label="track_line" occluded="0" points="941.12,884.08;1029.46,892.91;1092.56,921.94;1136.73,963.58;1161.97,1020.37;1165.76,1088.52">
+      <attribute name="title">rotate-small</attribute>
+    </polyline>
+    <polyline label="track_line" occluded="0" points="1158.26,225.76;1158.26,552.88;1165.00,896.00;1169.16,1421.26">
+      <attribute name="title">bot-vertical-line</attribute>
+    </polyline>
+    <polyline label="track_line" occluded="0" points="1433.00,788.00;1311.00,792.00;1211.00,812.00;1157.00,891.00;1158.26,1020.00;1169.16,1244.62;1166.98,1421.26">
+      <attribute name="title">bot-rotate-small</attribute>
+    </polyline>
+    <polyline label="track_line" occluded="0" points="657.00,790.00;785.93,789.56;1013.09,784.11;1146.00,800.00;1226.00,873.00;1240.26,991.29;1240.26,1162.11;1240.26,1256.61">
+      <attribute name="title">bot-rotate-big</attribute>
+    </polyline>
+    <polygon label="cross_road" occluded="0" points="961.52,926.39;963.62,742.35;1053.00,732.00;1109.00,678.00;1115.07,558.31;1280.18,555.15;1284.39,649.80;1329.61,712.90;1386.40,739.19;1388.51,928.50;1329.00,954.00;1281.00,1011.00;1276.00,1124.00;1131.00,1124.00;1127.00,1042.00;1094.00,983.00;1038.00,943.00">
+    </polygon>
+    <polygon label="track_polygon" occluded="0" points="19.84,828.55;19.84,933.04;987.56,931.53;1067.83,963.33;1124.00,1036.00;1132.95,1476.72;1216.24,1481.26;1210.00,1039.00;1187.00,935.00;1118.00,866.00;1000.00,832.00">
+      <attribute name="title">rotate</attribute>
+    </polygon>
+    <polyline label="track_line" occluded="0" points="90.41,884.58;526.57,883.07;917.29,881.55;1058.13,898.21;1130.83,955.76;1168.00,1024.00;1170.20,1272.27;1171.72,1425.23">
+      <attribute name="title">rotate</attribute>
+    </polyline>
+    <polygon label="track_polygon" occluded="0" points="763.27,929.01;761.09,826.51;1009.70,826.51;1118.73,859.22;1166.71,913.74;1201.60,968.26;1214.69,1083.84;1212.51,1221.23;1124.00,1219.00;1127.46,1099.11;1118.00,1034.00;1055.00,961.00;982.00,935.00">
+      <attribute name="title">rotate-medium</attribute>
+    </polygon>
+    <polyline label="track_line" occluded="0" points="813.55,883.05;918.84,883.05;1022.91,892.79;1092.29,922.61;1139.16,969.48;1169.59,1022.42;1169.59,1079.03;1166.85,1178.66">
+      <attribute name="title">rotate-medium</attribute>
+    </polyline>
+  </image>
+</annotations>
