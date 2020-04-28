@@ -3,13 +3,13 @@ track_progress_success_threshold: 0.95
 start_to_learn_time_point: 25000
 
 discount_rate: 0.99
-lr: 0.001
+lr: 0.0003
 
 tau : 0.005
 
-policy_noise : 0.5
+policy_noise : 0.2
 expl_noise_linear_decay_episodes: 5000
-expl_noise: 0.5
+expl_noise: 0.1
 noise_clip: 0.5
 
 policy_update_freq: 2
