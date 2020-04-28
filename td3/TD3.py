@@ -67,9 +67,9 @@ class TD3:
 
         action = self.actor(self.config.phi(state)).cpu().data.numpy().flatten()
 
-        if self.episode_number < self.hyperparameters['expl_noise_linear_decay_episodes']:
+        if self.global_step_number < self.hyperparameters['expl_noise_linear_decay_steps']:
             noise_variance = self.hyperparameters['expl_noise'] * \
-                             (1 - self.episode_number / self.hyperparameters['expl_noise_linear_decay_episodes'])
+                             (1 - self.episode_number / self.hyperparameters['expl_noise_linear_decay_steps'])
             action = (
                 action
                 + np.random.normal(0, noise_variance, size=self.action_size)

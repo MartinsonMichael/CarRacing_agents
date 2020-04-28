@@ -8,7 +8,7 @@ lr: 0.0003
 tau : 0.005
 
 policy_noise : 0.2
-expl_noise_linear_decay_episodes: 5000
+expl_noise_linear_decay_steps: 2500000
 expl_noise: 0.1
 noise_clip: 0.5
 
