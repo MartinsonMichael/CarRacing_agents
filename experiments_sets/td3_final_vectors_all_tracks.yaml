@@ -1,0 +1,42 @@
+# Global settings
+env:
+  path_config: env/configs/basic_PATH_config.yaml
+  reward_config: env/configs/minimal_REWARD_config.yaml
+  state_config: env/configs/vector_line_STATE_config.yaml
+
+
+# Agents to use, with theirs configs
+agents:
+  td3: td3/td3_config.yaml
+
+
+# Common part of logger config
+general_config: general_config.yaml
+
+#   All possible features names:
+#     'hull_position', 'hull_angle', 'car_speed', 'wheels_positions',
+#     'track_sensor', 'road_sensor', 'finish_sensor', 'cross_road_sensor',
+#     'collide_sensor', 'checkpoint_sensor',
+#     'car_radar_1', 'car_radar_2', 'car_radar_3',
+#     'time'
+
+# Local env changes
+
+repeat_num: 4
+
+env_changes:
+  - state:
+      vector_car_features: ["hull_angle", "hull_position", "car_speed", "checkpoint_sensor", "finish_sensor"]
+    agent_tracks: ["rotate-small"]
+
+  - state:
+      vector_car_features: ["hull_angle", "hull_position", "car_speed", "checkpoint_sensor", "finish_sensor"]
+    agent_tracks: ["rotate-medium"]
+
+  - state:
+      vector_car_features: ["hull_angle", "hull_position", "car_speed", "checkpoint_sensor", "finish_sensor"]
+    agent_tracks: ["line"]
+
+  - state:
+      vector_car_features: ["hull_angle", "hull_position", "car_speed", "checkpoint_sensor", "finish_sensor"]
+    agent_tracks: ["rotate"]
