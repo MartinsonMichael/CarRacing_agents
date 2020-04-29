@@ -1,5 +1,5 @@
 # TD3 specific config
-#track_progress_success_threshold: 0.95
+track_progress_success_threshold: 10
 start_to_learn_time_point: 25000
 
 discount_rate: 0.99

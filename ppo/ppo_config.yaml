@@ -5,7 +5,7 @@ icm_config:
     phi: 'config.phi'
     icm_gradient_clipping: 1.5
 
-#track_progress_success_threshold: 0.95
+track_progress_success_threshold: 10
 max_episode_len: 500
 
 
