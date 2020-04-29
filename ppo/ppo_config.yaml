@@ -5,13 +5,7 @@ icm_config:
     phi: 'config.phi'
     icm_gradient_clipping: 1.5
 
-#save_frequency_episode: 500
-#log_interval: 20
-#animation_record_frequency: 100
-#record_animation: _args.record_animation
-
 #track_progress_success_threshold: 0.95
-env_steps_to_run : 7500000 # 500 * 15k
 max_episode_len: 500
 
 

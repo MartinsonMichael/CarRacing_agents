@@ -24,7 +24,7 @@ general_config: general_config.yaml
 
 # Local env changes
 
-repeat_num: 4
+repeat_num: 1
 
 env_changes:
   - state:
