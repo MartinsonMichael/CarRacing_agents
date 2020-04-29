@@ -2,7 +2,7 @@
 ---
 use_parallel_envs: False
 parallel_env_num: 6
-track_progress_success_threshold: 0.95
+#track_progress_success_threshold: 0.95
 
 # If "use_parallel_envs" == false, "num_episodes_to_run" will be used, else "num_steps_to_run"
 
