@@ -92,6 +92,9 @@ def create_single_launch_name(env_config: Dict, agent_class_name: str) -> str:
     return agent_class_name + '__' + state_record + '__' + str(np.random.randint(0, 10**6))
 
 
+WANDB_ENTITY = 'michaelmd'
+
+
 def launch(exp_config: Dict[str, Any]) -> None:
 
     # for key, value in exp_config.items():
@@ -134,6 +137,7 @@ def launch(exp_config: Dict[str, Any]) -> None:
     wandb.init(
         project='CarRacing_MassExp' + ('_test' if 'test' in exp_config['exp_series_name'] else ''),
         reinit=True,
+        entity=WANDB_ENTITY,
         name=launch_id,
         notes=launch_note,
         config={
@@ -246,10 +250,15 @@ if __name__ == "__main__":
     parser.add_argument('--multi-launch', default=False, action='store_true')
     parser.add_argument('--no-shuffle', default=False, action='store_true')
     parser.add_argument('--shuffle', default=False, action='store_true')
+    parser.add_argument('--wandb-cds', default=False, action='store_true')
     _args = parser.parse_args()
     _args.record_animation = not _args.no_record_animation
 
     if _args.name is None:
         raise ValueError('set name')
 
+    if _args.wandb_cds:
+        WANDB_ENTITY = 'cds'
+
+    print(f'WanDB entity to store results : {WANDB_ENTITY}')
     main(_args)
