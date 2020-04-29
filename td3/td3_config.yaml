@@ -3,7 +3,7 @@ track_progress_success_threshold: 0.95
 start_to_learn_time_point: 25000
 
 discount_rate: 0.99
-lr: 0.0003
+lr: 0.00015
 
 tau : 0.005
 
