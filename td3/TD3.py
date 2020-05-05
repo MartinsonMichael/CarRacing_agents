@@ -15,6 +15,7 @@ from common_agents_utils.logger import Logger
 from deep_utils.simple_adaptive_actor import StateAdaptiveActor
 from deep_utils.simple_state_adaptive_q_value_ import DoubleStateAdaptiveCritic
 from env.common_envs_utils.visualizer import save_as_mp4
+from stable_baseline_replay_buffer.torch_replay_buffer import TorchReplayBuffer
 
 
 class TD3:
@@ -23,14 +24,10 @@ class TD3:
         self.hyperparameters = config.hyperparameters
         self.env = config.environment_make_function()
 
-        self.memory = Torch_Arbitrary_Replay_Buffer(
-            buffer_size=20 ** 5,
-            batch_size=256,
+        self.memory = TorchReplayBuffer(
+            size=20 ** 5,
             phi=config.phi,
-            seed=0,
             device=self.config.device,
-            sample_order=['state', 'action', 'reward', 'done', 'next_state'],
-            do_it_auto=False,
         )
         state_shape = config.phi(self.env.reset()).shape
         self.action_size = self.env.action_space.shape[0]
@@ -83,8 +80,7 @@ class TD3:
         self.total_it += 1
 
         # Sample replay buffer
-        state, action, reward, done, next_state = self.memory.sample()
-
+        state, action, reward, next_state, done = self.memory.sample(256)
         done = done.reshape(-1, 1)
         reward = reward.reshape(-1, 1)
 
@@ -210,9 +206,8 @@ class TD3:
             total_reward += reward
             episode_len += 1
 
-            self.memory.add_experience(
-                is_single=True,
-                state=state, action=action, reward=reward, next_state=next_state, done=done,
+            self.memory.add(
+                obs_t=state, action=action, reward=reward, obs_tp1=next_state, done=done,
             )
             state = next_state
 

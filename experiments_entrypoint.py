@@ -134,20 +134,35 @@ def launch(exp_config: Dict[str, Any]) -> None:
     print('final config:')
     print(final_agent_config)
 
-    wandb.init(
-        project='CarRacing_MassExp' + ('_test' if 'test' in exp_config['exp_series_name'] else ''),
-        reinit=True,
-        entity=WANDB_ENTITY if WANDB_ENTITY == 'cds' else None,
-        name=launch_id,
-        notes=launch_note,
-        config={
-            'exp_name': exp_config['exp_series_name'],
-            'agent_class': final_agent_config.agent_class,
-            'mode': final_agent_config.mode,
-            'env_config': final_agent_config.env_config,
-            'hyperparameters': final_agent_config.hyperparameters,
-        },
-    )
+    if WANDB_ENTITY == 'cds':
+        wandb.init(
+            project='CarRacing_MassExp' + ('_test' if 'test' in exp_config['exp_series_name'] else ''),
+            reinit=True,
+            entity=WANDB_ENTITY,
+            name=launch_id,
+            notes=launch_note,
+            config={
+                'exp_name': exp_config['exp_series_name'],
+                'agent_class': final_agent_config.agent_class,
+                'mode': final_agent_config.mode,
+                'env_config': final_agent_config.env_config,
+                'hyperparameters': final_agent_config.hyperparameters,
+            },
+        )
+    else:
+        wandb.init(
+            project='CarRacing_MassExp' + ('_test' if 'test' in exp_config['exp_series_name'] else ''),
+            reinit=True,
+            name=launch_id,
+            notes=launch_note,
+            config={
+                'exp_name': exp_config['exp_series_name'],
+                'agent_class': final_agent_config.agent_class,
+                'mode': final_agent_config.mode,
+                'env_config': final_agent_config.env_config,
+                'hyperparameters': final_agent_config.hyperparameters,
+            },
+        )
 
     print('start to create agent..')
     agent = exp_config['agent_class'](final_agent_config)
