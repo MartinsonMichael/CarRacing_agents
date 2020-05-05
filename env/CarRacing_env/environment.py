@@ -329,7 +329,6 @@ class CarRacingEnv(gym.Env, EzPickle):
             self.car,
             full_image=full_image,
         )
-        # self.debug_draw_hull(background_image, self.car)
         for bot_car in self.bot_cars:
             self.draw_car(
                 background_image,
@@ -337,22 +336,34 @@ class CarRacingEnv(gym.Env, EzPickle):
                 bot_car,
                 full_image=full_image,
             )
-            if mode == 'debug':
-                self.debug_draw_track(
-                    background_image=background_image,
-                    car=bot_car,
-                    point_size=10,
-                    color='green',
+        return background_image
+
+    def render_with_settings(self, full_image=True, **kwargs) -> np.ndarray:
+        background_image = self._data_loader.get_background(true_size=full_image)
+        background_mask = np.zeros(
+            shape=(background_image.shape[0], background_image.shape[1]),
+            dtype='uint8'
+        )
+
+        if kwargs.get('draw_cars', True):
+            self.draw_car(
+                background_image,
+                background_mask,
+                self.car,
+                full_image=full_image,
+            )
+        for bot_car in self.bot_cars:
+            if kwargs.get('draw_cars', True):
+                self.draw_car(
+                    background_image,
+                    background_mask,
+                    bot_car,
+                    full_image=full_image,
                 )
 
-        # if mode == 'debug':
-        # self.debug_draw_track(
-        #     background_image,
-        #     car=self.car,
-        #     point_size=3,
-        #     color='red'
-        # )
-        # self.debug_draw_restrictions(background_image)
+        if kwargs.get('draw_agent_track', False):
+            self.debug_draw_track(background_image, self.car, color='red', point_size=6)
+
         return background_image
 
     def draw_car(self, background_image, background_mask, car: DummyCar, full_image=False):
@@ -445,54 +456,16 @@ class CarRacingEnv(gym.Env, EzPickle):
         del self._data_loader
         del self.world
 
-    def debug_draw_hull(self, background_image, car, point_size=10):
-        color = {
-            'body': 'red',
-            'sensor': 'green',
-            'right_sensor': 'blue',
-            'left_sensor': [255, 255, 0],
-        }
-        for fixture in car.DEBUG_get_hull.fixtures:
-            for point in fixture.shape.vertices:
-                pnt = DataSupporter.convert_XY2YX(self._data_loader.convertPLAY2IMG(point) + car.position_IMG)
-                # print(f'fhull point: {pnt}')
-                CarRacingEnv.debug_draw_sized_point(
-                    background_image,
-                    pnt,
-                    point_size,
-                    color[fixture.userData],
-                )
-
     def debug_draw_track(self, background_image, car, point_size=10, color='blue'):
-        for point in DataSupporter.convert_XY2YX(
-                self._data_loader.convertPLAY2IMG(car.track['line'])
-        ) * self._data_loader.get_background_image_scale:
-            CarRacingEnv.debug_draw_sized_point(
+        for point in car.track['line']:
+            point = self._data_loader.convertPLAY2IMG(point)
+            point = DataSupporter.convert_XY2YX(point)
+            # point *= self._data_loader.get_background_image_scale
+            point *= self._data_loader.FULL_RENDER_COEFF
+
+            CarRacingEnv.debug_draw_sized_circle(
                 background_image,
                 point,
-                point_size,
-                color,
-            )
-        CarRacingEnv.debug_draw_sized_point(
-            background_image,
-            DataSupporter.convert_XY2YX(self._data_loader.convertPLAY2IMG(
-                car.track['line'][car.DEBUG_get_cur_track_point])
-            ) * self._data_loader.get_background_image_scale,
-            point_size,
-            'blue',
-        )
-
-    def debug_draw_polygon(self,
-                           background_image,
-                           polygon: np.array,
-                           point_size: int = 10,
-                           color='red',
-                           ):
-        x, y = polygon.exterior.coords.xy
-        for point in zip(x, y):
-            CarRacingEnv.debug_draw_sized_point(
-                background_image,
-                DataSupporter.convert_XY2YX(self._data_loader.convertPLAY2IMG(np.array(point))),
                 point_size,
                 color,
             )
@@ -520,3 +493,30 @@ class CarRacingEnv(gym.Env, EzPickle):
                     int(np.clip(x + dx, 0, background_image.shape[1] - 1)),
                     :,
                 ] = color
+
+    @staticmethod
+    def debug_draw_sized_circle(
+            background_image,
+            coordinate: np.array,
+            size: int,
+            color: Union[np.array, str]
+    ):
+        assert isinstance(coordinate, np.ndarray)
+        assert coordinate.shape == (2,)
+        if isinstance(color, str):
+            color = {
+                'red': np.array([255, 0, 0]),
+                'green': np.array([0, 255, 0]),
+                'blue': np.array([0, 0, 255]),
+                'black': np.array([0, 0, 0]),
+                'while': np.array([255, 255, 255]),
+            }[color]
+        y, x = coordinate
+        for dx in range(int(-size / 2), int(size / 2) + 1, 1):
+            for dy in range(int(-size / 2), int(size / 2) + 1, 1):
+                if dy**2 + dx**2 <= size**2 / 4:
+                    background_image[
+                        int(np.clip(y + dy, 0, background_image.shape[0] - 1)),
+                        int(np.clip(x + dx, 0, background_image.shape[1] - 1)),
+                        :,
+                    ] = color

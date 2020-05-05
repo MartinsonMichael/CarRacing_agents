@@ -199,9 +199,7 @@ def multi_process_launch(device_list, launch_list) -> None:
             pass
 
 
-def main(_args):
-    exp_series_config = yaml.load(open(_args.exp_settings, 'r'))
-
+def make_launch_list_from_config(exp_series_config, name, device, shuffle) -> List[Any]:
     general_env_config = make_common_env_config(exp_series_config['env'])
     general_agents_config = make_general_agents_config(
         exp_series_config['agents'],
@@ -217,20 +215,32 @@ def main(_args):
                         get(agent_for_exp['agent_class_name'], [{}]):
 
                     launch_sub_list.append({
-                        'exp_series_name': _args.name,
+                        'exp_series_name': name,
                         'agent_class_name': agent_for_exp['agent_class_name'],
                         'agent_class': agent_for_exp['agent_class'],
                         'hyperparameters': agent_for_exp['hyperparameters'],
                         'env_config': general_env_config,
                         'env_change': env_change,
                         'agent_change': agent_change,
-                        'device': _args.device,
+                        'device': device,
                         'common_config': agent_for_exp['common_config'],
                     })
 
-        if _args.shuffle and not _args.no_shuffle:
+        if shuffle:
             np.random.shuffle(launch_sub_list)
         launch_list.extend(launch_sub_list)
+
+    return launch_list
+
+
+def main(_args):
+    exp_series_config = yaml.load(open(_args.exp_settings, 'r'))
+    launch_list = make_launch_list_from_config(
+        exp_series_config,
+        _args.name,
+        _args.device,
+        _args.shuffle and not _args.no_shuffle,
+    )
 
     if _args.multi_launch:
         device_list = ['cuda:0', 'cuda:1', 'cuda:2', 'cuda:3']
