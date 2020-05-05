@@ -8,8 +8,6 @@ env:
 # Agents to use, with theirs configs
 agents:
   ppo: ppo/ppo_config.yaml
-  rainbow: rainbow/rainbow_config.yaml
-
 
 
 # Common part of logger config
@@ -29,18 +27,6 @@ repeat_num: 2
 env_changes:
   - state:
       picture: false
-      vector_car_features: ["hull_position", "hull_angle", "car_radar_1"]
-
-  - state:
-      picture: false
-      vector_car_features: ["hull_position", "hull_angle", "car_radar_2"]
-
-  - state:
-      picture: false
-      vector_car_features: ["hull_position", "hull_angle", "collide_sensor"]
-
-  - state:
-      picture: false
       vector_car_features: ["hull_position", "hull_angle", "car_radar_2", "collide_sensor"]
 
   - state:
@@ -50,3 +36,4 @@ env_changes:
   - state:
       picture: true
       vector_car_features: ["hull_position", "hull_angle", "car_radar_2", "collide_sensor"]
+

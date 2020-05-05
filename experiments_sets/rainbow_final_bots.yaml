@@ -7,7 +7,7 @@ env:
 
 # Agents to use, with theirs configs
 agents:
-  td3: td3/td3_config.yaml
+  rainbow: rainbow/rainbow_config.yaml
 
 
 # Common part of logger config
@@ -36,3 +36,4 @@ env_changes:
   - state:
       picture: true
       vector_car_features: ["hull_position", "hull_angle", "car_radar_2", "collide_sensor"]
+
