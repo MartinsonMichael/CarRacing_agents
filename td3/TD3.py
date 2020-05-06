@@ -25,7 +25,7 @@ class TD3:
         self.env = config.environment_make_function()
 
         self.memory = TorchReplayBuffer(
-            size=20 ** 5,
+            size=10 ** 6,
             phi=config.phi,
             device=self.config.device,
         )
