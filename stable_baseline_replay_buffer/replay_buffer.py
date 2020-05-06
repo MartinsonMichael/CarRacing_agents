@@ -12,8 +12,8 @@ class ReplayBuffer(object):
         :param size: (int)  Max number of transitions to store in the buffer. When the buffer overflows the old
             memories are dropped.
         """
-        self._storage = []
         self._maxsize = size
+        self._storage = []
         self._next_idx = 0
 
     def __len__(self) -> int:
