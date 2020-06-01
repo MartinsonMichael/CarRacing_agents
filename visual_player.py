@@ -118,7 +118,8 @@ def main():
             print(info, end='\n\n')
 
             steps += 1
-            viewer.imshow(env.render_with_settings(full_image=True, draw_cars=False, draw_agent_track=True))
+            # viewer.imshow(env.render_with_settings(full_image=True, draw_cars=False, draw_agent_track=True))
+            viewer.imshow(env.render(full_image=True))
 
             if args.delay is not None:
                 time.sleep(args.delay)
