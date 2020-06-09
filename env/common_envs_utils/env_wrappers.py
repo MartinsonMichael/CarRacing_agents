@@ -411,11 +411,12 @@ class OnlyVectorsTaker(gym.ObservationWrapper):
 
 
 class OnlyImageTaker(gym.ObservationWrapper):
-    def __init__(self, env, image_dict_name='picture'):
+    def __init__(self, env, image_dict_name='picture', vector_car_name='car_vector'):
         super().__init__(env)
         self._image_dict_name = image_dict_name
+        self._vector_car_name = vector_car_name
         self.observation_space = gym.spaces.Tuple((
-            self.env.observation_space.spaces[self._image_name],
+            self.env.observation_space.spaces[self._image_dict_name],
             self.env.observation_space.spaces[self._vector_car_name],
         ))
 
@@ -487,19 +488,21 @@ class ChannelSwapper(gym.ObservationWrapper):
             # print(f"to : {self.observation_space.shape}")
 
     @staticmethod
-    def _image_channel_transpose(image) -> NpA:
+    def _image_channel_transpose(image):
         return np.transpose(image, (2, 1, 0))
 
-    def observation(self, observation):
-        if isinstance(observation, dict):
+    def observation(self, obs):
+        if isinstance(obs, dict):
             # print(f"swapper input image shape : {observation['picture'].shape}")
-            observation.update({
+            obs.update({
                 self._image_dict_name:
-                    ChannelSwapper._image_channel_transpose(observation[self._image_dict_name])
+                    ChannelSwapper._image_channel_transpose(obs[self._image_dict_name])
             })
-            return observation
+            return obs
+        if isinstance(obs, tuple):
+            return (ChannelSwapper._image_channel_transpose(obs[0]), None)
         # print(f"swapper input image shape : {observation.shape}")
-        return ChannelSwapper._image_channel_transpose(observation)
+        return ChannelSwapper._image_channel_transpose(obs)
 
 
 class SkipWrapper(gym.Wrapper):

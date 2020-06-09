@@ -53,8 +53,8 @@ def get_EnvCreator_with_memory_safe_combiner(
 
 
 def image_phi(x):
-    image, vector = x
-    return np.array(image).astype(np.float32) / 255
+    # image, vector = x
+    return np.array(x[0]).astype(np.float32) / 255
 
 
 def vector_phi(x):

@@ -7,7 +7,7 @@ env:
 
 # Agents to use, with theirs configs
 agents:
-  ppo: ppo/ppo_config.yaml
+  ppo-dqr: ppo/ppo_config.yaml
 
 # Common part of logger config
 general_config: general_config.yaml

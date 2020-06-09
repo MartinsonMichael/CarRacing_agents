@@ -20,7 +20,10 @@ class Torch_Arbitrary_Replay_Buffer(object):
     ):
         print('replay buffer -> kwargs')
         print(kwargs)
-        self.phi = phi
+        if phi is None:
+            self.phi = lambda x: x
+        else:
+            self.phi = phi
         # self.separate_state = kwargs.get('separate_state', False)
         # if self.separate_state:
         #     raise NotImplemented
@@ -188,7 +191,7 @@ class Torch_Arbitrary_Replay_Buffer(object):
                     self._deconverter(e.__getattribute__(attribute_name), attribute_name)
                     for e in experiences
                 ],
-                dtype=np.float32
+                dtype=np.object if 'state' in attribute_name else np.float32
             )
 
     def sample(self, get_all=False, num_experiences=None, sample_order=None) -> Tuple[TT, ...]:

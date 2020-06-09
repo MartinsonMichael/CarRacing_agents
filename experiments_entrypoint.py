@@ -54,7 +54,7 @@ def make_single_config(agent_config_dict) -> Config:
 def make_general_agents_config(exp_agents_config: Dict[str, str], common_config_path: str) -> List[Dict[str, Any]]:
     assert isinstance(exp_agents_config, dict)
     assert len(exp_agents_config.keys()) >= 1
-    assert len(set(exp_agents_config.keys()) - {'ppo', 'rainbow', 'td3', 'sac'}) == 0
+    assert len(set(exp_agents_config.keys()) - {'ppo', 'rainbow', 'td3', 'sac', 'ppo-dqr'}) == 0
 
     general_agents_config_list = []
     for agent_type, path_to_agent_config in exp_agents_config.items():

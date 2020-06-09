@@ -26,7 +26,6 @@ class PPO_DRQ:
         self.eps_clip = config.hyperparameters['eps_clip']
 
         self.test_env = config.test_environment_make_function()
-        self.action_size = self.test_env.action_space.shape[0]
         self.env = None
         self.create_env()
 
@@ -38,8 +37,13 @@ class PPO_DRQ:
             device=self.config.device,
             sample_order=['state', 'action', 'reward', 'log_prob', 'done', 'next_state'],
             do_it_auto=False,
+            convert_to_torch=False,
         )
 
+        # state_ = self.test_env.reset()
+        # print(f'state: type : {type(state_)}, shape : {state_.shape}')
+        # state__ = config.phi(state_)
+        # print(f'state: type : {type(state__)}, shape : {state__.shape}')
         state_shape = config.phi(self.test_env.reset()).shape
         action_size = self.test_env.action_space.shape[0]
 
@@ -145,10 +149,10 @@ class PPO_DRQ:
         )
 
     def augment_state(self, state_batch) -> NpA:
-        return np.array((
+        return np.array([
                 self.config.phi((self.image_transform(x[0]), x[1]))
                 for x in state_batch
-            ),
+            ],
             dtype=np.float32,
         )
 
