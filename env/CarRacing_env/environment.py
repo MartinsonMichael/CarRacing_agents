@@ -1,7 +1,7 @@
 import json
 from functools import lru_cache
 from shapely import geometry
-from typing import List, Union, Dict
+from typing import List, Union, Dict, Tuple
 import Box2D
 import gym
 import time
@@ -15,15 +15,7 @@ from env.CarRacing_env.rewards import Rewarder
 from env.CarRacing_env.utils import DataSupporter
 
 
-
-FPS = 60
-
-
 class CarRacingEnv(gym.Env, EzPickle):
-    metadata = {
-        'render.modes': ['human', 'rgb_array', 'state_pixels'],
-        'video.frames_per_second': FPS
-    }
 
     def __init__(self, settings_file_path_or_settings):
         EzPickle.__init__(self)
@@ -148,7 +140,7 @@ class CarRacingEnv(gym.Env, EzPickle):
             return self.step(None)[0], 0, False, {'was_reset': True}
 
         if first:
-            delta_time = 1.0 / FPS
+            delta_time = 1.0 / 60
             for _ in range(50):
                 for car in [self.car] + self.bot_cars:
                     car.brake(1)
@@ -200,7 +192,8 @@ class CarRacingEnv(gym.Env, EzPickle):
 
         return collided_indexes
 
-    def step(self, action: Union[None, List[float]]):
+    def step(self, action: Union[None, List[float]]) \
+            -> Tuple[Dict[str, Union[None, np.ndarray]], float, bool, Dict]:
         if self._was_done:
             self._was_done = False
             return self.reset(), 0.0, False, {'was_reset': True}
@@ -218,7 +211,7 @@ class CarRacingEnv(gym.Env, EzPickle):
                 self.car.gas(action[1])
                 self.car.brake(action[2])
 
-        delta_time = 1.0 / FPS
+        delta_time = 1.0 / 60
         self.car.step(delta_time)
         for bot_car in self.bot_cars:
             bot_car.step(delta_time)
@@ -229,11 +222,6 @@ class CarRacingEnv(gym.Env, EzPickle):
 
         for index, bot_car in enumerate(self.bot_cars):
             bot_car.after_world_step()
-
-            # print(f'BOT {index}')
-            # print(bot_car.stats['right_sensor'])
-            # print(bot_car.stats['is_collided'])
-            # print()
 
             if bot_car.stats['is_finish'] or bot_car.stats['is_out_of_road'] or bot_car.stats['is_out_of_map']:
                 bot_car.destroy()
@@ -247,6 +235,7 @@ class CarRacingEnv(gym.Env, EzPickle):
             try:
                 self.picture_state = self.render()
             except:
+                print(f"env fail while rendering image state, try to use forces restart...")
                 return self.reset(force=True)
         else:
             self.picture_state = None
@@ -255,15 +244,12 @@ class CarRacingEnv(gym.Env, EzPickle):
         step_reward = self.rewarder.get_step_reward(self.car.stats)
 
         info.update(self.car.stats)
-        # print(f"AGENT right_sensor : {info['right_sensor']}")
-        # print(f"AGENT is_collided : {info['is_collided']}")
-        # print()
         info.update(self.car.DEBUG_create_radar_state(2, self.bot_cars))
 
         self._was_done = done
         return self._create_state(), step_reward, done, info
 
-    def _create_state(self) -> Union[np.ndarray, Dict[str, Union[None, np.ndarray]]]:
+    def _create_state(self) -> Dict[str, Union[None, np.ndarray]]:
         return {
             'picture':
                 self.picture_state.astype(np.uint8)
@@ -273,7 +259,7 @@ class CarRacingEnv(gym.Env, EzPickle):
                 self.car.get_vector_state(self.bot_cars).astype(np.float32)
                 if len(self._settings['state']['vector_car_features']) != 0
                 else None,
-            'env_vector': self._create_vector_env_static_description().astype(np.float32),
+            # 'env_vector': self._create_vector_env_static_description().astype(np.float32),
         }
 
     @lru_cache(maxsize=None)
@@ -367,16 +353,6 @@ class CarRacingEnv(gym.Env, EzPickle):
         return background_image
 
     def draw_car(self, background_image, background_mask, car: DummyCar, full_image=False):
-        # check dimensions
-        if background_image.shape[0] != background_mask.shape[0]:
-            raise ValueError('background image and mask have different shape')
-        if background_image.shape[1] != background_mask.shape[1]:
-            raise ValueError('background image and mask have different shape')
-        if car.car_image.mask.shape[0] != car.car_image.image.shape[0]:
-            raise ValueError('car image and mask have different shape')
-        if car.car_image.mask.shape[1] != car.car_image.image.shape[1]:
-            raise ValueError('car image and mask have different shape')
-
         # rotate car image and mask of car image, and compute bounds of rotated image
         masked_image, car_mask_image = self._data_loader.get_rotated_car_image(car, true_size=full_image)
         bound_y, bound_x = masked_image.shape[:2]
@@ -430,11 +406,13 @@ class CarRacingEnv(gym.Env, EzPickle):
         mask_end_y = mask_start_y + end_y - start_y
 
         # finally crop car mask and car image, and insert them to background
-        cropped_mask = (car_mask_image[
-                        mask_start_y: mask_end_y,
-                        mask_start_x: mask_end_x,
-                        :,
-                        ] > 240)
+        cropped_mask = (
+            car_mask_image[
+                mask_start_y: mask_end_y,
+                mask_start_x: mask_end_x,
+                :,
+            ] > 240
+        )
 
         cropped_image = (
             masked_image[
@@ -514,7 +492,7 @@ class CarRacingEnv(gym.Env, EzPickle):
         y, x = coordinate
         for dx in range(int(-size / 2), int(size / 2) + 1, 1):
             for dy in range(int(-size / 2), int(size / 2) + 1, 1):
-                if dy**2 + dx**2 <= size**2 / 4:
+                if dy ** 2 + dx ** 2 <= size ** 2 / 4:
                     background_image[
                         int(np.clip(y + dy, 0, background_image.shape[0] - 1)),
                         int(np.clip(x + dx, 0, background_image.shape[1] - 1)),

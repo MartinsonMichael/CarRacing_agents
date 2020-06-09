@@ -7,7 +7,7 @@ import numpy as np
 from env.common_envs_utils import \
     OnlyVectorsTaker, OnlyImageTaker, ChannelSwapper, FrameCompressor
 from env.CarRacing_env import CarRacingEnv
-from env.common_envs_utils.extended_env_wrappers import MemorySafeFeatureCombiner
+from env.common_envs_utils.env_wrappers import MemorySafeFeatureCombiner
 
 
 def get_state_type_from_settings_path(settings_path: str) -> str:
@@ -15,8 +15,8 @@ def get_state_type_from_settings_path(settings_path: str) -> str:
 
 
 def get_state_type_from_settings(settings: Dict[str, Any]) -> str:
-    have_image = settings['state']['picture']
-    have_vector = len(settings['state']['vector_car_features']) != 0
+    have_image: bool = settings['state']['picture']
+    have_vector: bool = len(settings['state']['vector_car_features']) != 0
     if have_image and have_vector:
         return 'both'
     elif have_vector:
@@ -38,18 +38,28 @@ def get_EnvCreator_with_memory_safe_combiner(
     if state == 'image':
         return (
             make_CarRacing_Picture(settings, discrete_wrapper),
-            lambda x: np.array(x).astype(np.float32) / 255
+            image_phi,
         )
     if state == 'vector':
         return (
             make_CarRacing_Vector(settings, discrete_wrapper),
-            lambda x: x,
+            vector_phi,
         )
     if state == 'both':
         return (
             make_CarRacing_Both(settings, discrete_wrapper),
             both_phi,
         )
+
+
+def image_phi(x):
+    image, vector = x
+    return np.array(image).astype(np.float32) / 255
+
+
+def vector_phi(x):
+    # image, vector = x
+    return x[1]
 
 
 def both_phi(x):
@@ -62,15 +72,7 @@ def both_phi(x):
 def make_CarRacing_Both(settings: Dict, discrete_wrapper: Type[ActionWrapper] = None) -> Callable:
     def f():
         env = CarRacingEnv(settings_file_path_or_settings=settings)
-        env = FrameCompressor(env)
-
-        # we will swap channels in phi
-        # env = ChannelSwapper(env)
-
         env = MemorySafeFeatureCombiner(env)
-        # FRAME_STACK = 4
-        # env = ImageStackWrapper(env, neutral_action=np.array([0.0, 0.0, 0.0]), frames_in_stack=FRAME_STACK)
-        # env.state_image_channel_cnt = FRAME_STACK
         if discrete_wrapper is not None:
             env = discrete_wrapper(env)
         return env
@@ -90,7 +92,6 @@ def make_CarRacing_Vector(settings: Dict, discrete_wrapper: Type[ActionWrapper] 
 def make_CarRacing_Picture(settings: Dict, discrete_wrapper: Type[ActionWrapper] = None) -> Callable:
     def f():
         env = CarRacingEnv(settings_file_path_or_settings=settings)
-        env = FrameCompressor(env)
         env = OnlyImageTaker(env)
         env = ChannelSwapper(env)
         if discrete_wrapper is not None:

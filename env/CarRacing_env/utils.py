@@ -31,32 +31,70 @@ class DataSupporter:
     def __init__(self, settings):
         self._settings = settings
 
-        self._background_image_scale = self._settings['image_scale']['back_image_scale_factor']
-        self._car_image_scale = self._settings['image_scale']['car_image_scale_factor']
-
+        self._image_scale = self._settings['image_scale']
         self._background_image = cv2.imread(self._settings['background_path'])
         self._sended_background = None
 
         # in XY coordinates, not in a IMAGE coordinates
-        self._image_size = np.array([self._background_image.shape[1], self._background_image.shape[0]])
+        self._original_image_size = np.array([self._background_image.shape[1], self._background_image.shape[0]])
+
+        # two cases of image scaling
+        # case one, we have tow float number for scaling background image and for scaling car images
+        # base on both cases we wiil compute two entities: target size of image and scaling factor for car images
+        if 'image_target_size' not in self._image_scale.keys() or self._image_scale['image_target_size'] is None:
+            assert self._image_scale['back_image_scale_factor'] is not None
+            assert self._image_scale['car_image_scale_factor'] is not None
+
+            self._image_scale['image_target_size'] = tuple(map(int,
+                self._original_image_size * self._image_scale['back_image_scale_factor']
+            ))
+            print(self._image_scale['image_target_size'])
+        # second case, we have target size of image, and relative car image scaling
+        else:
+            assert isinstance(self._image_scale['image_target_size'], (list, tuple))
+            assert len(self._image_scale['image_target_size']) == 2
+
+            if self._image_scale['relative_car_scale'] is None:
+                self._image_scale['relative_car_scale'] = 1.0
+
+            self._image_scale['back_image_scale_factor'] = (
+                self._image_scale['image_target_size'][0] / self._original_image_size[0]
+            )
+
+            # this parameter will be used for car image scaling
+            self._image_scale['car_image_scale_factor'] = (
+                self._image_scale['back_image_scale_factor'] * self._image_scale['relative_car_scale']
+            )
+
+            self._image_scale['image_target_size'] = tuple(self._image_scale['image_target_size'])
+
         # just two numbers of field in pyBox2D coordinate system
         self._playfield_size = np.array([335 * self._background_image.shape[1] / self._background_image.shape[0], 335])
         # technical field
         self._data = CvatDataset()
         self._data.load(self._settings['annotation_path'])
+
         # list of car images
         self._cars: List[CarImage] = []
         self._load_car_images(self._settings['cars_path'])
 
-        # list of tracks
+        # Preparing tracks
+        # _tracks is for all tracks: dict with track name as key and Dict as track description
+        #   track description is also Dict with two (or one) keys : "line", "polygon"(optional)
+        #       "line" is numpy with track points
+        #       "polygon" is numpy array with points if surrounding polygon (may be not present for bots tracks)
         self._tracks: Dict[str, Dict[str, Union[np.ndarray, Polygon]]] = {}
+        # _agent_track_list is just list of string - track names that can be used for agent
         self._agent_track_list = self._settings['agent_tracks']
+        # _bot_track_list is just list of string - track names that can be used for bots
         self._bot_track_list = self._settings['bots_tracks']
         self._extract_tracks()
 
         # index of image -> [dict of angle index -> [image] ]
+        # like a memory cache for rotated car images
         self._image_memory = {}
 
+        # coefficients of images scaling for animation records, not so small as for RL image state
         self.FULL_RENDER_COEFF = self._settings['image_scale']['image_scale_for_animation_records']
         self._render_back = None
         self._true_image_memory = {}
@@ -73,7 +111,7 @@ class DataSupporter:
 
     @property
     def get_background_image_scale(self) -> float:
-        return self._background_image_scale
+        return self._image_scale['back_image_scale_factor']
 
     @property
     def track_count(self) -> int:
@@ -141,7 +179,7 @@ class DataSupporter:
         """
         if coords.shape != (2, ):
             raise ValueError
-        return coords * self._playfield_size / self._image_size
+        return coords * self._playfield_size / self._original_image_size
 
     def _convertXY_PLAY2IMG(self, coords: np.ndarray):
         """
@@ -149,7 +187,7 @@ class DataSupporter:
         """
         if coords.shape != (2, ):
             raise ValueError
-        return coords * self._image_size / self._playfield_size
+        return coords * self._original_image_size / self._playfield_size
 
     @property
     def data(self):
@@ -159,9 +197,7 @@ class DataSupporter:
         if self._sended_background is None:
             self._sended_background = cv2.resize(
                 self._background_image,
-                None,
-                fx=self._background_image_scale,
-                fy=self._background_image_scale,
+                dsize=self._image_scale['image_target_size'],
             )
         if true_size:
             if self._render_back is None:
@@ -248,8 +284,8 @@ class DataSupporter:
                 cv2.resize(
                     car.car_image.image,
                     None,
-                    fx=self._car_image_scale,
-                    fy=self._car_image_scale,
+                    fx=self._image_scale['car_image_scale_factor'],
+                    fy=self._image_scale['car_image_scale_factor'],
                 ),
                 car.angle_degree + 90
             )
@@ -257,8 +293,8 @@ class DataSupporter:
                 cv2.resize(
                     car.car_image.mask,
                     None,
-                    fx=self._car_image_scale,
-                    fy=self._car_image_scale,
+                    fx=self._image_scale['car_image_scale_factor'],
+                    fy=self._image_scale['car_image_scale_factor'],
                 ),
                 car.angle_degree + 90,
             )
@@ -268,7 +304,7 @@ class DataSupporter:
             print(f'car image shape : {car.car_image.image.shape}')
             print(f'car mask shape : {car.car_image.mask.shape}')
             print(f'angle : {car.angle_degree + 90}')
-            print(f'scale : {self._car_image_scale}')
+            print(f"scale : {self._image_scale['car_image_scale_factor']}")
 
         return self._image_memory[car.car_image.hashable_obj][angle_index]
 

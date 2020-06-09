@@ -42,6 +42,8 @@ class Torch_Arbitrary_Replay_Buffer(object):
         self._sample_deconverter: Dict[str, Callable[[Any], Any]] = kwargs.get('sample_deconverter', {})
         self._check_type_dict: Dict[str, Any] = kwargs.get('check_type_dict', {})
 
+        self._convert_to_torch_flag = kwargs.get("convert_to_torch", True)
+
         self.device = device
 
     def add_experience(self, is_single=True, **kwargs):
@@ -173,13 +175,21 @@ class Torch_Arbitrary_Replay_Buffer(object):
 
         self.memory.append(self.experience(*exp))
 
-    def _prepare_row_of_samples(self, experiences, attribute_name: str) -> TT:
-        return torch.from_numpy(
-            np.array([
-                self._deconverter(e.__getattribute__(attribute_name), attribute_name)
-                for e in experiences
-            ], dtype=np.float32)
-        ).to(self.device)
+    def _prepare_row_of_samples(self, experiences, attribute_name: str) -> npTT:
+        if self._convert_to_torch_flag:
+            return torch.from_numpy(
+                np.array([
+                    self._deconverter(e.__getattribute__(attribute_name), attribute_name)
+                    for e in experiences
+                ], dtype=np.float32)
+            ).to(self.device)
+        else:
+            return np.array([
+                    self._deconverter(e.__getattribute__(attribute_name), attribute_name)
+                    for e in experiences
+                ],
+                dtype=np.float32
+            )
 
     def sample(self, get_all=False, num_experiences=None, sample_order=None) -> Tuple[TT, ...]:
         """

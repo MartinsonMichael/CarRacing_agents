@@ -12,6 +12,7 @@ from common_agents_utils import Config
 from env import DiscreteWrapper
 from env.common_envs_utils.env_makers import get_state_type_from_settings, get_EnvCreator_with_memory_safe_combiner
 from ppo.PPO_ICM_continuous import PPO_ICM
+from ppo.PPO_DRQ_continuous import PPO_DRQ
 from rainbow.rainbow import Rainbow
 # from sac.SAC import SAC
 from td3.TD3 import TD3
@@ -22,6 +23,7 @@ AGENT_TYPE_MAP = {
     "rainbow": Rainbow,
     "td3": TD3,
     # "sac": SAC,
+    "ppo-dqr": PPO_DRQ,
 }
 
 
@@ -260,6 +262,7 @@ if __name__ == "__main__":
     parser.add_argument('--no-shuffle', default=False, action='store_true')
     parser.add_argument('--shuffle', default=False, action='store_true')
     parser.add_argument('--wandb-cds', default=False, action='store_true')
+
     _args = parser.parse_args()
     _args.record_animation = not _args.no_record_animation
 

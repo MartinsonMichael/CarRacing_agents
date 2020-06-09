@@ -16,8 +16,13 @@ annotation_path: "env/env_data/tracks/named_track_annotation_v1.2.xml"
 # Scales to resize background image and cars image,
 #   something like compression for better performance
 image_scale:
-  back_image_scale_factor: 0.12
-  car_image_scale_factor: 0.1
+  # set these params
+#  back_image_scale_factor: 0.12
+#  car_image_scale_factor: 0.1
+
+  # or theses
+  image_target_size: [84, 84]
+  relative_car_scale: 0.9
 
   # Coefficient of image scaling (both background and cars) while record animation,
   #   smth like trade-off between quality and disk memory efficiency.
