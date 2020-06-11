@@ -33,6 +33,6 @@ env_changes:
       picture: true
       vector_car_features: ["hull_position", "hull_angle"]
 
-  - state:
-      picture: true
-      vector_car_features: ["hull_position", "hull_angle", "car_radar_2", "collide_sensor"]
+#  - state:
+#      picture: true
+#      vector_car_features: ["hull_position", "hull_angle", "car_radar_2", "collide_sensor"]
