@@ -1,6 +1,7 @@
 # CarIntersect environment
 
 This package contains the CarIntersect environment.
+For requirements see [requirements.txt](https://github.com/MartinsonMichael/CarRacing_agents/blob/master/requirements.txt) from main part of project.
 
 Folder structure:
  - CarRacing_env
