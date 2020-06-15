@@ -20,9 +20,9 @@ As a basic statement of the problem, we consider a realistic scenario of using d
 
 | | |
 |---|---|
-| TD3 on track full rotate | ![](https://github.com/MartinsonMichael/CarRacing_agents/tree/master/media/TD3_fisrt_sucecc_rotate_R__15.0_Time__289_.mp4.gif) | 
-| Rainbow on track full rotate | ![](https://github.com/MartinsonMichael/CarRacing_agents/tree/master/media/Rainbow_image_vector_full_rotate_R_27.0_Time_456_1586555257.733288.mp4.gif) |
-| PPO on track small rotation with bots | ![](https://github.com/MartinsonMichael/CarRacing_agents/tree/master/media/PPO_with_bots_R_5.5_Time_298_1588081821.2236094.mp4.gif) |
+| TD3 on track full rotate | ![](media/TD3_fisrt_sucecc_rotate_R__15.0_Time__289_.mp4.gif) | 
+| Rainbow on track full rotate | ![](media/Rainbow_image_vector_full_rotate_R_27.0_Time_456_1586555257.733288.mp4.gif) |
+| PPO on track small rotation with bots | ![](media/PPO_with_bots_R_5.5_Time_298_1588081821.2236094.mp4.gif) |
 
  
  
