@@ -16,4 +16,8 @@ In this project, we consider the task of learning an intelligent agent that simu
 As a basic statement of the problem, we consider a realistic scenario of using data from the agent's sensors (images from cameras within the field of view, laser rangefinders, etc.), data coming from video surveillance cameras located in complex and loaded transport areas, in particular at road intersections.
 
 
-<img src="https://github.com/MartinsonMichael/CarRacing_agents/blob/master/gifs/TD3_fisrt_sucecc_rotate_R__15.0_Time__289_.mp4.gif" width="100" height="100" />
+## Successes
+
+![]("https://github.com/MartinsonMichael/CarRacing_agents/blob/master/gifs/TD3_fisrt_sucecc_rotate_R__15.0_Time__289_.mp4.gif)
+TD3 on track full rotate
+
