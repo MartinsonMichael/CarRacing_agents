@@ -204,6 +204,10 @@ class PPO_DRQ:
                 critic_loss += critic_loss_aug
                 entropy_loss += entropy_loss_aug
 
+            actor_loss /= 1 + int(self.hyperparameters['drq_augment_num'])
+            critic_loss /= 1 + int(self.hyperparameters['drq_augment_num'])
+            entropy_loss /= 1 + int(self.hyperparameters['drq_augment_num'])
+
             loss = 0.5 * critic_loss + actor_loss + 0.001 * entropy_loss
 
             sum_ppo_loss += float(loss.mean().detach().cpu().numpy())
