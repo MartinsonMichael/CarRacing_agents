@@ -1,4 +1,6 @@
-## 
+## Navigating Autonomous Vehicle at the Road Intersection with Reinforcement Learning
+
+Michael Martinson, Alexey Skrynnik, Aleksandr I. Panov
 
 ## Abstract
 In this paper, we consider the problem of controlling an intelligent agent that simulates the behavior of an unmanned car when passing a road intersection together with other vehicles.
@@ -12,6 +14,12 @@ Also, we present our results of the best implementation of the agent when drivin
 ## This work
 In this project, we consider the task of learning an agent that simulates a self-driving car that performs the task of passing through the road intersection.
 As a basic statement of the problem, we consider a realistic scenario of using data from the agent's sensors (images from cameras within the field of view, laser rangefinders, etc.), data coming from video surveillance cameras located in complex and loaded transport areas, in particular at road intersections.
+
+
+## Env CarIntersect
+
+Our environment - CarIntersect simulate four way crossroad with some physics and bot cars.
+Technical description in env folder [link](env/).
 
 
 ## Methods examples
@@ -32,7 +40,7 @@ As a basic statement of the problem, we consider a realistic scenario of using d
 
 | Small rotation | Medium rotation | Line | Full rotation |
 |:---:|:---:|:---:|:---:|
-| ![](media/vector_small_rotation_track.svg) | ![](media/vector_medium_rotation_track.svg) | ![](media/vector_line_track.svg) | ![](media/vector_full_rotation_track.svg) |
+| <img src="media/vector_small_rotation_track.svg" width="200" height="100"/> | <img src="media/vector_medium_rotation_track.svg" width="200" height="100"/> | <img src="media/vector_line_track.svg" width="200" height="100"/> | <img src="media/vector_full_rotation_track.svg" width="200" height="100"/> |
  
 
 
@@ -40,8 +48,11 @@ As a basic statement of the problem, we consider a realistic scenario of using d
 
 | Small rotation | Medium rotation | Line | Full rotation |
 |:---:|:---:|:---:|:---:|
-| ![](media/image_small_rotation.svg) | ![](media/image_med_rotation.svg) | ![](media/image_line.svg) | ![](media/image_full_rotation.svg) | 
+| <img src="media/image_small_rotation.svg" width="200" height="100"/> | <img src="media/image_med_rotation.svg" width="200" height="100"/> | <img src="media/image_line.svg" width="200" height="100"/> | <img src="media/image_full_rotation.svg" width="200" height="100"/> | 
 
 
+### With bot cars
 
-<img src="media/vector_small_rotation_track.svg" width="200" height="100"/>
+| Vector state | Image state |
+|:---:|:---:|
+| <img src="media/bots_vector.svg" width="200" height="100"/> | <img src="media/bots_image.svg" width="200" height="100"/> | 

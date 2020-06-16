@@ -77,7 +77,8 @@ def main():
     parser.add_argument("--stop-on-fail", action='store_true', default=False,
                         help="do not restart simulation after fail")
     parser.add_argument("--exp-settings", type=str)
-    parser.add_argument("--env-settings", type=str, help="debug mode")
+    parser.add_argument("--env-settings", type=str)
+    parser.add_argument("--show-agent-track", default=False, action='store_true', help="debug mode")
     args = parser.parse_args()
 
     if args.exp_settings is not None:
@@ -85,7 +86,6 @@ def main():
         env = CarRacingEnv(make_common_env_config(yaml.load(open(args.exp_settings, 'r'))['env']))
     elif args.env_settings is not None:
         print('make env by json settings')
-        # create env by settings
         env = CarRacingEnv(args.env_settings)
     else:
         raise ValueError('provide settings to use')
@@ -118,8 +118,7 @@ def main():
             print(info, end='\n\n')
 
             steps += 1
-            # viewer.imshow(env.render_with_settings(full_image=True, draw_cars=False, draw_agent_track=True))
-            viewer.imshow(env.render(full_image=True))
+            viewer.imshow(env.render_with_settings(full_image=True, draw_agent_track=args.show_agent_track))
 
             if args.delay is not None:
                 time.sleep(args.delay)
