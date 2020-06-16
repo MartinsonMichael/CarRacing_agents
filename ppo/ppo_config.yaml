@@ -1,15 +1,20 @@
 # Basic ppo specific config
 ---
 use_icm: false
-icm_config:
-    phi: 'config.phi'
-    icm_gradient_clipping: 1.5
+
+# sub param for icm
+icm_phi: 'config.phi'
+icm_gradient_clipping: 1.5
+
+# sub param for drq
+drq_padding: 2
+drq_augment_num: 1 # excluding original state
 
 track_progress_success_threshold: 10
 max_episode_len: 500
 
 
-update_every_n_steps: 3000
+update_every_n_steps: 5000
 learning_updates_per_learning_session: 1
 
 discount_rate: 0.99

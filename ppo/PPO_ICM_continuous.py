@@ -8,13 +8,14 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from common_agents_utils import Config, ActorCritic, Torch_Arbitrary_Replay_Buffer
+from common_agents_utils import Config, ActorCritic, Torch_Arbitrary_Replay_Buffer, ICM
 from common_agents_utils.logger import Logger
 from env.common_envs_utils.visualizer import save_as_mp4
 
 
 class PPO_ICM:
     def __init__(self, config: Config):
+        raise ValueError("class under rewriting")
         self.name = config.name
         self.stat_logger: Logger = Logger(
             config,
@@ -42,17 +43,17 @@ class PPO_ICM:
         state_shape = config.phi(self.test_env.reset()).shape
         action_size = self.test_env.action_space.shape[0]
 
-        # if self.hyperparameters['use_icm']:
-        #     self._icm: ICM = ICM(
-        #         state_description=state_description,
-        #         action_size=action_size,
-        #         encoded_state_size=6,
-        #         device=self.device,
-        #         batch_size=256,
-        #         buffer_size=10**5,
-        #         update_per_step=1,
-        #         config=config.hyperparameters['icm_config']
-        #     )
+        if self.hyperparameters['use_icm']:
+            self._icm: ICM = ICM(
+                state_description=state_description,
+                action_size=action_size,
+                encoded_state_size=6,
+                device=self.device,
+                batch_size=256,
+                buffer_size=10**5,
+                update_per_step=1,
+                config=config.hyperparameters['icm_config']
+            )
         self.ac: ActorCritic = ActorCritic(
             state_shape=state_shape,
             action_size=action_size,

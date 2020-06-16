@@ -9,7 +9,8 @@ import torch.nn as nn
 import numpy as np
 from torchvision import transforms
 
-from common_agents_utils import Config, ActorCritic, Torch_Arbitrary_Replay_Buffer, TT, NpA, Tuple, Iterable
+from common_agents_utils import Config, ActorCritic, Torch_Arbitrary_Replay_Buffer
+from common_agents_utils.typingTypes import TT, NpA, Tuple, Iterable
 from common_agents_utils.logger import Logger
 from env.common_envs_utils.visualizer import save_as_mp4
 
@@ -40,10 +41,6 @@ class PPO_DRQ:
             convert_to_torch=False,
         )
 
-        # state_ = self.test_env.reset()
-        # print(f'state: type : {type(state_)}, shape : {state_.shape}')
-        # state__ = config.phi(state_)
-        # print(f'state: type : {type(state__)}, shape : {state__.shape}')
         state_shape = config.phi(self.test_env.reset()).shape
         action_size = self.test_env.action_space.shape[0]
 
@@ -76,7 +73,7 @@ class PPO_DRQ:
             transforms.ToPILImage(),
             transforms.RandomCrop(
                 (84, 84),
-                padding=4,
+                padding=self.hyperparameters['drq_config']['padding'],
                 pad_if_needed=True,
                 padding_mode='edge',
             ),
@@ -159,12 +156,6 @@ class PPO_DRQ:
     def update(self):
         states, actions, rewards, log_probs, dones, _ = self.memory.get_all()
 
-        state_batch_aug1 = torch.from_numpy(self.augment_state(states)).to(self.config.device)
-        state_batch_aug2 = torch.from_numpy(self.augment_state(states)).to(self.config.device)
-
-        # next_state_aug1 = torch.from_numpy(self.augment_state(next_states)).to(self.config.device)
-        # next_state_aug2 = torch.from_numpy(self.augment_state(next_states)).to(self.config.device)
-
         actions = torch.from_numpy(actions).to(self.config.device)
         log_probs = torch.from_numpy(log_probs).to(self.config.device)
 
@@ -187,64 +178,76 @@ class PPO_DRQ:
 
         sum_ppo_loss = 0.0
         sum_ppo_critic_loss = 0.0
+        sum_ppo_actor_loss = 0.0
+
         for _ in range(self.hyperparameters['learning_updates_per_learning_session']):
             self._total_grad_steps += 1
 
-            new_log_probs_1, new_entropy_1 = self.ac.estimate_action(state_batch_aug1, actions)
-            new_log_probs_2, new_entropy_2 = self.ac.estimate_action(state_batch_aug2, actions)
-            new_log_probs = (new_log_probs_1 + new_log_probs_2) / 2
-            new_entropy = (new_entropy_1 + new_entropy_2) / 2
-
-            state_value_1 = self.ac.value(state_batch_aug1)
-            state_value_2 = self.ac.value(state_batch_aug2)
-            state_value = (state_value_1 + state_value_2) / 2
-
-            state_value_old_1 = self.ac_old.value(state_batch_aug1).detach()
-            state_value_old_2 = self.ac_old.value(state_batch_aug2).detach()
-            state_value_old = (state_value_old_1 + state_value_old_2) / 2
-
-            critic_loss = torch.min(
-                self.mse(discount_reward, state_value),
-                self.mse(
-                    discount_reward,
-                    # кустарный clamp
-                    torch.min(
-                        torch.max(state_value, state_value_old - self.eps_clip),
-                        state_value_old + self.eps_clip
-                    ),
-                ),
+            actor_loss, critic_loss, entropy_loss = self.get_loss(
+                torch.from_numpy(states).to(self.config.device),
+                actions,
+                discount_reward,
+                log_probs,
             )
 
-            advantage = discount_reward - state_value.detach()
-            policy_ratio = torch.exp(new_log_probs - log_probs.detach())
+            for _ in range(self.hyperparameters['drq_augment_num']):
+                actor_loss_aug, critic_loss_aug, entropy_loss_aug = self.get_loss(
+                    torch.from_numpy(self.augment_state(states)).to(self.config.device),
+                    actions,
+                    discount_reward,
+                    log_probs,
+                )
 
-            term_1 = policy_ratio * advantage
-            term_2 = torch.clamp(policy_ratio, 1 - self.eps_clip, 1 + self.eps_clip) * advantage
+                actor_loss += actor_loss_aug
+                critic_loss += critic_loss_aug
+                entropy_loss += entropy_loss_aug
 
-            loss = -1 * torch.min(term_1, term_2) - 0.0 * new_entropy + 0.5 * critic_loss
+            loss = 0.5 * critic_loss + actor_loss + 0.001 * entropy_loss
 
             sum_ppo_loss += float(loss.mean().detach().cpu().numpy())
             sum_ppo_critic_loss += float(critic_loss.mean().detach().cpu().numpy())
+            sum_ppo_actor_loss += float(actor_loss.mean().detach().cpu().numpy())
 
             self.optimizer.zero_grad()
-            if self.hyperparameters['use_icm']:
-                pass
-                # (loss.mean() + 0.5 * intrinsic_loss.mean()).backward(retain_graph=True)
-                # torch.nn.utils.clip_grad_norm_(
-                #     self._icm.parameters(), self.hyperparameters['icm_config'].get('icm_gradient_clipping', 1.0)
-                # )
-            else:
-                loss.mean().backward()
+            loss.mean().backward()
             torch.nn.utils.clip_grad_norm_(self.ac.parameters(), self.hyperparameters['gradient_clipping_norm'])
             self.optimizer.step()
 
         self.current_game_stats.update({
             'ppo_loss': float(sum_ppo_loss) / self.hyperparameters['learning_updates_per_learning_session'],
             'ppo_critic_loss': float(sum_ppo_critic_loss) / self.hyperparameters['learning_updates_per_learning_session'],
+            'ppo_actor_loss': float(sum_ppo_actor_loss) / self.hyperparameters['learning_updates_per_learning_session'],
         })
 
         # update old policy
         self.update_old_policy()
+
+    def get_loss(self, state_batch, action_batch, discount_reward, log_prob) -> Tuple[TT, TT, TT]:
+        new_log_probs, new_entropy = self.ac.estimate_action(state_batch, action_batch)
+
+        state_value = self.ac.value(state_batch)
+
+        state_value_old= self.ac_old.value(state_batch).detach()
+
+        critic_loss = torch.min(
+            self.mse(discount_reward, state_value),
+            self.mse(
+                discount_reward,
+                # кустарный clamp
+                torch.min(
+                    torch.max(state_value, state_value_old - self.eps_clip),
+                    state_value_old + self.eps_clip
+                ),
+            ),
+        )
+
+        advantage = discount_reward - state_value.detach()
+        policy_ratio = torch.exp(new_log_probs - log_prob.detach())
+
+        term_1 = policy_ratio * advantage
+        term_2 = torch.clamp(policy_ratio, 1 - self.eps_clip, 1 + self.eps_clip) * advantage
+
+        return -1 * torch.min(term_1, term_2), critic_loss, new_entropy
 
     def train(self):
         print('Start to train PPO')

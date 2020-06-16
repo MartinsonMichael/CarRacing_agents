@@ -1,7 +1,0 @@
-# This part of config s common for all agents and contain technical params.
-log_interval: 10
-animation_record_frequency: 20
-record_animation: true
-
-env_steps_to_run : 7500000
-max_episode_len: 500
