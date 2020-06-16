@@ -73,7 +73,7 @@ class PPO_DRQ:
             transforms.ToPILImage(),
             transforms.RandomCrop(
                 (84, 84),
-                padding=self.hyperparameters['drq_paddings'],
+                padding=self.hyperparameters['drq_padding'],
                 pad_if_needed=True,
                 padding_mode='edge',
             ),
