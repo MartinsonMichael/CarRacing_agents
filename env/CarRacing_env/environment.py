@@ -1,5 +1,7 @@
 import json
 from functools import lru_cache
+
+import yaml
 from shapely import geometry
 from typing import List, Union, Dict, Tuple
 import Box2D
@@ -22,7 +24,10 @@ class CarRacingEnv(gym.Env, EzPickle):
         if isinstance(settings_file_path_or_settings, dict):
             self._settings = settings_file_path_or_settings
         else:
-            self._settings = json.load(open(settings_file_path_or_settings))
+            try:
+                self._settings = json.load(open(settings_file_path_or_settings, 'r'))
+            except:
+                self._settings = yaml.load(open(settings_file_path_or_settings, 'r'))
 
         # load env resources
         self._data_loader = DataSupporter(self._settings)

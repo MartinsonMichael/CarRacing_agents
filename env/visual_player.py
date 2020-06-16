@@ -1,5 +1,8 @@
 import argparse
 import time
+from typing import Dict, Any
+
+import yaml
 from gym.envs.classic_control.rendering import SimpleImageViewer
 from pyglet.window import key
 
@@ -48,21 +51,45 @@ def key_release(k, modifier):
         action = 0
 
 
+def make_common_env_config(exp_env_config: Dict[str, str]) -> Dict[str, Any]:
+    assert isinstance(exp_env_config, dict)
+    for config_part_name in ['path_config', 'reward_config', 'state_config']:
+        assert config_part_name in exp_env_config.keys()
+        assert isinstance(exp_env_config[config_part_name], str)
+
+    env_config = dict()
+    for config_part_name in ['path_config', 'reward_config', 'state_config']:
+        config_part = yaml.load(open(exp_env_config[config_part_name], 'r'))
+        env_config.update(config_part)
+
+    print(env_config)
+
+    return env_config
+
+
 def main():
     global restart, action
     parser = argparse.ArgumentParser()
     parser.add_argument("--delay", type=float, default=None, help="time in s between actions")
     parser.add_argument("--debug", action='store_true', default=False, help="debug mode")
-    parser.add_argument(
-        "--env-settings",
-        type=str,
-        default='settings_sets/env_settings__TEST.json',
-        help="debug mode"
-    )
+    parser.add_argument("--stop-on-finish", action='store_true', default=False,
+                        help="do no restart simulation after finish")
+    parser.add_argument("--stop-on-fail", action='store_true', default=False,
+                        help="do not restart simulation after fail")
+    parser.add_argument("--exp-settings", type=str)
+    parser.add_argument("--env-settings", type=str)
+    parser.add_argument("--show-agent-track", default=False, action='store_true', help="debug mode")
     args = parser.parse_args()
 
-    # create env by settings
-    env = CarRacingEnv(args.env_settings)
+    if args.exp_settings is not None:
+        print('make env by exp-settings')
+        env = CarRacingEnv(make_common_env_config(yaml.load(open(args.exp_settings, 'r'))['env']))
+    elif args.env_settings is not None:
+        print('make env by json settings')
+        env = CarRacingEnv(args.env_settings)
+    else:
+        raise ValueError('provide settings to use')
+
     env = DiscreteWrapper(env)
 
     env.reset()
@@ -91,13 +118,21 @@ def main():
             print(info, end='\n\n')
 
             steps += 1
-            viewer.imshow(env.render(full_image=True))
+            viewer.imshow(env.render_with_settings(full_image=True, draw_agent_track=args.show_agent_track))
 
             if args.delay is not None:
                 time.sleep(args.delay)
 
             if start_to_use_pause:
                 time.sleep(1.0)
+
+            if done and args.stop_on_finish and info.get('is_finish', False):
+                print('Exit on finish')
+                exit(0)
+
+            if done and args.stop_on_fail:
+                print('Exit on fail')
+                exit(0)
 
             if done or restart or info.get('need_reset', False):
                 print('restart')

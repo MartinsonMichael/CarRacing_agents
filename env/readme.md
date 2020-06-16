@@ -1,6 +1,14 @@
 # CarIntersect environment
 
 This package contains the CarIntersect environment.
+
+CarIntersect simulate four way crossroad with some physics and bot cars.
+As a feature our environment has photo-realistic image and modifiability with a set of configs.
+  
+We create script to control car by hands. 
+Just run `run.sh` in linux terminal.
+If you want more complicated settings run `python3.6 visual_player.py` with proper flags (them can be easily read from `visual_player.py`).
+
 For requirements see [requirements.txt](https://github.com/MartinsonMichael/CarRacing_agents/blob/master/requirements.txt) from main part of project.
 
 Folder structure:
