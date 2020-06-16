@@ -2,7 +2,7 @@ from typing import Callable, Union, List
 import numpy as np
 import torch
 
-from stable_baseline_replay_buffer.replay_buffer import ReplayBuffer
+from common_agents_utils.stable_baseline_replay_buffer.replay_buffer import ReplayBuffer
 
 
 class TorchReplayBuffer(ReplayBuffer):

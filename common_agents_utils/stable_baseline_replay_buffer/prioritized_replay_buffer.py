@@ -1,8 +1,7 @@
 import numpy as np
-from typing import List, Union
 
-from stable_baseline_replay_buffer.replay_buffer import ReplayBuffer
-from stable_baseline_replay_buffer.segment_tree import SumSegmentTree, MinSegmentTree
+from common_agents_utils.stable_baseline_replay_buffer.replay_buffer import ReplayBuffer
+from common_agents_utils.stable_baseline_replay_buffer.segment_tree import SumSegmentTree, MinSegmentTree
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):
