@@ -73,7 +73,7 @@ class PPO_DRQ:
             transforms.ToPILImage(),
             transforms.RandomCrop(
                 (84, 84),
-                padding=self.hyperparameters['drq_config']['padding'],
+                padding=self.hyperparameters['drq_paddings'],
                 pad_if_needed=True,
                 padding_mode='edge',
             ),
@@ -227,7 +227,7 @@ class PPO_DRQ:
 
         state_value = self.ac.value(state_batch)
 
-        state_value_old= self.ac_old.value(state_batch).detach()
+        state_value_old = self.ac_old.value(state_batch).detach()
 
         critic_loss = torch.min(
             self.mse(discount_reward, state_value),
