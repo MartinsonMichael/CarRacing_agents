@@ -28,7 +28,7 @@ Config for env is .yaml files and consist of three parts:
  - state part - like the behavior of env: list of vector state to use for an agent, use of not picture as a state, number of bots, agents and bots tracks. [link to example](https://github.com/MartinsonMichael/CarRacing_agents/blob/master/env/configs/basic_STATE_config.yaml) 
  - path part - paths to car images, the path to the back image, and cvat file. [link to example](https://github.com/MartinsonMichael/CarRacing_agents/blob/master/env/configs/basic_PATH_config.yaml)
  
-The final config is just the concatenation of these parts. (dict.update in python) 
+The final config is just the concatenation of these parts. (dict.update in python) [link to example](https://github.com/MartinsonMichael/CarRacing_agents/blob/master/env/configs/full_config_example.yaml)
 
 CVAT file is used for creating a track line, track polygons, and some other.
 

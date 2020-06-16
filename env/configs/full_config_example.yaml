@@ -1,0 +1,112 @@
+# This file represent full -- self-sufficient config.
+---
+## ----------- PATH part ----------- ##
+# Path to folder with cars image and masks
+cars_path: "env/env_data/cars"
+
+# Indexes of cars images which will be used for agent's car
+agent_image_indexes: [0]
+
+# Paths to background image and CVAT annotation of this image
+background_path: "env/env_data/tracks/background_image_1520_1520.jpg"
+annotation_path: "env/env_data/tracks/named_track_annotation_v1.2.xml"
+# Possible tracks for this annotation:
+#   Agent: "rotate", "rotate-small", "rotate-over-line", "line"
+#   Bot: same as agent's + "bot-vertical-line", "bot-rotate-small", "bot-rotate-big"
+
+# Scales to resize background image and cars image,
+#   something like compression for better performance
+image_scale:
+  # set these params
+#  back_image_scale_factor: 0.12
+#  car_image_scale_factor: 0.1
+
+  # or theses
+  image_target_size: [84, 84]
+  relative_car_scale: 0.9
+
+  # Coefficient of image scaling (both background and cars) while record animation,
+  #   smth like trade-off between quality and disk memory efficiency.
+  image_scale_for_animation_records: 0.5
+
+
+## ----------- REWARD PART ----------- ##
+# Reward coefficients
+reward:
+    # How frequently insert check-points between CVAT track points
+    #   number represent distance in pixels
+  track_checkpoint_expanding: 50
+
+  # Rewards for events
+  is_collided: 0.0
+  is_finish: 1.0
+  is_out_of_track: -1
+  is_out_of_map: -1
+  is_out_of_road: -1
+
+  #
+  idleness__punish_if_action_radius_less_then: 0.0
+  idleness__punish_value: 0.0
+
+  #
+  new_tiles_count: 0.5
+  speed_multiplication_bonus: 0.0
+
+  speed_per_point: 0.0
+
+  if_speed_more_then_threshold: 0.0
+  speed_threshold: 0.0
+  time_per_point: 0.0
+  time_per_tick: 0.0
+
+# Done flags
+done:
+  true_flags_to_done: ["is_out_of_road", "is_out_of_map", "is_out_of_track", "is_finish"]
+  false_flags_to_done : []
+
+
+## ----------- STATE PART ----------- ##
+# List of track for agent.
+#   During env usage arbitrary one will be picked.
+#   Single track represent by string - NAME from xml CVAT file,
+#   agent track valid if it has track_polygon and track_line with same NAME
+agent_tracks : ["rotate"]
+
+# Number of bots to use
+bot_number : 0
+# List of bots tracks. In contrast with agent's track, these can be without track_polygon
+#   For each newly generated bot arbitrary track will be picked.
+bots_tracks: []
+
+# Config of agent's observation
+state:
+
+  # Use or not to use image. If "false", in observation dict it will appear as None.
+  picture: false
+
+  # List of car features to use.
+  #   Fill it as [] for empty list, in this case observation dict it will appear as None.
+  #   This field in observation dict is vector.
+  #   All features will be represented in given order.
+  #   All possible features names:
+  #     'hull_position', 'hull_angle', 'car_speed', 'wheels_positions',
+  #     'track_sensor', 'road_sensor', 'finish_sensor', 'cross_road_sensor',
+  #     'collide_sensor', 'checkpoint_sensor',
+  #     'car_radar_1', 'car_radar_2', 'car_radar_3',
+  #     'time'
+  vector_car_features: ["hull_angle", "hull_position", "checkpoint_sensor", "car_speed"]
+
+  # Unused field, but actually env can return vector description of track's polygons
+  #   All possible features names:
+  #     'track_goal', 'track_line', 'track_polygon', 'not_road', 'cross_road'
+  vector_env_features: []
+
+# Unused for now
+#   Steer policy, if "angle_steer" == false, default steer will be used,
+#   otherwise steer will be in raw degrees, where agent out for steer will be multiplicated by
+#   "angle_steer_multiplication" and this value will be immediate car rotation in degrees
+steer_policy:
+  angle_steer: false
+  angle_steer_multiplication: 5.0
+
+...

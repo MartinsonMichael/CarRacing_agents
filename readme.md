@@ -1,18 +1,16 @@
-## Repo of experiments with CarIntersect env
+## 
 
-This repo contains the implementation of RL agents: SAC, TD3, PPO, and wrapper for chainerRL.Rainbow.
-
-The environment itself is in env folder. Open it for a more detailed description of the environment.
-
-
-## Intro
-Control architectures for mobile robotic systems and self-driving vehicles currently allow us to solve basic tasks for planning and self-driving in complex urban environments.
-Often the methods used are based on pre-defined scenarios and rules of behavior, which significantly reduces the degree of autonomy of such systems.
-One of the promising areas for increasing the degree of autonomy is the use of machine learning methods for automatically generating generalized object recognition procedures, including dynamic ones, in the external environment, and generating actions to achieve certain goals.
+## Abstract
+In this paper, we consider the problem of controlling an intelligent agent that simulates the behavior of an unmanned car when passing a road intersection together with other vehicles.
+We consider the case of using smart city systems, which allow the agent to get full information about what is happening at the intersection in the form of video frames from surveillance cameras.
+The paper proposes the implementation of a control system based on a trainable behavior generation module.
+The agent's model is implemented using reinforcement learning (RL) methods.
+In our work, we analyze various RL methods (PPO, Rainbow, TD3), and variants of the computer vision subsystem of the agent.
+Also, we present our results of the best implementation of the agent when driving together with other participants in compliance with traffic rules.
 
 
 ## This work
-In this project, we consider the task of learning an intelligent agent that simulates a self-driving car that performs the task of passing through the road intersection.
+In this project, we consider the task of learning an agent that simulates a self-driving car that performs the task of passing through the road intersection.
 As a basic statement of the problem, we consider a realistic scenario of using data from the agent's sensors (images from cameras within the field of view, laser rangefinders, etc.), data coming from video surveillance cameras located in complex and loaded transport areas, in particular at road intersections.
 
 
@@ -27,16 +25,23 @@ As a basic statement of the problem, we consider a realistic scenario of using d
 | TD3 on track Line | Rainbow with image as state on track Line  | PPO with image state on track Line |
 
 
-## Charts
 
-We made three series of experiments. 
+## Convergence 
 
 ### State as a vector
 
 | Small rotation | Medium rotation | Line | Full rotation |
 |:---:|:---:|:---:|:---:|
-| ![](media/vector_small_rotation_track.svg) | ![](media/vector_medium_rotation_track.svg) | ![](media/vector_line_track.svg) | ![](media/vector_full_rotation_track.svg) | 
+| ![](media/vector_small_rotation_track.svg) | ![](media/vector_medium_rotation_track.svg) | ![](media/vector_line_track.svg) | ![](media/vector_full_rotation_track.svg) |
+ 
+
+
+### State as an image
+
+| Small rotation | Medium rotation | Line | Full rotation |
+|:---:|:---:|:---:|:---:|
+| ![](media/image_small_rotation.svg) | ![](media/image_med_rotation.svg) | ![](media/image_line.svg) | ![](media/image_full_rotation.svg) | 
 
 
 
-
+<img src="media/vector_small_rotation_track.svg" width="200" height="100"/>
