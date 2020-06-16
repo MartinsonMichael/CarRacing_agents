@@ -184,7 +184,9 @@ class PPO_DRQ:
             self._total_grad_steps += 1
 
             actor_loss, critic_loss, entropy_loss = self.get_loss(
-                torch.from_numpy(states).to(self.config.device),
+                torch.from_numpy(
+                    np.array([self.config.phi(x) for x in states], dtype=np.float32)
+                ).to(self.config.device),
                 actions,
                 discount_reward,
                 log_probs,
