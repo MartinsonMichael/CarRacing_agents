@@ -13,17 +13,18 @@ from env import DiscreteWrapper
 from env.common_envs_utils.env_makers import get_state_type_from_settings, get_EnvCreator_with_memory_safe_combiner
 from ppo.PPO_ICM_continuous import PPO_ICM
 from ppo.PPO_DRQ_continuous import PPO_DRQ
+from ppo.PPO_continuous import PPO
 from rainbow.rainbow import Rainbow
 # from sac.SAC import SAC
 from td3.TD3 import TD3
 
 
 AGENT_TYPE_MAP = {
-    "ppo": PPO_ICM,
+    "ppo": PPO,
     "rainbow": Rainbow,
     "td3": TD3,
     # "sac": SAC,
-    "ppo-dqr": PPO_DRQ,
+    "ppo-drq": PPO_DRQ,
 }
 
 
@@ -54,7 +55,7 @@ def make_single_config(agent_config_dict) -> Config:
 def make_general_agents_config(exp_agents_config: Dict[str, str], common_config_path: str) -> List[Dict[str, Any]]:
     assert isinstance(exp_agents_config, dict)
     assert len(exp_agents_config.keys()) >= 1
-    assert len(set(exp_agents_config.keys()) - {'ppo', 'rainbow', 'td3', 'sac', 'ppo-dqr'}) == 0
+    assert len(set(exp_agents_config.keys()) - {'ppo', 'rainbow', 'td3', 'sac', 'ppo-drq'}) == 0
 
     general_agents_config_list = []
     for agent_type, path_to_agent_config in exp_agents_config.items():
@@ -265,6 +266,9 @@ if __name__ == "__main__":
 
     _args = parser.parse_args()
     _args.record_animation = not _args.no_record_animation
+
+    if _args.device is None:
+        raise ValueError('set device')
 
     if _args.name is None:
         raise ValueError('set name')

@@ -6,7 +6,7 @@ import numpy as np
 
 from env.common_envs_utils import \
     OnlyVectorsTaker, OnlyImageTaker, ChannelSwapper, FrameCompressor
-from env.CarRacing_env import CarRacingEnv
+from env.CarIntersect import CarIntersect
 from env.common_envs_utils.env_wrappers import MemorySafeFeatureCombiner
 
 
@@ -71,7 +71,7 @@ def both_phi(x):
 
 def make_CarRacing_Both(settings: Dict, discrete_wrapper: Type[ActionWrapper] = None) -> Callable:
     def f():
-        env = CarRacingEnv(settings_file_path_or_settings=settings)
+        env = CarIntersect(settings_file_path_or_settings=settings)
         env = MemorySafeFeatureCombiner(env)
         if discrete_wrapper is not None:
             env = discrete_wrapper(env)
@@ -81,7 +81,7 @@ def make_CarRacing_Both(settings: Dict, discrete_wrapper: Type[ActionWrapper] = 
 
 def make_CarRacing_Vector(settings: Dict, discrete_wrapper: Type[ActionWrapper] = None) -> Callable:
     def f():
-        env = CarRacingEnv(settings_file_path_or_settings=settings)
+        env = CarIntersect(settings_file_path_or_settings=settings)
         env = OnlyVectorsTaker(env)
         if discrete_wrapper is not None:
             env = discrete_wrapper(env)
@@ -91,7 +91,7 @@ def make_CarRacing_Vector(settings: Dict, discrete_wrapper: Type[ActionWrapper] 
 
 def make_CarRacing_Picture(settings: Dict, discrete_wrapper: Type[ActionWrapper] = None) -> Callable:
     def f():
-        env = CarRacingEnv(settings_file_path_or_settings=settings)
+        env = CarIntersect(settings_file_path_or_settings=settings)
         env = OnlyImageTaker(env)
         env = ChannelSwapper(env)
         if discrete_wrapper is not None:

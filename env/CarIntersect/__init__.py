@@ -1,5 +1,5 @@
 from gym.envs.registration import register
-from env.CarRacing_env.environment import CarRacingEnv
+from env.CarIntersect.environment import CarIntersect
 
 try:
     register(

@@ -7,6 +7,7 @@ from multiprocessing import Process
 import torch
 import torch.nn as nn
 import numpy as np
+import wandb
 from torchvision import transforms
 
 from common_agents_utils import Config, ActorCritic, Torch_Arbitrary_Replay_Buffer
@@ -85,6 +86,7 @@ class PPO_DRQ:
         self.global_step_number = 0
         self._total_grad_steps = 0
         self.current_game_stats = None
+        self._wandb_anim_save = 0
         self.flush_stats()
 
         self.accumulated_reward_mean = None
@@ -331,12 +333,19 @@ class PPO_DRQ:
                     or episode_len > self.config.max_episode_len \
                     or self.global_step_number >= self.config.env_steps_to_run:
                 if record_anim:
+                    wandb_anim_record: bool = False
+                    if self._wandb_anim_save % self.config.wandb_animation_frequency == 0:
+                        wandb_anim_record = True
+                        print('save animation to wandb')
+                        wandb.log({'animation': wandb.Video(np.transpose(np.array(images)[::3, ::2, ::2, :], (0, 3, 1, 2)), fps=4, format="gif")})
+                    self._wandb_anim_save += 1
                     Process(
                         target=save_as_mp4,
                         args=(
                             images,
-                            f'animation/PPO/{self.name}/_R:_{total_reward}_Time:_{episode_len}_{time.time()}.mp4',
-                            self.stat_logger
+                            f'animation/PPO-DQR/{self.name}/_R:_{total_reward}_Time:_{episode_len}_{time.time()}.mp4',
+                            self.stat_logger,
+                            wandb_anim_record,
                         ),
                     ).start()
                 if info.get('need_reset', False):

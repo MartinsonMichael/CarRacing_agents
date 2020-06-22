@@ -11,13 +11,13 @@ import numpy as np
 from gym import spaces
 from gym.utils import seeding, EzPickle
 
-from env.CarRacing_env.car import DummyCar
-from env.CarRacing_env.contact_listner import RefactoredContactListener
-from env.CarRacing_env.rewards import Rewarder
-from env.CarRacing_env.utils import DataSupporter
+from env.CarIntersect.car import DummyCar
+from env.CarIntersect.contact_listner import RefactoredContactListener
+from env.CarIntersect.rewards import Rewarder
+from env.CarIntersect.utils import DataSupporter
 
 
-class CarRacingEnv(gym.Env, EzPickle):
+class CarIntersect(gym.Env, EzPickle):
 
     def __init__(self, settings_file_path_or_settings):
         EzPickle.__init__(self)
@@ -270,7 +270,7 @@ class CarRacingEnv(gym.Env, EzPickle):
     @lru_cache(maxsize=None)
     def _create_vector_env_static_description(self) -> np.ndarray:
         params_to_use = self._settings['state']['vector_env_features']
-        # that a have, just to remaind:
+        # that I have, just to remaind:
         # * agent car - NOT in this function
         # * bots car [optionaly] - NOT in this function
         # agent track info: check points, main goal
@@ -446,7 +446,7 @@ class CarRacingEnv(gym.Env, EzPickle):
             # point *= self._data_loader.get_background_image_scale
             point *= self._data_loader.FULL_RENDER_COEFF
 
-            CarRacingEnv.debug_draw_sized_circle(
+            CarIntersect.debug_draw_sized_circle(
                 background_image,
                 point,
                 point_size,

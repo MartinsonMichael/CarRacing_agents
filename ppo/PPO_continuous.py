@@ -72,6 +72,7 @@ class PPO:
         self.global_step_number = 0
         self._total_grad_steps = 0
         self.current_game_stats = None
+        self._wandb_anim_save = 0
         self.flush_stats()
 
         self.accumulated_reward_mean = None
@@ -272,12 +273,17 @@ class PPO:
                     or episode_len > self.config.max_episode_len \
                     or self.global_step_number >= self.config.env_steps_to_run:
                 if record_anim:
+                    wandb_anim_record: bool = False
+                    if self._wandb_anim_save % self.config.wandb_animation_frequency == 0:
+                        wandb_anim_record = True
+                    self._wandb_anim_save += 1
                     Process(
                         target=save_as_mp4,
                         args=(
                             images,
                             f'animation/PPO/{self.name}/_R:_{total_reward}_Time:_{episode_len}_{time.time()}.mp4',
-                            self.stat_logger
+                            self.stat_logger,
+                            False,
                         ),
                     ).start()
                 if info.get('need_reset', False):

@@ -14,7 +14,7 @@ if __name__ == '__main__':
     except:
         print("If you launch this from env folder, you probably will have some import problems.")
 
-from env.CarRacing_env.environment import CarRacingEnv
+from env.CarIntersect.environment import CarIntersect
 from env.common_envs_utils.env_wrappers import DiscreteWrapper
 
 action = 0
@@ -83,10 +83,10 @@ def main():
 
     if args.exp_settings is not None:
         print('make env by exp-settings')
-        env = CarRacingEnv(make_common_env_config(yaml.load(open(args.exp_settings, 'r'))['env']))
+        env = CarIntersect(make_common_env_config(yaml.load(open(args.exp_settings, 'r'))['env']))
     elif args.env_settings is not None:
         print('make env by json settings')
-        env = CarRacingEnv(args.env_settings)
+        env = CarIntersect(args.env_settings)
     else:
         raise ValueError('provide settings to use')
 

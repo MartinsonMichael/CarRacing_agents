@@ -7,7 +7,7 @@ env:
 
 # Agents to use, with theirs configs
 agents:
-  ppo: ppo/ppo_test_config.yaml
+  ppo-drq: ppo/ppo_test_config.yaml
 
 # Common part of logger config
 general_config: general_test_config.yaml
@@ -21,12 +21,12 @@ general_config: general_test_config.yaml
 
 # Local env changes
 env_changes:
-  - state:
-      picture: false
-      vector_car_features: ["hull_angle", "hull_position", "checkpoint_sensor", "car_speed"]
-  - state:
-      picture: true
-      vector_car_features: ["hull_angle", "hull_position", "checkpoint_sensor", "car_speed"]
+#  - state:
+#      picture: false
+#      vector_car_features: ["hull_angle", "hull_position", "checkpoint_sensor", "car_speed"]
+#  - state:
+#      picture: true
+#      vector_car_features: ["hull_angle", "hull_position", "checkpoint_sensor", "car_speed"]
   - state:
       picture: true
       vector_car_features: []

@@ -112,7 +112,7 @@ class TD3:
         # Delayed policy updates
         if self.total_it % self.hyperparameters['policy_update_freq'] == 0:
 
-            # Compute actor losse
+            # Compute actor loss
             actor_loss = -self.critic.Q1(state, self.actor(state)).mean()
 
             # Optimize the actor

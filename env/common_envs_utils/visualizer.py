@@ -1,4 +1,5 @@
 import os
+import time
 
 import numpy as np
 from matplotlib import animation
@@ -37,7 +38,7 @@ def episode_visualizer(env, action_picker, name='test', folder='save_animation_f
 
 # f'./save_animation_folder/{datetime.datetime.now()}.mp4'
 
-def save_as_mp4(image_array, save_path, logger):
+def save_as_mp4(image_array, save_path, logger, save_to_wandb: bool) -> None:
     dpi = 72.0
     xpixels, ypixels = image_array[0].shape[:2]
     fig = plt.figure(figsize=(ypixels / dpi, xpixels / dpi), dpi=dpi)
@@ -60,8 +61,10 @@ def save_as_mp4(image_array, save_path, logger):
 
     anim.save(save_path)
 
-    if logger is not None:
-        logger.log_video(image_array, save_path)
+    if save_to_wandb:
+        assert logger is not None
+        time.sleep(10)
+        logger.log_video(save_path)
 
 
 def plot_sequence_images(image_array, need_disaply=False, need_save=None):

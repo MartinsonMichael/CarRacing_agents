@@ -1,14 +1,13 @@
 # Basic ppo specific config
 ---
 use_icm: false
-icm_config:
-    phi: 'config.phi'
-    icm_gradient_clipping: 1.5
+icm_phi: 'config.phi'
+icm_gradient_clipping: 1.5
 
-#save_frequency_episode: 500
-#log_interval: 20
-#animation_record_frequency: 100
-#record_animation: _args.record_animation
+# sub param for drq
+drq_padding: 2
+drq_augment_num: 1 # excluding original state
+
 
 num_episodes_to_run: 50
 max_episode_len: 500

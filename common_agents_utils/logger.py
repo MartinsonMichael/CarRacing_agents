@@ -50,13 +50,8 @@ class Logger:
             step=step,
         )
 
-    def log_video(self, image_array, path_or_file_name) -> None:
-        return
-        # if self.episode_number % 20 == 0:
-        #     Thread(
-        #         target=Logger._delayed_animation_logging,
-        #         args=(image_array, path_or_file_name, self.episode_number),
-        #     ).run()
+    def log_video(self, path_or_file_name) -> None:
+        wandb.save(path_or_file_name)
 
     def _accumulate_stats(self, stats: Dict[str, Any]) -> None:
         for key, value in stats.items():

@@ -5,7 +5,7 @@ import math
 import Box2D
 from Box2D.b2 import fixtureDef, polygonShape, revoluteJointDef
 
-from env.CarRacing_env.utils import DataSupporter
+from env.CarIntersect.utils import DataSupporter
 from shapely.geometry import Point
 
 

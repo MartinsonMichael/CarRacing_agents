@@ -6,7 +6,7 @@ from shapely.geometry import Polygon
 from skimage.measure import label, regionprops
 import copy
 
-from env.CarRacing_env.cvat_loader import CvatDataset
+from env.CarIntersect.cvat_loader import CvatDataset
 
 
 class CarImage(NamedTuple):
