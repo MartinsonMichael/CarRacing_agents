@@ -1,1 +1,7 @@
 model_saves/
+wandb/
+*_tables/
+logs/
+media/
+animation/
+exp_tables/
