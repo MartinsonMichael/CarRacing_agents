@@ -145,9 +145,6 @@ class Workspace(object):
 
 @hydra.main(config_path='config.yaml', strict=True)
 def main(cfg):
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--device', type=str, default='cpu', help='name for experiment')
-    _args = parser.parse_args()
 
     print(f'cur dir : {os.path.abspath(os.path.curdir)}')
     ps = os.path.abspath(os.path.curdir)
@@ -164,10 +161,12 @@ def main(cfg):
     os.chdir(ps)
     print(f'dir after changes: {os.path.abspath(os.path.curdir)}')
 
-    cfg.device = _args.device
     workspace = Workspace(cfg, env=env)
     workspace.run()
 
 
 if __name__ == '__main__':
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('--device', type=str, default='cpu', help='name for experiment')
+    # _args = parser.parse_args()
     main()
