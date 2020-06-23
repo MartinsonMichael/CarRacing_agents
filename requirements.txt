@@ -20,6 +20,10 @@ configparser==4.0.2
 cycler==0.10.0
 decorator==4.4.0
 defusedxml==0.6.0
+dm-control==0.0.300771433
+dm-env==1.2
+dm-tree==0.1.5
+dmc2gym==1.0.0
 docker-pycreds==0.4.0
 EasyProcess==0.2.8
 entrypoints==0.3
@@ -28,6 +32,7 @@ future==0.17.1
 gast==0.2.2
 gitdb2==2.0.6
 GitPython==3.0.7
+glfw==1.11.2
 google-auth==1.6.3
 google-auth-oauthlib==0.4.1
 google-pasta==0.1.7
@@ -37,6 +42,8 @@ graphviz==0.13.2
 grpcio==1.25.0
 gym==0.15.4
 h5py==2.10.0
+Hydra==2.5
+hydra-core==0.11.3
 ideep4py==2.0.0.post3
 idna==2.8
 imageio==2.5.0
@@ -57,6 +64,8 @@ Keras==2.3.0
 Keras-Applications==1.0.8
 Keras-Preprocessing==1.1.0
 kiwisolver==1.1.0
+kornia==0.3.1
+lxml==4.5.1
 Markdown==3.1.1
 MarkupSafe==1.1.1
 matplotlib==3.1.1
@@ -75,6 +84,7 @@ numpy==1.18.1
 nvidia-ml-py3==7.352.0
 oauthlib==3.1.0
 olefile==0.46
+omegaconf==1.4.1
 opencv-python==4.1.1.26
 opt-einsum==3.1.0
 pandas==0.25.3
@@ -96,9 +106,10 @@ pyasn1==0.4.7
 pyasn1-modules==0.2.7
 pycparser==2.19
 pygame==1.9.6
-pyglet==1.5.0
+pyglet==1.3.2
 Pygments==2.4.2
 Pympler==0.8
+PyOpenGL==3.1.5
 pyparsing==2.4.2
 PyQt5==5.13.1
 PyQt5-sip==4.19.19
@@ -133,7 +144,7 @@ termcolor==1.1.0
 terminado==0.8.2
 testpath==0.4.2
 testresources==2.0.1
-torch==1.4.0
+torch==1.5.0
 torchvision==0.4.2
 tornado==6.0.3
 tqdm==4.36.1
