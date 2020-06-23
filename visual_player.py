@@ -62,8 +62,6 @@ def make_common_env_config(exp_env_config: Dict[str, str]) -> Dict[str, Any]:
         config_part = yaml.load(open(exp_env_config[config_part_name], 'r'))
         env_config.update(config_part)
 
-    print(env_config)
-
     return env_config
 
 

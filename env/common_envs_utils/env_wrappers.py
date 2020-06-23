@@ -175,3 +175,15 @@ class ImageStackWrapper(gym.Wrapper):
         obs, _, _, _ = self._get_stack_buffer(self._neutral_action, self._stack_len - 1)
         image_obs = np.concatenate([initial_obs[0], obs[0]], axis=self._get_concatenate_axis())
         return tuple((image_obs, *obs[1:]))
+
+
+class OnlyImageTaker(gym.ObservationWrapper):
+    def __init__(self, env):
+        super().__init__(env)
+
+        self.observation_space = self.env.observation_space.spaces[0]
+
+    def observation(self, obs):
+        assert isinstance(obs, tuple), "OnlyImageTaker expect observation to be tuple, " \
+                                      f"but it has type : {type(obs)}"
+        return obs[0]

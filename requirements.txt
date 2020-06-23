@@ -23,6 +23,7 @@ defusedxml==0.6.0
 dm-control==0.0.300771433
 dm-env==1.2
 dm-tree==0.1.5
+dmc2gym==1.0.0
 docker-pycreds==0.4.0
 EasyProcess==0.2.8
 entrypoints==0.3
@@ -142,8 +143,8 @@ termcolor==1.1.0
 terminado==0.8.2
 testpath==0.4.2
 testresources==2.0.1
-torch==1.5.0
-torchvision==0.4.2
+torch==1.5.1+cu101
+torchvision==0.6.1+cu101
 tornado==6.0.3
 tqdm==4.36.1
 traitlets==4.3.3
