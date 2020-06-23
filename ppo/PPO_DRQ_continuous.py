@@ -4,6 +4,7 @@ from collections import defaultdict
 import time
 from multiprocessing import Process
 
+import kornia
 import torch
 import torch.nn as nn
 import numpy as np
@@ -43,6 +44,7 @@ class PPO_DRQ:
         )
 
         state_shape = config.phi(self.test_env.reset()).shape
+        print(f'state shape : {state_shape}')
         action_size = self.test_env.action_space.shape[0]
 
         self.ac: ActorCritic = ActorCritic(
@@ -70,16 +72,20 @@ class PPO_DRQ:
         self.update_old_policy()
         self.mse = nn.MSELoss()
 
-        self.image_transform = transforms.Compose([
-            transforms.ToPILImage(),
-            transforms.RandomCrop(
-                (84, 84),
-                padding=self.hyperparameters['drq_padding'],
-                pad_if_needed=True,
-                padding_mode='edge',
-            ),
-            transforms.ToTensor(),
-        ])
+        # self.image_transform = transforms.Compose([
+        #     transforms.ToPILImage(),
+        #     transforms.RandomCrop(
+        #         (84, 84),
+        #         padding=self.hyperparameters['drq_padding'],
+        #         pad_if_needed=True,
+        #         padding_mode='edge',
+        #     ),
+        #     transforms.ToTensor(),
+        # ])
+        self.image_transform = nn.Sequential(
+            nn.ReplicationPad2d(self.hyperparameters['drq_padding']),
+            kornia.augmentation.RandomCrop((84, 84)),
+        )
 
         self.folder_save_path = os.path.join('model_saves', 'PPO', self.name)
         self.episode_number = 0
@@ -182,13 +188,15 @@ class PPO_DRQ:
         sum_ppo_critic_loss = 0.0
         sum_ppo_actor_loss = 0.0
 
+        states = torch.from_numpy(
+                    np.array([self.config.phi(x) for x in states], dtype=np.float32)
+                ).to(self.config.device)
+
         for _ in range(self.hyperparameters['learning_updates_per_learning_session']):
             self._total_grad_steps += 1
 
             actor_loss, critic_loss, entropy_loss = self.get_loss(
-                torch.from_numpy(
-                    np.array([self.config.phi(x) for x in states], dtype=np.float32)
-                ).to(self.config.device),
+                states,
                 actions,
                 discount_reward,
                 log_probs,
@@ -196,7 +204,7 @@ class PPO_DRQ:
 
             for _ in range(self.hyperparameters['drq_augment_num']):
                 actor_loss_aug, critic_loss_aug, entropy_loss_aug = self.get_loss(
-                    torch.from_numpy(self.augment_state(states)).to(self.config.device),
+                    self.image_transform(states),
                     actions,
                     discount_reward,
                     log_probs,

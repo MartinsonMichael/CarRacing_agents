@@ -7,10 +7,10 @@ env:
 
 # Agents to use, with theirs configs
 agents:
-  ppo: ppo/ppo_test_config.yaml
+  ppo: ppo/ppo_config.yaml
 
 # Common part of logger config
-general_config: general_test_config.yaml
+general_config: general_config.yaml
 
 #   All possible features names:
 #     'hull_position', 'hull_angle', 'car_speed', 'wheels_positions',
@@ -21,12 +21,8 @@ general_config: general_test_config.yaml
 
 # Local env changes
 env_changes:
-#  - state:
-#      picture: false
-#      vector_car_features: ["hull_angle", "hull_position", "checkpoint_sensor", "car_speed"]
-#  - state:
-#      picture: true
-#      vector_car_features: ["hull_angle", "hull_position", "checkpoint_sensor", "car_speed"]
-  - state:
+  - agent_tracks : ["rotate"]
+    state:
       picture: true
       vector_car_features: []
+

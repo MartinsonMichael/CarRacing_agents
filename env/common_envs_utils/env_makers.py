@@ -5,9 +5,8 @@ from gym import ActionWrapper
 import numpy as np
 
 from env.common_envs_utils import \
-    OnlyVectorsTaker, OnlyImageTaker, ChannelSwapper, FrameCompressor
+    ChannelSwapper, DictToTupleWrapper, ImageStackWrapper
 from env.CarIntersect import CarIntersect
-from env.common_envs_utils.env_wrappers import MemorySafeFeatureCombiner
 
 
 def get_state_type_from_settings_path(settings_path: str) -> str:
@@ -72,7 +71,7 @@ def both_phi(x):
 def make_CarRacing_Both(settings: Dict, discrete_wrapper: Type[ActionWrapper] = None) -> Callable:
     def f():
         env = CarIntersect(settings_file_path_or_settings=settings)
-        env = MemorySafeFeatureCombiner(env)
+        env = DictToTupleWrapper(env)
         if discrete_wrapper is not None:
             env = discrete_wrapper(env)
         return env
@@ -82,7 +81,8 @@ def make_CarRacing_Both(settings: Dict, discrete_wrapper: Type[ActionWrapper] = 
 def make_CarRacing_Vector(settings: Dict, discrete_wrapper: Type[ActionWrapper] = None) -> Callable:
     def f():
         env = CarIntersect(settings_file_path_or_settings=settings)
-        env = OnlyVectorsTaker(env)
+        env = DictToTupleWrapper(env)
+        # env = OnlyVectorsTaker(env)
         if discrete_wrapper is not None:
             env = discrete_wrapper(env)
         return env
@@ -92,8 +92,10 @@ def make_CarRacing_Vector(settings: Dict, discrete_wrapper: Type[ActionWrapper] 
 def make_CarRacing_Picture(settings: Dict, discrete_wrapper: Type[ActionWrapper] = None) -> Callable:
     def f():
         env = CarIntersect(settings_file_path_or_settings=settings)
-        env = OnlyImageTaker(env)
+        env = DictToTupleWrapper(env)
+        # env = OnlyImageTaker(env)
         env = ChannelSwapper(env)
+        env = ImageStackWrapper(env)
         if discrete_wrapper is not None:
             env = discrete_wrapper(env)
         return env

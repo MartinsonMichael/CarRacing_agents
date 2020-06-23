@@ -136,6 +136,7 @@ class StateLayer(nn.Module):
             self._init_vector_layer(state_shape[0])
 
     def _init_picture_layers(self, input_shape):
+        print(f'in shape : {input_shape}')
         self._picture_layer: PictureProcessor = PictureProcessor(input_shape[0], device=self._device)
         self._picture_head = nn.Linear(
             in_features=self._picture_layer.get_out_shape_for_in(input_shape),

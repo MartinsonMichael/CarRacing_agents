@@ -9,7 +9,7 @@ import yaml
 from multiprocessing import Process
 
 from common_agents_utils import Config
-from env import DiscreteWrapper
+from env.common_envs_utils.action_wrappers import DiscreteWrapper
 from env.common_envs_utils.env_makers import get_state_type_from_settings, get_EnvCreator_with_memory_safe_combiner
 from ppo.PPO_ICM_continuous import PPO_ICM
 from ppo.PPO_DRQ_continuous import PPO_DRQ
