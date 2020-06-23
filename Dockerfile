@@ -19,6 +19,7 @@ RUN apt-get update \
 RUN pip3 install --upgrade pip
 COPY requirements.txt /tmp/
 RUN pip3 install -r /tmp/requirements.txt
+RUN pip3 install git+git://github.com/denisyarats/dmc2gym.git
 RUN pip3 install wandb
 RUN apt-get install ffmpeg
 RUN apt-get -y install cuda-libraries-dev-10-0
