@@ -1,6 +1,7 @@
 # This part of config s common for all agents and contain technical params.
 log_interval: 20
 animation_record_frequency: 100
+wandb_animation_frequency: 5 # among usual animation freq
 record_animation: true
 
 env_steps_to_run : 5000000 # 5M
