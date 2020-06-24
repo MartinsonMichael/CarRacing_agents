@@ -32,7 +32,6 @@ torch.backends.cudnn.benchmark = True
 
 class Workspace(object):
     def __init__(self, cfg, env):
-        import os
         self.env = env
 
         self.work_dir = os.getcwd()
@@ -95,7 +94,12 @@ class Workspace(object):
         episode, episode_reward, episode_step, done = 0, 0, 1, True
         start_time = time.time()
 
-        logger = Logger(model_config=None, use_wandb=True, use_console=True, use_tensorboard=False)
+        logger = Logger(
+            model_config=None,
+            use_wandb=True, use_console=True, use_tensorboard=False,
+            log_interval=2,
+        )
+
         info = dict()
         total_env_step = 0
 
@@ -140,7 +144,7 @@ class Workspace(object):
                     action = self.agent.act(obs, sample=True)
 
             # run training update
-            if self.step >= self.cfg.num_seed_steps:
+            if self.step >= self.cfg.num_seed_steps and self.step % 10 == 0:
                 for _ in range(self.cfg.num_train_iters):
                     self.agent.update(self.replay_buffer, self.logger, self.step)
 
@@ -152,8 +156,7 @@ class Workspace(object):
             done_no_max = 0 if episode_step + 1 >= 500 else done
             episode_reward += reward
 
-            self.replay_buffer.add(obs, action, reward, next_obs, done,
-                                   done_no_max)
+            self.replay_buffer.add(obs, action, reward, next_obs, done, done_no_max)
 
             obs = next_obs
             episode_step += 1
