@@ -16,10 +16,7 @@ from env.common_envs_utils.visualizer import save_as_mp4
 class PPO:
     def __init__(self, config: Config):
         self.name = config.name
-        self.stat_logger: Logger = Logger(
-            config,
-            log_interval=config.log_interval,
-        )
+        self.stat_logger: Logger = Logger(config, log_interval=config.log_interval)
         self.config = config
         self.hyperparameters = config.hyperparameters
         self.eps_clip = config.hyperparameters['eps_clip']
@@ -215,8 +212,6 @@ class PPO:
                     'total_grad_steps': self._total_grad_steps,
                 })
                 self.stat_logger.log_it(self.current_game_stats)
-                if self._exp_moving_track_progress >= self.hyperparameters.get('track_progress_success_threshold', 10):
-                    break
 
                 self.flush_stats()
 

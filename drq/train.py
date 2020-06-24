@@ -177,6 +177,9 @@ class Workspace(object):
             done_no_max = 0 if episode_step + 1 >= 130 else done
             episode_reward += reward
 
+            if episode_step > 200:
+                done = True
+
             self.replay_buffer.add(obs, action, reward, next_obs, done, done_no_max)
 
             obs = next_obs
