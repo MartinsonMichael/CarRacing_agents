@@ -20,7 +20,7 @@ num_eval_episodes: 10
 log_frequency_step: 10000
 log_save_tb: true
 save_video: true
-device: 'cuda:3'
+device: 'cuda:0'
 # observation
 image_size: 84
 image_pad: 4

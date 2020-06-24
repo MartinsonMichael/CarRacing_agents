@@ -205,6 +205,8 @@ def main(cfg):
     os.chdir(ps)
     print(f'dir after changes: {os.path.abspath(os.path.curdir)}')
 
+    if 'DEVICE' in os.environ.keys():
+        cfg.device = os.environ['DEVICE']
     workspace = Workspace(cfg, env=env)
     workspace.run()
 
