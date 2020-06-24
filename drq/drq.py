@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import copy
 import math
 
-import utils as utils
+import utils
 import hydra
 
 

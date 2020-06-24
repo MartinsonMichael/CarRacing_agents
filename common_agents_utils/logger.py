@@ -1,6 +1,7 @@
 import os
+from copy import copy
 from threading import Thread
-from typing import Dict, Any, Union
+from typing import Dict, Any, Union, Optional
 from collections import defaultdict
 
 import wandb
@@ -14,7 +15,7 @@ class Logger:
 
     def __init__(
             self,
-            model_config: Config,
+            model_config: Optional[Config] = None,
             use_wandb: bool = True,
             use_tensorboard: bool = True,
             use_console: bool = True,
@@ -31,17 +32,26 @@ class Logger:
         self.episode_number: int = 0
 
         self._keeping_stats = None
+        self._part_stats = dict()
 
-    def log_it(self, stats) -> None:
+    def log_it(self, stats: Optional[Dict] = None) -> None:
+        if stats is None:
+            stats = copy(self._part_stats)
+            self._part_stats = {}
         self._accumulate_stats(stats)
         self.episode_number += 1
         if self.episode_number % self.log_interval == 0:
             self._publish_logs()
 
+    def add_stat(self, part_of_stats: Dict) -> None:
+        self._part_stats.update(part_of_stats)
+
     def on_training_end(self) -> None:
         if self._keeping_stats is None:
             self._keeping_stats = self._get_mean_logs()
-        self._write_finals_to_csv()
+
+        if self.model_config is not None:
+            self._write_finals_to_csv()
 
     @staticmethod
     def _delayed_animation_logging(image_array, path, step):
@@ -85,9 +95,11 @@ class Logger:
         try:
             wandb.log(row=self._stats, step=self.episode_number)
         except:
-            print('call wandb init, currently wandb log is disabled')
+            print('call wandb init. Currently wandb log is disabled')
 
     def _publish_tensorboard(self) -> None:
+        if self.model_config is None:
+            return
         if hasattr(self.model_config, 'tf_writer'):
             if self.model_config.tf_writer is None:
                 return
