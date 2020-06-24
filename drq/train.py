@@ -2,6 +2,7 @@ import argparse
 
 import wandb
 import yaml
+import numpy as np
 
 if __name__ == '__main__':
     try:
@@ -103,6 +104,9 @@ class Workspace(object):
         info = dict()
         total_env_step = 0
 
+        images = []
+        record_cur_episode = False
+
         while self.step < self.cfg.num_train_steps:
             if done:
                 # if self.step > 0:
@@ -119,6 +123,20 @@ class Workspace(object):
                 #
                 # self.logger.log('train/episode_reward', episode_reward,
                 #                 self.step)
+
+                if record_cur_episode:
+                    wandb.log({
+                        'animation': wandb.Video(
+                            np.transpose(np.array(images)[::3, ::2, ::2, :], (0, 3, 1, 2)),
+                            fps=4,
+                            format="gif",
+                        )
+                    })
+                    record_cur_episode = False
+                    images = []
+
+                if episode % 100 == 10:
+                    record_cur_episode = True
 
                 if total_env_step > 0:
                     logger.log_it({
@@ -150,6 +168,9 @@ class Workspace(object):
 
             next_obs, reward, done, info = self.env.step(action)
             total_env_step += 1
+
+            if record_cur_episode:
+                images.append(self.env.render(full_image=True))
 
             # allow infinite bootstrap
             done = float(done)
