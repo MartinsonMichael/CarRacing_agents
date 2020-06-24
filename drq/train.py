@@ -174,7 +174,7 @@ class Workspace(object):
 
             # allow infinite bootstrap
             done = float(done)
-            done_no_max = 0 if episode_step + 1 >= 500 else done
+            done_no_max = 0 if episode_step + 1 >= 130 else done
             episode_reward += reward
 
             self.replay_buffer.add(obs, action, reward, next_obs, done, done_no_max)
