@@ -3,8 +3,6 @@ import argparse
 import wandb
 import yaml
 
-from common_agents_utils.logger import Logger
-
 if __name__ == '__main__':
     try:
         import os
@@ -13,6 +11,7 @@ if __name__ == '__main__':
 
         from env import OnlyImageTaker, DictToTupleWrapper, ChannelSwapper, ImageStackWrapper
         from env.CarIntersect import CarIntersect
+        from common_agents_utils.logger import Logger
     except:
         print("If you launch this from env folder, you probably will have some import problems.")
 
