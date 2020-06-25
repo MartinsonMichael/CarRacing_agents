@@ -3,8 +3,8 @@ from env.CarIntersect.environment import CarIntersect
 
 try:
     register(
-        id='CarIntersect',
-        entry_point='environment:CarIntersect',
+        id='CarIntersect-v0',
+        entry_point='env.CarIntersect.environment:CarIntersect',
     )
 except:
     print('fail to register gym env \'CarIntersect\'')
