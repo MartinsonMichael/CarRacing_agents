@@ -253,6 +253,9 @@ def main(_args):
 
 
 if __name__ == "__main__":
+    os.environ['OMP_NUM_THREADS'] = '1'
+    os.environ['MKL_NUM_THREADS'] = '1'
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--no-record-animation', default=False, action='store_true', help='use icm')
     parser.add_argument('--name', type=str, default=None, help='name for experiment')
