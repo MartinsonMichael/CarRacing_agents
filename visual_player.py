@@ -15,7 +15,7 @@ if __name__ == '__main__':
         print("If you launch this from env folder, you probably will have some import problems.")
 
 from env.CarIntersect.environment import CarIntersect
-from env.common_envs_utils.env_wrappers import DiscreteWrapper
+from env.common_envs_utils.action_wrappers import DiscreteWrapper
 
 action = 0
 restart = False

@@ -26,6 +26,9 @@ RUN apt-get install ffmpeg
 RUN apt-get -y install cuda-libraries-dev-10-0
 RUN pip install -q "cupy-cuda100 ${CUPY_VERSION}"
 
+ENV OMP_NUM_THREADS=1
+ENV MKL_NUM_THREADS=1
+
 # PUT ALL CHANGES UNDER THIS LINE
 
 RUN mkdir /src
