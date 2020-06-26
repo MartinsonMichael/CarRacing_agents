@@ -207,6 +207,8 @@ def main(cfg):
 
     if 'DEVICE' in os.environ.keys():
         cfg.device = os.environ['DEVICE']
+    cfg.seed = np.random.randint(0, 2**16-1)
+    print(f'use seed : {cfg.seed}')
     workspace = Workspace(cfg, env=env)
     workspace.run()
 
