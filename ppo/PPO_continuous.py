@@ -143,7 +143,8 @@ class PPO:
         discount_reward = torch.from_numpy(
             np.array(discount_reward, dtype=np.float32)
         ).to(self.config.device).detach()
-        discount_reward = (discount_reward - discount_reward.mean()) / (discount_reward.std() + 1e-5)
+
+        # discount_reward = (discount_reward - discount_reward.mean()) / (discount_reward.std() + 1e-5)
 
         self.current_game_stats.update({
             'discount_reward MEAN': float(discount_reward.detach().cpu().numpy().mean()),
