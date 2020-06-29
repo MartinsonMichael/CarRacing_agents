@@ -10,6 +10,12 @@ icm_gradient_clipping: 1.5
 drq_padding: 2
 drq_augment_num: 1 # excluding original state
 
+
+# cheet reward
+linear_negative_reward_drop_steps: 200000
+use_reward_discount: false
+
+
 track_progress_success_threshold: 10
 max_episode_len: 500
 

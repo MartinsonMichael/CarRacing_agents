@@ -135,16 +135,26 @@ class PPO:
 
         buffer_reward = 0
         discount_reward = []
+
+        if self.global_step_number < self.hyperparameters.get('linear_negative_reward_drop_steps', -1):
+            neg_reward_coef = self.global_step_number / self.hyperparameters.get('linear_negative_reward_drop_steps', -1)
+        else:
+            neg_reward_coef = 1
+
         for cur_reward, cur_done in zip(reversed(rewards), reversed(dones)):
             if cur_done == 1:
                 buffer_reward = 0
+            if cur_reward < 0:
+                cur_reward *= neg_reward_coef
             buffer_reward = float(cur_reward + buffer_reward * self.hyperparameters['discount_rate'])
-            discount_reward.insert(0, [buffer_reward])
+            # discount_reward.insert(0, [buffer_reward])
+            discount_reward.append([buffer_reward])
         discount_reward = torch.from_numpy(
-            np.array(discount_reward, dtype=np.float32)
+            np.array(discount_reward[::-1], dtype=np.float32)
         ).to(self.config.device).detach()
 
-        # discount_reward = (discount_reward - discount_reward.mean()) / (discount_reward.std() + 1e-5)
+        if self.hyperparameters.get('use_reward_discount', True):
+            discount_reward = (discount_reward - discount_reward.mean()) / (discount_reward.std() + 1e-5)
 
         self.current_game_stats.update({
             'discount_reward MEAN': float(discount_reward.detach().cpu().numpy().mean()),
