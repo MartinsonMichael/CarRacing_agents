@@ -5,6 +5,7 @@ import numpy as np
 from shapely.geometry import Polygon
 from skimage.measure import label, regionprops
 import copy
+from PIL import Image
 
 from env.CarIntersect.cvat_loader import CvatDataset
 
@@ -69,7 +70,12 @@ class DataSupporter:
             self._image_scale['image_target_size'] = tuple(self._image_scale['image_target_size'])
 
         # just two numbers of field in pyBox2D coordinate system
-        self._playfield_size = np.array([335 * self._background_image.shape[1] / self._background_image.shape[0], 335])
+        # BLACK_MAGIC_CONST = 335
+        self.BLACK_MAGIC_CONST = 100
+        self._playfield_size = np.array([
+            self.BLACK_MAGIC_CONST * self._background_image.shape[1] / self._background_image.shape[0],
+            self.BLACK_MAGIC_CONST
+        ])
         # technical field
         self._data = CvatDataset()
         self._data.load(self._settings['annotation_path'])
@@ -364,6 +370,7 @@ class DataSupporter:
 
             self._tracks[track_title] = {
                 'polygon': Polygon(self.convertIMG2PLAY(track_object['polygon'])),
+                # 'polygon': Polygon(track_object['polygon']),
                 'line': self.convertIMG2PLAY(track_object['line']),
             }
 

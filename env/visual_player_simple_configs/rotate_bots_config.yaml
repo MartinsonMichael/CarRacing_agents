@@ -61,7 +61,7 @@ reward:
 
 # Done flags
 done:
-  true_flags_to_done: ["is_out_of_road", "is_out_of_map", "is_out_of_track", "is_finish"]
+  true_flags_to_done: ["is_out_of_road", "is_out_of_map", "is_out_of_track", "is_finish", "is_collided"]
   false_flags_to_done : []
 
 

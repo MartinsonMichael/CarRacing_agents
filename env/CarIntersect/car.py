@@ -19,6 +19,10 @@ WHEELPOS = [
     (-55,+80), (+55,+80),
     (-55,-82), (+55,-82)
     ]
+# WHEELPOS = [
+#     (-100,+120), (+100,+120),
+#     (-100,-120), (+100,-120)
+#     ]
 HULL_POLY1 =[
     (-60,+130), (+60,+130),
     (+60,+110), (-60,+110)
@@ -87,11 +91,14 @@ class DummyCar:
             (+55, +60), (+55, +270),
             (+240, +270), (+240, +60)
         ]
+        MAGIC_COEFF = self.data_loader.BLACK_MAGIC_CONST / 355
+        RIGHT_SENSOR = [(x[0] * MAGIC_COEFF, x[1] * MAGIC_COEFF) for x in RIGHT_SENSOR]
 
         COLLID_SENSOR = [
             (-100, +130), (+100, +130),
             (-100, -130), (+100, -130),
         ]
+        COLLID_SENSOR = [(x[0] * MAGIC_COEFF, x[1] * MAGIC_COEFF) for x in COLLID_SENSOR]
 
         self._hull = self.world.CreateDynamicBody(
             position=(init_x, init_y),
@@ -414,7 +421,7 @@ class DummyCar:
     def DEBUG_get_hull(self):
         return self._hull
 
-    def DEBUG_get_cur_track_point(self) -> int:
+    def track_index(self) -> int:
         return self._track_point
 
     def DEBUG_create_radar_state(self, max_num, bot_list) -> Dict[str, np.ndarray]:
@@ -461,6 +468,13 @@ class DummyCar:
             np.array([wheel.position.x, wheel.position.y])
             for wheel in self.wheels
         ])
+
+    @property
+    def wheels_positions_IMG(self) -> np.array:
+        """Return wheels position in box2d coordinates. Return np.ndarray of 4 pairs x, y"""
+        return self.data_loader.convertPLAY2IMG(
+            self.wheels_positions_PLAY
+        )
 
     @property
     def forward_vector(self) -> np.ndarray:
@@ -553,6 +567,8 @@ class DummyCar:
                     if not self.track['polygon'].contains(wheel_position):
                         self._state_data['is_out_of_track'] = True
 
+
+
         # update track progress
         self._update_track_point(hard=True)
         self.update_finish()
@@ -583,7 +599,7 @@ class DummyCar:
     def update_finish(self):
         """Just update is_finish sensor, check if car enough close to target point (last point in track)"""
         self._state_data['is_finish'] = False
-        if self._is_car_closely_to(self.track['line'][-1], 10):
+        if self._is_car_closely_to(self.track['line'][-1], 2.3):
             self._state_data['is_finish'] = True
 
     def _update_track_point(self, hard=False):
@@ -595,7 +611,7 @@ class DummyCar:
         track_index = self._track_point
         for track_index in range(self._track_point, len(self.track['line']) + 1, 1):
             if track_index != len(self.track['line']):
-                if self._is_car_closely_to(self.track['line'][track_index], 10):
+                if self._is_car_closely_to(self.track['line'][track_index], 2.0):
                     continue
             if hard:
                 self._old_track_point = self._track_point

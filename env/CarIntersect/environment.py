@@ -188,11 +188,11 @@ class CarIntersect(gym.Env, EzPickle):
         init_pos = DataSupporter.get_track_initial_position(track)
         collided_indexes = []
         for bot_index, bot_car in enumerate(self.bot_cars):
-            if DataSupporter.dist(init_pos, bot_car.position_PLAY) < 30:
+            if DataSupporter.dist(init_pos, bot_car.position_PLAY) < 13:
                 collided_indexes.append(bot_index)
 
         if self.car is not None:
-            if DataSupporter.dist(self.car.position_PLAY, init_pos) < 30:
+            if DataSupporter.dist(self.car.position_PLAY, init_pos) < 13:
                 collided_indexes.append(-1)
 
         return collided_indexes
@@ -236,14 +236,9 @@ class CarIntersect(gym.Env, EzPickle):
         if len(self.bot_cars) < self.num_bots:
             self.create_bot_car()
 
+        self.picture_state = None
         if self._settings['state']['picture']:
-            try:
-                self.picture_state = self.render()
-            except:
-                print(f"env fail while rendering image state, try to use forces restart...")
-                return self.reset(force=True)
-        else:
-            self.picture_state = None
+            self.picture_state = self.render()
 
         done = self.rewarder.get_step_done(self.car.stats)
         step_reward = self.rewarder.get_step_reward(self.car.stats)
@@ -327,6 +322,16 @@ class CarIntersect(gym.Env, EzPickle):
                 bot_car,
                 full_image=full_image,
             )
+
+        if self._settings['state'].get('checkpoints', {'show': False})['show']:
+            self.draw_track(
+                background_image=background_image,
+                car=self.car,
+                point_size=self._settings['state']['checkpoints']['size'],
+                hide_on_reach=self._settings['state']['checkpoints']['hide_on_reach'],
+                color='red',
+            )
+
         return background_image
 
     def render_with_settings(self, full_image=True, **kwargs) -> np.ndarray:
@@ -353,7 +358,7 @@ class CarIntersect(gym.Env, EzPickle):
                 )
 
         if kwargs.get('draw_agent_track', False):
-            self.debug_draw_track(background_image, self.car, color='red', point_size=6)
+            self.draw_track(background_image, self.car, color='red', point_size=6)
 
         return background_image
 
@@ -361,6 +366,8 @@ class CarIntersect(gym.Env, EzPickle):
         # rotate car image and mask of car image, and compute bounds of rotated image
         masked_image, car_mask_image = self._data_loader.get_rotated_car_image(car, true_size=full_image)
         bound_y, bound_x = masked_image.shape[:2]
+
+        print()
 
         # car position in image coordinates (in pixels)
         car_x, car_y = car.position_IMG * (
@@ -439,16 +446,20 @@ class CarIntersect(gym.Env, EzPickle):
         del self._data_loader
         del self.world
 
-    def debug_draw_track(self, background_image, car, point_size=10, color='blue'):
-        for point in car.track['line']:
-            point = self._data_loader.convertPLAY2IMG(point)
-            point = DataSupporter.convert_XY2YX(point)
-            # point *= self._data_loader.get_background_image_scale
-            point *= self._data_loader.FULL_RENDER_COEFF
+    def draw_track(self, background_image, car: DummyCar, point_size=10, color='blue', hide_on_reach=True):
+        points = (
+            car.track['line']
+            if not hide_on_reach else
+            car.track['line'][car.track_index():]
+        )
+        for point in points:
+            p = self._data_loader.convertPLAY2IMG(point)
+            p = DataSupporter.convert_XY2YX(p)
+            p *= self._data_loader.FULL_RENDER_COEFF
 
             CarIntersect.debug_draw_sized_circle(
                 background_image,
-                point,
+                p,
                 point_size,
                 color,
             )
