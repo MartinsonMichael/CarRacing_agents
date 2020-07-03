@@ -12,8 +12,8 @@ drq_augment_num: 1 # excluding original state
 
 
 # cheet reward
-linear_negative_reward_drop_steps: 200000
-use_reward_discount: false
+linear_negative_reward_drop_steps: -1
+use_reward_discount: true
 
 
 track_progress_success_threshold: 10

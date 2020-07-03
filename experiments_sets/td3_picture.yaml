@@ -21,7 +21,8 @@ general_config: general_config.yaml
 
 # Local env changes
 env_changes:
-  - state:
+  - agent_tracks : ["rotate"]
+    state:
       picture: true
       vector_car_features: []
 
