@@ -1,5 +1,10 @@
 from gym.envs.registration import register
 from env.CarIntersect.environment import CarIntersect
+from env.CarIntersect.car import DummyCar
+from env.CarIntersect.utils import DataSupporter
+from env.CarIntersect.cvat_loader import CvatDataset
+from env.CarIntersect.rewards import Rewarder
+from env.CarIntersect.contact_listner import RefactoredContactListener
 
 try:
     register(

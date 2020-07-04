@@ -10,6 +10,7 @@ import time
 import numpy as np
 from gym import spaces
 from gym.utils import seeding, EzPickle
+from PIL import Image
 
 from env.CarIntersect.car import DummyCar
 from env.CarIntersect.contact_listner import RefactoredContactListener
@@ -71,7 +72,7 @@ class CarIntersect(gym.Env, EzPickle):
             picture=spaces.Box(
                 low=0,
                 high=255,
-                shape=self._data_loader.get_background().shape,
+                shape=[*self._data_loader.get_background().size, 3],
                 dtype=np.uint8,
             ),
             car_vector=spaces.Box(
@@ -304,35 +305,20 @@ class CarIntersect(gym.Env, EzPickle):
 
     def render(self, mode='human', full_image=False) -> np.array:
         background_image = self._data_loader.get_background(true_size=full_image)
-        background_mask = np.zeros(
-            shape=(background_image.shape[0], background_image.shape[1]),
-            dtype='uint8'
-        )
 
-        self.draw_car(
-            background_image,
-            background_mask,
-            self.car,
-            full_image=full_image,
-        )
+        self.draw_car(background_image, self.car, full_image=full_image)
         for bot_car in self.bot_cars:
-            self.draw_car(
-                background_image,
-                background_mask,
-                bot_car,
-                full_image=full_image,
-            )
+            self.draw_car(background_image, bot_car, full_image=full_image)
 
         if self._settings['state'].get('checkpoints', {'show': False})['show']:
             self.draw_track(
                 background_image=background_image,
                 car=self.car,
-                point_size=self._settings['state']['checkpoints']['size'],
                 hide_on_reach=self._settings['state']['checkpoints']['hide_on_reach'],
-                color='red',
+                full_image=full_image,
             )
 
-        return background_image
+        return np.asarray(background_image.convert('RGB'))
 
     def render_with_settings(self, full_image=True, **kwargs) -> np.ndarray:
         background_image = self._data_loader.get_background(true_size=full_image)
@@ -362,12 +348,10 @@ class CarIntersect(gym.Env, EzPickle):
 
         return background_image
 
-    def draw_car(self, background_image, background_mask, car: DummyCar, full_image=False):
+    def draw_car(self, background_image: Image.Image, car: DummyCar, full_image: bool = False) -> None:
         # rotate car image and mask of car image, and compute bounds of rotated image
-        masked_image, car_mask_image = self._data_loader.get_rotated_car_image(car, true_size=full_image)
-        bound_y, bound_x = masked_image.shape[:2]
-
-        print()
+        masked_image, mask = self._data_loader.get_rotated_car_image(car, true_size=full_image)
+        bound_y, bound_x = masked_image.size
 
         # car position in image coordinates (in pixels)
         car_x, car_y = car.position_IMG * (
@@ -375,70 +359,18 @@ class CarIntersect(gym.Env, EzPickle):
             if not full_image else self._data_loader.FULL_RENDER_COEFF
         )
 
-        # bounds of car image on background image, MIN/MAX in a case of position near the background image boarder
-        start_x = min(
-            max(
-                int(car_x - bound_x / 2),
-                0,
-            ),
-            background_image.shape[1],
-        )
-        start_y = min(
-            max(
-                int(car_y - bound_y / 2),
-                0,
-            ),
-            background_image.shape[0],
-        )
-        end_x = max(
-            min(
-                int(car_x + bound_x / 2),
-                background_image.shape[1]
-            ),
-            0,
-        )
-        end_y = max(
-            min(
-                int(car_y + bound_y / 2),
-                background_image.shape[0],
-            ),
-            0,
-        )
+        scale = 1.0
+        if not full_image:
+            scale = self._data_loader.get_background_image_scale / self._data_loader.FULL_RENDER_COEFF
 
-        # in a case there car image is out of background, just return backgraund image
-        if start_x == end_x or start_y == end_y:
-            return background_image, background_mask
-
-        # compute bounds of car image, in case then car near the bord of backgraund image,
-        #    and so displayed car image
-        #    less then real car image
-        mask_start_x = start_x - int(car_x - bound_x / 2)
-        mask_start_y = start_y - int(car_y - bound_y / 2)
-        mask_end_x = mask_start_x + end_x - start_x
-        mask_end_y = mask_start_y + end_y - start_y
-
-        # finally crop car mask and car image, and insert them to background
-        cropped_mask = (
-            car_mask_image[
-                mask_start_y: mask_end_y,
-                mask_start_x: mask_end_x,
-                :,
-            ] > 240
+        background_image.paste(
+            im=masked_image,
+            box=(
+                int(car_x - bound_x / 2 + 15 * scale),
+                int(car_y - bound_y / 2 + 10 * scale),
+            ),
+            mask=mask,
         )
-
-        cropped_image = (
-            masked_image[
-                mask_start_y: mask_end_y,
-                mask_start_x: mask_end_x,
-                :,
-            ]
-        )
-        # back = background_image[start_y:end_y, start_x:end_x, :]
-        background_image[start_y:end_y, start_x:end_x, :] = (
-                background_image[start_y:end_y, start_x:end_x, :] * (1 - cropped_mask) +
-                cropped_image * cropped_mask
-        )
-        # background_image[start_y:end_y, start_x:end_x, :][cropped_mask] = cropped_image[cropped_mask]
 
     def close(self):
         del self.car
@@ -446,7 +378,7 @@ class CarIntersect(gym.Env, EzPickle):
         del self._data_loader
         del self.world
 
-    def draw_track(self, background_image, car: DummyCar, point_size=10, color='blue', hide_on_reach=True):
+    def draw_track(self, background_image: Image.Image, car: DummyCar, hide_on_reach=True, full_image: bool = False) -> None:
         points = (
             car.track['line']
             if not hide_on_reach else
@@ -454,63 +386,19 @@ class CarIntersect(gym.Env, EzPickle):
         )
         for point in points:
             p = self._data_loader.convertPLAY2IMG(point)
-            p = DataSupporter.convert_XY2YX(p)
-            p *= self._data_loader.FULL_RENDER_COEFF
-
-            CarIntersect.debug_draw_sized_circle(
-                background_image,
-                p,
-                point_size,
-                color,
+            # p = DataSupporter.convert_XY2YX(p)
+            p *= (
+                self._data_loader.get_background_image_scale
+                if not full_image else self._data_loader.FULL_RENDER_COEFF
             )
 
-    @staticmethod
-    def debug_draw_sized_point(
-            background_image,
-            coordinate: np.array,
-            size: int,
-            color: Union[np.array, str]
-    ):
-        if isinstance(color, str):
-            color = {
-                'red': np.array([255, 0, 0]),
-                'green': np.array([0, 255, 0]),
-                'blue': np.array([0, 0, 255]),
-                'black': np.array([0, 0, 0]),
-                'while': np.array([255, 255, 255]),
-            }[color]
-        y, x = coordinate
-        for dx in range(int(-size / 2), int(size / 2) + 1, 1):
-            for dy in range(int(-size / 2), int(size / 2) + 1, 1):
-                background_image[
-                    int(np.clip(y + dy, 0, background_image.shape[0] - 1)),
-                    int(np.clip(x + dx, 0, background_image.shape[1] - 1)),
-                    :,
-                ] = color
+            ch_image = self._data_loader.checkpoint_image(full_image)
 
-    @staticmethod
-    def debug_draw_sized_circle(
-            background_image,
-            coordinate: np.array,
-            size: int,
-            color: Union[np.array, str]
-    ):
-        assert isinstance(coordinate, np.ndarray)
-        assert coordinate.shape == (2,)
-        if isinstance(color, str):
-            color = {
-                'red': np.array([255, 0, 0]),
-                'green': np.array([0, 255, 0]),
-                'blue': np.array([0, 0, 255]),
-                'black': np.array([0, 0, 0]),
-                'while': np.array([255, 255, 255]),
-            }[color]
-        y, x = coordinate
-        for dx in range(int(-size / 2), int(size / 2) + 1, 1):
-            for dy in range(int(-size / 2), int(size / 2) + 1, 1):
-                if dy ** 2 + dx ** 2 <= size ** 2 / 4:
-                    background_image[
-                        int(np.clip(y + dy, 0, background_image.shape[0] - 1)),
-                        int(np.clip(x + dx, 0, background_image.shape[1] - 1)),
-                        :,
-                    ] = color
+            background_image.paste(
+                im=ch_image,
+                box=(
+                    int(p[0] - ch_image.size[0] / 2),
+                    int(p[1] - ch_image.size[1] / 2)
+                ),
+                mask=ch_image,
+            )
