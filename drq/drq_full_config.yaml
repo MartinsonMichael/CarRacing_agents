@@ -85,6 +85,11 @@ state:
   # Use or not to use image. If "false", in observation dict it will appear as None.
   picture: true
 
+  # show or not checkpoint on image, unused if `picture` is false
+  checkpoints:
+    show: true
+    hide_on_reach: true
+
   # List of car features to use.
   #   Fill it as [] for empty list, in this case observation dict it will appear as None.
   #   This field in observation dict is vector.

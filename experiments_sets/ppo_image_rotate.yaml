@@ -24,5 +24,9 @@ env_changes:
   - agent_tracks : ["rotate"]
     state:
       picture: true
+      checkpoints:
+        show: true
+        hide_on_reach: true
       vector_car_features: []
+
 
