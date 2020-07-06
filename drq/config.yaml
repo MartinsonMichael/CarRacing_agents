@@ -24,7 +24,7 @@ device: 'cuda:0'
 # observation
 image_size: 84
 image_pad: 4
-frame_stack: 3
+frame_stack: 4
 # global params
 lr: 1e-3
 # IMPORTANT: please use a batch size of 512 to reproduce the results in the paper. Hovewer, with a smaller batch size it still works well.
@@ -43,7 +43,7 @@ agent:
     critic_cfg: ${critic}
     actor_cfg: ${actor}
     discount: 0.99
-    init_temperature: 0.1
+    init_temperature: 0.5
     lr: ${lr}
     actor_update_frequency: 2
     critic_tau: 0.01
@@ -71,7 +71,7 @@ encoder:
   class: drq.Encoder
   params:
       obs_shape: ${agent.params.obs_shape}
-      feature_dim: 50
+      feature_dim: 100
 
 
 # hydra configuration

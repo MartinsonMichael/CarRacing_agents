@@ -1,8 +1,9 @@
-import argparse
+import json
 
+import dmc2gym
 import wandb
-import yaml
 import numpy as np
+import yaml
 
 if __name__ == '__main__':
     try:
@@ -14,7 +15,7 @@ if __name__ == '__main__':
         from env.CarIntersect import CarIntersect
         from common_agents_utils.logger import Logger
     except:
-        print("If you launch this from env folder, you probably will have some import problems.")
+        print("If you launch this from . folder, you probably will have some import problems.")
 
 
 import os
@@ -26,14 +27,20 @@ import torch
 import utils
 from logger import Logger as original_Logger
 from replay_buffer import ReplayBuffer
-# from video import VideoRecorder
-
-torch.backends.cudnn.benchmark = True
 
 
 class Workspace(object):
     def __init__(self, cfg, env):
         self.env = env
+
+        # self.env = dmc2gym.make(
+        #     domain_name='CarIntersect',
+        #     task_name=task_name,
+        #     seed=cfg.seed,
+        #     visualize_reward=False,
+        #     from_pixels=True,
+        #     frame_skip=cfg.action_repeat,
+        # )
 
         self.work_dir = os.getcwd()
         print(f'workspace: {self.work_dir}')
@@ -50,14 +57,10 @@ class Workspace(object):
 
         utils.set_seed_everywhere(cfg.seed)
         self.device = torch.device(cfg.device)
-        # self.env = make_env(cfg)
 
         cfg.agent.params.obs_shape = self.env.observation_space.shape
         cfg.agent.params.action_shape = self.env.action_space.shape
-        cfg.agent.params.action_range = [
-            -1,  # float(self.env.action_space.low.min()),
-            +1,  # float(self.env.action_space.high.max())
-        ]
+        cfg.agent.params.action_range = [-1, +1]
         self.agent = hydra.utils.instantiate(cfg.agent)
 
         self.replay_buffer = ReplayBuffer(self.env.observation_space.shape,
@@ -65,31 +68,7 @@ class Workspace(object):
                                           cfg.replay_buffer_capacity,
                                           self.cfg.image_pad, self.device)
 
-        # self.video_recorder = VideoRecorder(self.work_dir if cfg.save_video else None)
         self.step = 0
-
-    # def evaluate(self):
-    #     average_episode_reward = 0
-    #     for episode in range(self.cfg.num_eval_episodes):
-    #         obs = self.env.reset()
-    #         # self.video_recorder.init(enabled=(episode == 0))
-    #         done = False
-    #         episode_reward = 0
-    #         episode_step = 0
-    #         while not done:
-    #             with utils.eval_mode(self.agent):
-    #                 action = self.agent.act(obs, sample=False)
-    #             obs, reward, done, info = self.env.step(action)
-    #             # self.video_recorder.record(self.env)
-    #             episode_reward += reward
-    #             episode_step += 1
-    #
-    #         average_episode_reward += episode_reward
-    #         # self.video_recorder.save(f'{self.step}.mp4')
-    #     average_episode_reward /= self.cfg.num_eval_episodes
-    #     self.logger.log('eval/episode_reward', average_episode_reward,
-    #                     self.step)
-    #     self.logger.dump(self.step)
 
     def run(self):
         episode, episode_reward, episode_step, done = 0, 0, 1, True
@@ -109,20 +88,6 @@ class Workspace(object):
 
         while self.step < self.cfg.num_train_steps:
             if done:
-                # if self.step > 0:
-                #     self.logger.log('train/duration',
-                #                     time.time() - start_time, self.step)
-                #     start_time = time.time()
-                #     self.logger.dump(
-                #         self.step, save=(self.step > self.cfg.num_seed_steps))
-                #
-                # # evaluate agent periodically
-                # if self.step % self.cfg.eval_frequency == 0:
-                #     self.logger.log('eval/episode', episode, self.step)
-                #     self.evaluate()
-                #
-                # self.logger.log('train/episode_reward', episode_reward,
-                #                 self.step)
 
                 if record_cur_episode:
                     wandb.log({
@@ -196,7 +161,23 @@ def main(cfg):
     os.chdir('../../../../.')
     print(f"mid dir : {os.path.abspath(os.path.curdir)}")
 
-    env = CarIntersect(settings_file_path_or_settings=cfg.car_intersect_config)
+    NAME = str(time.time())
+    if 'NAME' in os.environ.keys():
+        NAME = os.environ['NAME']
+
+    try:
+        env_settings = json.load(open(cfg.car_intersect_config, 'r'))
+    except:
+        env_settings = yaml.load(open(cfg.car_intersect_config, 'r'))
+
+    wandb.init(
+        project='CarRacing_MassExp_test',
+        reinit=True,
+        name=f'drq_original_{NAME}',
+        config=env_settings,
+    )
+
+    env = CarIntersect(settings_file_path_or_settings=env_settings)
     env = DictToTupleWrapper(env)
     env = ChannelSwapper(env)
     env = ImageStackWrapper(env)
@@ -214,14 +195,5 @@ def main(cfg):
 
 
 if __name__ == '__main__':
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('--device', type=str, default='cpu', help='name for experiment')
-    # _args = parser.parse_args()
-
-    wandb.init(
-        project='CarRacing_MassExp_test',
-        reinit=True,
-        name='drq_original',
-    )
 
     main()
