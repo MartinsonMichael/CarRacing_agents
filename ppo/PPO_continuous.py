@@ -289,7 +289,7 @@ class PPO:
                             images,
                             f'animation/PPO/{self.name}/_R:_{total_reward}_Time:_{episode_len}_{time.time()}.mp4',
                             self.stat_logger,
-                            False,
+                            wandb_anim_record
                         ),
                     ).start()
                 if info.get('need_reset', False):

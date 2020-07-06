@@ -12,13 +12,7 @@ from env.CarIntersect.cvat_loader import CvatDataset
 
 
 class CarImage(NamedTuple):
-    # image: np.ndarray
-    # mask: np.ndarray
-    # real_image: np.ndarray
-    # real_size: np.ndarray
-    # car_image_center_displacement: np.ndarray
     size: np.ndarray
-    # center: np.ndarray
     hashable_obj: str
 
     pil_image: Image.Image
@@ -44,6 +38,7 @@ class DataSupporter:
         # in XY coordinates, not in a IMAGE coordinates
         self._original_image_size = np.array([self._background_image.size[1], self._background_image.size[0]])
 
+        # NOTE we want to use target image size
         # two cases of image scaling
         # case one, we have tow float number for scaling background image and for scaling car images
         # base on both cases we wiil compute two entities: target size of image and scaling factor for car images
@@ -119,23 +114,37 @@ class DataSupporter:
         self._track_point_image: Optional[Image.Image] = None
         self.load_track_point_image()
 
+    def get_target_image_size(self) -> Tuple[int, int]:
+        return self._image_scale['image_target_size']
+
     def load_track_point_image(self) -> None:
         path_to_tp = os.path.join('.', 'env_data', 'track_point.png')
 
-        # print(os.listdir(path_to_tp))
+        if os.path.exists(path_to_tp):
+            self._track_point_image = Image.open(path_to_tp)
+            return
+
+        path_to_tp = os.path.join('.', 'env', 'env_data', 'track_point.png')
 
         if os.path.exists(path_to_tp):
             self._track_point_image = Image.open(path_to_tp)
+            return
 
-    def checkpoint_image(self, full_image: bool = True) -> Image.Image:
+        if self._settings['state']['checkpoints']['show']:
+            raise ValueError("can't find checkpoint image!")
+
+    def im_scale(self) -> float:
+        return self.get_background_image_scale / self.FULL_RENDER_COEFF
+
+    def get_trackpoint_size(self) -> float:
+        return self._settings['state']['checkpoints']['size'] / 10
+
+    def checkpoint_image(self) -> Image.Image:
         assert self._track_point_image is not None
-        if full_image:
-            return self._track_point_image
-
         if not hasattr(self, '_track_point_image_not_full'):
             self._track_point_image_not_full: Image.Image = DataSupporter.resize_pil_image(
                 self._track_point_image,
-                coef=self.get_background_image_scale / self.FULL_RENDER_COEFF,
+                coef=self._settings['state']['checkpoints']['size'] / 10,
             )
         return self._track_point_image_not_full
 
@@ -227,20 +236,13 @@ class DataSupporter:
     def data(self):
         return self._data
 
-    def get_background(self, true_size=False) -> Image.Image:
-        if self._sended_background is None:
-            self._sended_background = DataSupporter.resize_pil_image(
+    def get_background(self) -> Image.Image:
+        if self._render_back is None:
+            self._render_back = DataSupporter.resize_pil_image(
                 self._background_image,
-                size=self._image_scale['image_target_size'],
+                coef=self.FULL_RENDER_COEFF,
             ).convert('RGBA')
-        if true_size:
-            if self._render_back is None:
-                self._render_back = DataSupporter.resize_pil_image(
-                    self._background_image,
-                    coef=self.FULL_RENDER_COEFF,
-                ).convert('RGBA')
-            return self._render_back.copy()
-        return self._sended_background.copy()
+        return self._render_back.copy()
 
     def _load_car_images(self, cars_path):
         """
@@ -284,48 +286,26 @@ class DataSupporter:
                 raise e
                 # print(f'error while parsing car image source: {os.path.join(cars_path, folder)}')
 
-    def get_rotated_car_image(self, car, true_size=False) -> Tuple[Image.Image, Image.Image]:
-        if true_size:
-            if car.car_image.hashable_obj not in self._true_image_memory.keys():
-                self._true_image_memory[car.car_image.hashable_obj] = dict()
-            angle_index = car.angle_index
-
-            if angle_index in self._true_image_memory[car.car_image.hashable_obj].keys():
-                return self._true_image_memory[car.car_image.hashable_obj][angle_index]
-
-            pil_rotated_resized = DataSupporter.rotate_pil_image(
-                DataSupporter.resize_pil_image(car.car_image.pil_image, self.FULL_RENDER_COEFF),
-                -car.angle_degree - 90,
-            )
-            pil_rotated_resized_mask = DataSupporter.rotate_pil_image(
-                DataSupporter.resize_pil_image(car.car_image.mask, self.FULL_RENDER_COEFF),
-                -car.angle_degree - 90,
-            )
-
-            self._true_image_memory[car.car_image.hashable_obj][angle_index] = \
-                (pil_rotated_resized, pil_rotated_resized_mask.convert('1'))
-            return self._true_image_memory[car.car_image.hashable_obj][angle_index]
-
-        if car.car_image.hashable_obj not in self._image_memory.keys():
-            self._image_memory[car.car_image.hashable_obj] = dict()
-
+    def get_rotated_car_image(self, car) -> Tuple[Image.Image, Image.Image]:
+        if car.car_image.hashable_obj not in self._true_image_memory.keys():
+            self._true_image_memory[car.car_image.hashable_obj] = dict()
         angle_index = car.angle_index
 
-        if angle_index in self._image_memory[car.car_image.hashable_obj].keys():
-            return self._image_memory[car.car_image.hashable_obj][angle_index]
+        if angle_index in self._true_image_memory[car.car_image.hashable_obj].keys():
+            return self._true_image_memory[car.car_image.hashable_obj][angle_index]
 
         pil_rotated_resized = DataSupporter.rotate_pil_image(
-            DataSupporter.resize_pil_image(car.car_image.pil_image, self._image_scale['car_image_scale_factor']),
+            DataSupporter.resize_pil_image(car.car_image.pil_image, self.FULL_RENDER_COEFF),
             -car.angle_degree - 90,
         )
         pil_rotated_resized_mask = DataSupporter.rotate_pil_image(
-            DataSupporter.resize_pil_image(car.car_image.mask, self._image_scale['car_image_scale_factor']),
+            DataSupporter.resize_pil_image(car.car_image.mask, self.FULL_RENDER_COEFF),
             -car.angle_degree - 90,
         )
-        self._image_memory[car.car_image.hashable_obj][angle_index] =\
-            (pil_rotated_resized, pil_rotated_resized_mask.convert('1'))
 
-        return self._image_memory[car.car_image.hashable_obj][angle_index]
+        self._true_image_memory[car.car_image.hashable_obj][angle_index] = \
+            (pil_rotated_resized, pil_rotated_resized_mask.convert('1'))
+        return self._true_image_memory[car.car_image.hashable_obj][angle_index]
 
     @staticmethod
     def resize_pil_image(image: Image, coef: Optional[float] = None, size: Optional[Tuple[int, int]] = None) -> Image:

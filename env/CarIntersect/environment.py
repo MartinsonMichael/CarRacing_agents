@@ -3,7 +3,7 @@ from functools import lru_cache
 
 import yaml
 from shapely import geometry
-from typing import List, Union, Dict, Tuple
+from typing import List, Union, Dict, Tuple, Optional
 import Box2D
 import gym
 import time
@@ -52,7 +52,10 @@ class CarIntersect(gym.Env, EzPickle):
 
         self.bot_cars = []
         # init gym properties
-        self.picture_state = np.zeros_like(self._data_loader.get_background(), dtype=np.uint8)
+        self.picture_state = np.zeros_like(
+            (*self._data_loader.get_target_image_size(), 3),
+             dtype=np.uint8,
+        )
         self.action_space = spaces.Box(
             low=np.array([-1.0, -1.0, -1.0]),
             high=np.array([+1.0, +1.0, +1.0]),
@@ -72,7 +75,7 @@ class CarIntersect(gym.Env, EzPickle):
             picture=spaces.Box(
                 low=0,
                 high=255,
-                shape=[*self._data_loader.get_background().size, 3],
+                shape=(*self._data_loader.get_target_image_size(), 3),
                 dtype=np.uint8,
             ),
             car_vector=spaces.Box(
@@ -81,12 +84,12 @@ class CarIntersect(gym.Env, EzPickle):
                 shape=(len(test_car.get_vector_state()),),
                 dtype=np.float32,
             ),
-            env_vector=spaces.Box(
-                low=-5,
-                high=+5,
-                shape=(len(self._create_vector_env_static_description()),),
-                dtype=np.float32,
-            ),
+            # env_vector=spaces.Box(
+            #     low=-5,
+            #     high=+5,
+            #     shape=(len(self._create_vector_env_static_description()),),
+            #     dtype=np.float32,
+            # ),
         )
         self.time = 0
         self.np_random, _ = seeding.np_random(42)
@@ -303,65 +306,41 @@ class CarIntersect(gym.Env, EzPickle):
                     env_vector.extend(point / self._data_loader.playfield_size)
         return np.array(env_vector, dtype=np.float32)
 
-    def render(self, mode='human', full_image=False) -> np.array:
-        background_image = self._data_loader.get_background(true_size=full_image)
+    def render(self, mode: str = 'human', full_image: Optional[bool] = False) -> np.array:
+        background_image = self._data_loader.get_background()
 
-        self.draw_car(background_image, self.car, full_image=full_image)
+        self.draw_car(background_image, self.car)
         for bot_car in self.bot_cars:
-            self.draw_car(background_image, bot_car, full_image=full_image)
+            self.draw_car(background_image, bot_car)
 
         if self._settings['state'].get('checkpoints', {'show': False})['show']:
             self.draw_track(
                 background_image=background_image,
                 car=self.car,
                 hide_on_reach=self._settings['state']['checkpoints']['hide_on_reach'],
-                full_image=full_image,
             )
 
-        return np.asarray(background_image.convert('RGB'))
+        if full_image:
+            return np.asarray(background_image.convert('RGB'))
 
-    def render_with_settings(self, full_image=True, **kwargs) -> np.ndarray:
-        background_image = self._data_loader.get_background(true_size=full_image)
-        background_mask = np.zeros(
-            shape=(background_image.shape[0], background_image.shape[1]),
-            dtype='uint8'
+        return np.asarray(
+            DataSupporter.resize_pil_image(
+                background_image.convert('RGB'),
+                size=self._data_loader.get_target_image_size(),
+            ),
         )
 
-        if kwargs.get('draw_cars', True):
-            self.draw_car(
-                background_image,
-                background_mask,
-                self.car,
-                full_image=full_image,
-            )
-        for bot_car in self.bot_cars:
-            if kwargs.get('draw_cars', True):
-                self.draw_car(
-                    background_image,
-                    background_mask,
-                    bot_car,
-                    full_image=full_image,
-                )
-
-        if kwargs.get('draw_agent_track', False):
-            self.draw_track(background_image, self.car, color='red', point_size=6)
-
-        return background_image
-
-    def draw_car(self, background_image: Image.Image, car: DummyCar, full_image: bool = False) -> None:
+    def draw_car(self, background_image: Image.Image, car: DummyCar) -> None:
         # rotate car image and mask of car image, and compute bounds of rotated image
-        masked_image, mask = self._data_loader.get_rotated_car_image(car, true_size=full_image)
+        masked_image, mask = self._data_loader.get_rotated_car_image(car)
         bound_y, bound_x = masked_image.size
 
         # car position in image coordinates (in pixels)
-        car_x, car_y = car.position_IMG * (
-            self._data_loader.get_background_image_scale
-            if not full_image else self._data_loader.FULL_RENDER_COEFF
-        )
+        car_x, car_y = car.position_IMG * self._data_loader.FULL_RENDER_COEFF
 
         scale = 1.0
-        if not full_image:
-            scale = self._data_loader.get_background_image_scale / self._data_loader.FULL_RENDER_COEFF
+        # if not full_image:
+        #     scale = self._data_loader.get_background_image_scale / self._data_loader.FULL_RENDER_COEFF
 
         background_image.paste(
             im=masked_image,
@@ -378,7 +357,7 @@ class CarIntersect(gym.Env, EzPickle):
         del self._data_loader
         del self.world
 
-    def draw_track(self, background_image: Image.Image, car: DummyCar, hide_on_reach=True, full_image: bool = False) -> None:
+    def draw_track(self, background_image: Image.Image, car: DummyCar, hide_on_reach=True) -> None:
         points = (
             car.track['line']
             if not hide_on_reach else
@@ -387,12 +366,9 @@ class CarIntersect(gym.Env, EzPickle):
         for point in points:
             p = self._data_loader.convertPLAY2IMG(point)
             # p = DataSupporter.convert_XY2YX(p)
-            p *= (
-                self._data_loader.get_background_image_scale
-                if not full_image else self._data_loader.FULL_RENDER_COEFF
-            )
+            p *= self._data_loader.FULL_RENDER_COEFF
 
-            ch_image = self._data_loader.checkpoint_image(full_image)
+            ch_image = self._data_loader.checkpoint_image()
 
             background_image.paste(
                 im=ch_image,

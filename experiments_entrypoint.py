@@ -107,6 +107,7 @@ def launch(exp_config: Dict[str, Any]) -> None:
 
     final_agent_config = make_single_config(exp_config['common_config'])
     changed_env_config = deep_dict_update(exp_config['env_config'], exp_config['env_change'])
+    print(changed_env_config)
     launch_note = create_single_launch_name(changed_env_config, exp_config['agent_class_name'])
     launch_id = exp_config['exp_series_name'] + '__' + exp_config['agent_class_name'] + '__' + str(np.random.randint(0, 10**6))
     final_agent_config.name = launch_id
@@ -249,7 +250,10 @@ def main(_args):
         multi_process_launch(device_list, launch_list)
         return
     else:
-        _exp_worker_function(launch_list, _args.device, not _args.no_save_launch)
+        save_launch = not _args.no_save_launch
+        if len(launch_list) == 1:
+            save_launch = False
+        _exp_worker_function(launch_list, _args.device, save_launch)
 
 
 if __name__ == "__main__":
@@ -266,6 +270,8 @@ if __name__ == "__main__":
     parser.add_argument('--no-shuffle', default=False, action='store_true')
     parser.add_argument('--shuffle', default=False, action='store_true')
     parser.add_argument('--wandb-cds', default=False, action='store_true')
+
+    parser.add_argument('--single', default=None, type=str)
 
     _args = parser.parse_args()
     _args.record_animation = not _args.no_record_animation

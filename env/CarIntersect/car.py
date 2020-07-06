@@ -135,33 +135,6 @@ class DummyCar:
             ]
         )
 
-        # self._hull = self.world.CreateDynamicBody(
-        #     position=(init_x, init_y),
-        #     angle=init_angle,
-        #     fixtures=[
-        #         fixtureDef(shape=polygonShape(
-        #             vertices=[(x * SIZE, y * SIZE) for x, y in CAR_HULL_POLY4]),
-        #             density=1.0,
-        #             userData='body',
-        #         ),
-        #         fixtureDef(shape=polygonShape(
-        #             vertices=[(x * SIZE, y * SIZE) for x, y in SENSOR]),
-        #             isSensor=True,
-        #             userData='sensor',
-        #         ),
-        #         fixtureDef(shape=polygonShape(
-        #             vertices=[(x * SIZE, y * SIZE) for x, y in RIGHT_SENSOR]),
-        #             isSensor=True,
-        #             userData='right_sensor',
-        #         ),
-        #         fixtureDef(shape=polygonShape(
-        #             vertices=[(x * SIZE, y * SIZE) for x, y in LEFT_SENSOR]),
-        #             isSensor=True,
-        #             userData='left_sensor',
-        #         ),
-        #     ]
-        # )
-
         self._hull.name = 'bot_car' if bot else 'car'
         self._hull.cross_time = float('inf')
         self._hull.stop = False
@@ -219,54 +192,6 @@ class DummyCar:
             w.tiles = set()
             w.userData = w
             self.wheels.append(w)
-
-        # self.wheels = []
-        # self.fuel_spent = 0.0
-        # WHEEL_POLY = [
-        #     (-WHEEL_W, +WHEEL_R), (+WHEEL_W, +WHEEL_R),
-        #     (+WHEEL_W, -WHEEL_R), (-WHEEL_W, -WHEEL_R)
-        # ]
-        #
-        # for index, (wx, wy) in enumerate(WHEELPOS):
-        #     # shit happens here
-        #     front_k = 1.0 if wy > 0 else 1.0
-        #     w = self.world.CreateDynamicBody(
-        #         position=(init_x + wx * SIZE, init_y + wy * SIZE),
-        #         angle=init_angle,
-        #         fixtures=fixtureDef(
-        #             shape=polygonShape(vertices=[(x * front_k * SIZE, y * front_k * SIZE) for x, y in WHEEL_POLY]),
-        #             density=0.1,
-        #             categoryBits=0x0020,
-        #             maskBits=0x001,
-        #             restitution=0.0,
-        #         )
-        #     )
-        #     w.wheel_rad = front_k * WHEEL_R * SIZE
-        #     w.is_front = index == 0 or index == 1
-        #     w.gas = 0.0
-        #     w.brake = 0.0
-        #     w.steer = 0.0
-        #     w.steer_approx = 0.0
-        #     w.phase = 0.0  # wheel angle
-        #     w.omega = 0.0  # angular velocity
-        #     rjd = revoluteJointDef(
-        #         bodyA=self._hull,
-        #         bodyB=w,
-        #         referenceAngle=0,
-        #         localAnchorA=(wx * SIZE, wy * SIZE),
-        #         localAnchorB=(0, 0),
-        #         enableMotor=True,
-        #         enableLimit=True,
-        #         maxMotorTorque=180 * 900 * SIZE * SIZE,
-        #         motorSpeed=0,
-        #         lowerAngle=-0.4,
-        #         upperAngle=+0.4,
-        #     )
-        #     w.joint = self.world.CreateJoint(rjd)
-        #     w.name = 'wheel'
-        #     w.collision = False
-        #     w.userData = w
-        #     self.wheels.append(w)
 
         self._time: int = 0
         self.userData = self
@@ -611,7 +536,7 @@ class DummyCar:
         track_index = self._track_point
         for track_index in range(self._track_point, len(self.track['line']) + 1, 1):
             if track_index != len(self.track['line']):
-                if self._is_car_closely_to(self.track['line'][track_index], 2.0):
+                if self._is_car_closely_to(self.track['line'][track_index], 5.5 * 1):#self.data_loader.get_trackpoint_size()):
                     continue
             if hard:
                 self._old_track_point = self._track_point
