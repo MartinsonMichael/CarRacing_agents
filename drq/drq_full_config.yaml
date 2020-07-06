@@ -87,7 +87,7 @@ state:
 
   # show or not checkpoint on image, unused if `picture` is false
   checkpoints:
-    show: false
+    show: true
     size: 10
     hide_on_reach: true
 
