@@ -189,9 +189,7 @@ class PPO:
             term_1 = policy_ratio * advantage
             term_2 = torch.clamp(policy_ratio, 1 - self.eps_clip, 1 + self.eps_clip) * advantage
 
-            actor_loss = torch.clamp(
-                -1 * torch.clamp(torch.min(term_1, term_2), -1.0, 1.0)
-            )
+            actor_loss = -1 * torch.clamp(torch.min(term_1, term_2), -1.0, 1.0)
 
             loss = (
                 actor_loss

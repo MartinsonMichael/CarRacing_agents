@@ -26,7 +26,7 @@ env_changes:
       picture: true
       checkpoints:
         show: true
-        size: 25
+        size: 5
         hide_on_reach: true
       vector_car_features: []
 
