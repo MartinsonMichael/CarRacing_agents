@@ -163,6 +163,7 @@ class PPO:
 
         sum_ppo_loss = 0.0
         sum_ppo_critic_loss = 0.0
+        sum_ppo_actor_loss = 0.0
         for _ in range(self.hyperparameters['learning_updates_per_learning_session']):
             self._total_grad_steps += 1
             new_log_probs, new_entropy = self.ac.estimate_action(states, actions)
@@ -180,6 +181,7 @@ class PPO:
                     ),
                 ),
             )
+            critic_loss = torch.clamp(critic_loss, -1.0, 1.0)
 
             advantage = discount_reward - state_value.detach()
             policy_ratio = torch.exp(new_log_probs - log_probs.detach())
@@ -187,10 +189,19 @@ class PPO:
             term_1 = policy_ratio * advantage
             term_2 = torch.clamp(policy_ratio, 1 - self.eps_clip, 1 + self.eps_clip) * advantage
 
-            loss = -1 * torch.min(term_1, term_2) - 0.0 * new_entropy + 0.5 * critic_loss
+            actor_loss = torch.clamp(
+                -1 * torch.clamp(torch.min(term_1, term_2), -1.0, 1.0)
+            )
+
+            loss = (
+                actor_loss
+                - 0.0 * new_entropy
+                + 0.5 * critic_loss
+            )
 
             sum_ppo_loss += float(loss.mean().detach().cpu().numpy())
             sum_ppo_critic_loss += float(critic_loss.mean().detach().cpu().numpy())
+            sum_ppo_actor_loss += float(actor_loss.mean().detach().numpy())
 
             self.optimizer.zero_grad()
             loss.mean().backward()
@@ -199,6 +210,7 @@ class PPO:
 
         self.current_game_stats.update({
             'ppo_loss': float(sum_ppo_loss) / self.hyperparameters['learning_updates_per_learning_session'],
+            'ppo_actor_loss': float(sum_ppo_actor_loss) / self.hyperparameters['learning_updates_per_learning_session'],
             'ppo_critic_loss': float(sum_ppo_critic_loss) / self.hyperparameters['learning_updates_per_learning_session'],
         })
 
