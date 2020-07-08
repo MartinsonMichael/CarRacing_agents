@@ -5,7 +5,7 @@ import math
 import Box2D
 from Box2D.b2 import fixtureDef, polygonShape, revoluteJointDef
 
-from env.CarIntersect.utils import DataSupporter
+from env.CarIntersect.utils import DataSupporter, Geom, TrackType, CarImage
 from shapely.geometry import Point
 
 
@@ -71,18 +71,18 @@ class DummyCar:
         world : Box2D World
 
         """
-        self.car_image = car_image
-        self.track = track
-        self.data_loader = data_loader
-        self.is_bot = bot
+        self.car_image: CarImage = car_image
+        self.track: TrackType = track
+        self.data_loader: DataSupporter = data_loader
+        self.is_bot: bool = bot
         self._bot_state = {
             'was_break': False,
             'stop_for_next': -1,
         }
 
         # all coordinates in XY format, not in IMAGE coordinates
-        init_x, init_y = DataSupporter.get_track_initial_position(self.track['line'])
-        init_angle = DataSupporter.get_track_angle(track) - np.pi / 2
+        init_x, init_y = Geom.get_track_initial_position(self.track)
+        init_angle = Geom.get_track_angle(track) - np.pi / 2
         # width_y, height_x = self.car_image.size
 
         self.world = world
@@ -91,7 +91,7 @@ class DummyCar:
             (+55, +60), (+55, +270),
             (+240, +270), (+240, +60)
         ]
-        MAGIC_COEFF = self.data_loader.BLACK_MAGIC_CONST / 355
+        MAGIC_COEFF = self.data_loader._image_scale['relative_car_scale']
         RIGHT_SENSOR = [(x[0] * MAGIC_COEFF, x[1] * MAGIC_COEFF) for x in RIGHT_SENSOR]
 
         COLLID_SENSOR = [
@@ -155,7 +155,10 @@ class DummyCar:
                 position=(init_x+wx*SIZE, init_y+wy*SIZE),
                 angle=init_angle,
                 fixtures=fixtureDef(
-                    shape=polygonShape(vertices=[ (x*front_k*SIZE,y*front_k*SIZE) for x,y in WHEEL_POLY ]),
+                    shape=polygonShape(vertices=[
+                        (x*front_k*SIZE, y*front_k*SIZE)
+                        for x, y in WHEEL_POLY
+                    ]),
                     density=0.1,
                     categoryBits=0x0020,
                     maskBits=0x001,
@@ -289,11 +292,6 @@ class DummyCar:
         else:
             return f"Car, killed"
 
-    # def check_collision(self, car_list: List) -> bool:
-    #     for car in car_list:
-    #         if _is_car_closely_to()
-
-
     @property
     def one_radar_len(self) -> int:
         """Return single integer, len of radar vector"""
@@ -319,7 +317,7 @@ class DummyCar:
             if not bot._i_am_still_alive:
                 continue
             angle_diff = (self.angle_radian - bot.angle_radian) % (2 * np.pi)
-            dist = self.data_loader.dist(self.position_PLAY, bot.position_PLAY)
+            dist = Geom.dist(self.position_PLAY, bot.position_PLAY)
             if dist > 80:
                 continue
             direct_to_bot = (bot.position_PLAY - self.position_PLAY) / np.linalg.norm(
@@ -409,11 +407,6 @@ class DummyCar:
             np.sin(self.angle_radian),
         ])
 
-    @property
-    def wheels_position_IMG(self) -> np.array:
-        """Return wheels position in pixel coordinates. Return np.ndarray of 4 pairs x, y"""
-        return self.data_loader.convertPLAY2IMG(self.wheels_positions_PLAY)
-
     def _is_car_closely_to(self, point, threshold=0.5, threshold_center=None) -> bool:
         """
         Technical function to check is car center of any of wheels is close enough to point.
@@ -492,8 +485,6 @@ class DummyCar:
                     if not self.track['polygon'].contains(wheel_position):
                         self._state_data['is_out_of_track'] = True
 
-
-
         # update track progress
         self._update_track_point(hard=True)
         self.update_finish()
@@ -524,7 +515,7 @@ class DummyCar:
     def update_finish(self):
         """Just update is_finish sensor, check if car enough close to target point (last point in track)"""
         self._state_data['is_finish'] = False
-        if self._is_car_closely_to(self.track['line'][-1], 2.3):
+        if self._is_car_closely_to(self.track['line'][-1], self.data_loader.get_checkpoint_size()):
             self._state_data['is_finish'] = True
 
     def _update_track_point(self, hard=False):
@@ -536,7 +527,7 @@ class DummyCar:
         track_index = self._track_point
         for track_index in range(self._track_point, len(self.track['line']) + 1, 1):
             if track_index != len(self.track['line']):
-                if self._is_car_closely_to(self.track['line'][track_index], 5.5 * 1):#self.data_loader.get_trackpoint_size()):
+                if self._is_car_closely_to(self.track['line'][track_index], self.data_loader.get_checkpoint_size()):
                     continue
             if hard:
                 self._old_track_point = self._track_point

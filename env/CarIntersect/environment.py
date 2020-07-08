@@ -15,7 +15,7 @@ from PIL import Image
 from env.CarIntersect.car import DummyCar
 from env.CarIntersect.contact_listner import RefactoredContactListener
 from env.CarIntersect.rewards import Rewarder
-from env.CarIntersect.utils import DataSupporter
+from env.CarIntersect.utils import DataSupporter, Geom, Img
 
 
 class CarIntersect(gym.Env, EzPickle):
@@ -25,6 +25,7 @@ class CarIntersect(gym.Env, EzPickle):
         if isinstance(settings_file_path_or_settings, dict):
             self._settings = settings_file_path_or_settings
         else:
+            # noinspection PyBroadException
             try:
                 self._settings = json.load(open(settings_file_path_or_settings, 'r'))
             except:
@@ -42,7 +43,7 @@ class CarIntersect(gym.Env, EzPickle):
         self._static_env_state_cache = None
 
         # init agent data
-        self.car = None
+        self.car: DummyCar = None
         self.bot_cars = []
         self.create_agent_car()
         self.rewarder = Rewarder(self._settings)
@@ -53,8 +54,8 @@ class CarIntersect(gym.Env, EzPickle):
         self.bot_cars = []
         # init gym properties
         self.picture_state = np.zeros_like(
-            (*self._data_loader.get_target_image_size(), 3),
-             dtype=np.uint8,
+            a=(*self._data_loader.get_target_image_size(), 3),
+            dtype=np.uint8,
         )
         self.action_space = spaces.Box(
             low=np.array([-1.0, -1.0, -1.0]),
@@ -65,7 +66,7 @@ class CarIntersect(gym.Env, EzPickle):
             world=self.world,
             car_image=self._data_loader.peek_car_image(is_for_agent=True),
             track=DataSupporter.do_with_points(
-                self._data_loader.peek_track(is_for_agent=True, expand_points=200),
+                self._data_loader.peek_track(is_for_agent=True, expand_points_pixels=10),
                 self._data_loader.convertIMG2PLAY,
             ),
             data_loader=self._data_loader,
@@ -92,10 +93,10 @@ class CarIntersect(gym.Env, EzPickle):
             # ),
         )
         self.time = 0
-        self.np_random, _ = seeding.np_random(42)
-        self.reset(first=True)
-        time.sleep(0.5)
-        self.reset(first=True)
+        # self.reset(first=True)
+        # time.sleep(0.5)
+        # self.seed()
+        # self.reset(first=True)
 
     def _init_world(self):
         """
@@ -111,7 +112,7 @@ class CarIntersect(gym.Env, EzPickle):
             polygon_points = polygon['points']
             if polygon_name in {'not_road', 'cross_road'}:
                 self.world.restricted_world[polygon_name].append(geometry.Polygon(
-                    self._data_loader.convertIMG2PLAY(polygon_points)
+                    self._data_loader.convertIMG2PLAY(polygon_points) * DataSupporter.image_coef()
                 ))
 
     def seed(self, seed=None):
@@ -136,6 +137,7 @@ class CarIntersect(gym.Env, EzPickle):
         recreate agent car and bots cars_full
         :return: initial state
         """
+        self._was_done = False
         self._destroy()
         self.time = 0
         self.create_agent_car()
@@ -164,14 +166,14 @@ class CarIntersect(gym.Env, EzPickle):
             car_image=self._data_loader.peek_car_image(is_for_agent=True),
             track=self._data_loader.peek_track(
                 is_for_agent=True,
-                expand_points=self._settings['reward']['track_checkpoint_expanding'],
+                expand_points_pixels=self._settings['reward']['track_checkpoint_expanding'],
             ),
             data_loader=self._data_loader,
             bot=False,
         )
 
     def create_bot_car(self):
-        track = self._data_loader.peek_track(is_for_agent=False, expand_points=50)
+        track = self._data_loader.peek_track(is_for_agent=False, expand_points_pixels=50)
         collided_indexes = self.initial_track_check(track)
         if len(collided_indexes) == 0:
             bot_car = DummyCar(
@@ -189,14 +191,14 @@ class CarIntersect(gym.Env, EzPickle):
         collide with track initial position. For agent car return -1 as index.
         :return: list of integers
         """
-        init_pos = DataSupporter.get_track_initial_position(track)
+        init_pos = Geom.get_track_initial_position(track)
         collided_indexes = []
         for bot_index, bot_car in enumerate(self.bot_cars):
-            if DataSupporter.dist(init_pos, bot_car.position_PLAY) < 13:
+            if Geom.dist(init_pos, bot_car.position_PLAY) < 13:
                 collided_indexes.append(bot_index)
 
         if self.car is not None:
-            if DataSupporter.dist(self.car.position_PLAY, init_pos) < 13:
+            if Geom.dist(self.car.position_PLAY, init_pos) < 13:
                 collided_indexes.append(-1)
 
         return collided_indexes
@@ -204,7 +206,6 @@ class CarIntersect(gym.Env, EzPickle):
     def step(self, action: Union[None, List[float]]) \
             -> Tuple[Dict[str, Union[None, np.ndarray]], float, bool, Dict]:
         if self._was_done:
-            self._was_done = False
             return self.reset(), 0.0, False, {'was_reset': True}
 
         info = {}
@@ -321,10 +322,20 @@ class CarIntersect(gym.Env, EzPickle):
             )
 
         if full_image:
+            if self._data_loader.get_animation_target_size() is not None:
+                # noinspection PyTypeChecker
+                return np.asarray(
+                    Img.resize_pil_image(
+                        background_image.convert('RGB'),
+                        size=self._data_loader.get_animation_target_size(),
+                    ),
+                )
+            # noinspection PyTypeChecker
             return np.asarray(background_image.convert('RGB'))
 
+        # noinspection PyTypeChecker
         return np.asarray(
-            DataSupporter.resize_pil_image(
+            Img.resize_pil_image(
                 background_image.convert('RGB'),
                 size=self._data_loader.get_target_image_size(),
             ),
@@ -336,20 +347,21 @@ class CarIntersect(gym.Env, EzPickle):
         bound_y, bound_x = masked_image.size
 
         # car position in image coordinates (in pixels)
-        car_x, car_y = car.position_IMG * self._data_loader.FULL_RENDER_COEFF
-
-        scale = 1.0
-        # if not full_image:
-        #     scale = self._data_loader.get_background_image_scale / self._data_loader.FULL_RENDER_COEFF
+        car_x, car_y = car.position_IMG
 
         background_image.paste(
             im=masked_image,
             box=(
-                int(car_x - bound_x / 2 + 15 * scale),
-                int(car_y - bound_y / 2 + 10 * scale),
+                int(car_x - bound_y / 2),
+                int(car_y - bound_x / 2),
             ),
             mask=mask,
         )
+
+        # DEBUG DRAW car points: center and wheels
+        # self.draw_point(background_image, self.car.position_IMG)
+        # for pnt in self.car.wheels_positions_IMG:
+        #     self.draw_point(background_image, pnt)
 
     def close(self):
         del self.car
@@ -365,16 +377,15 @@ class CarIntersect(gym.Env, EzPickle):
         )
         for point in points:
             p = self._data_loader.convertPLAY2IMG(point)
-            # p = DataSupporter.convert_XY2YX(p)
-            p *= self._data_loader.FULL_RENDER_COEFF
+            self.draw_point(background_image, p)
 
-            ch_image = self._data_loader.checkpoint_image()
-
-            background_image.paste(
-                im=ch_image,
-                box=(
-                    int(p[0] - ch_image.size[0] / 2),
-                    int(p[1] - ch_image.size[1] / 2)
-                ),
-                mask=ch_image,
-            )
+    def draw_point(self, background_image: Image.Image, point: np.ndarray) -> None:
+        ch_image = self._data_loader.checkpoint_image()
+        background_image.paste(
+            im=self._data_loader.checkpoint_image(),
+            box=(
+                int(point[0] - ch_image.size[0] / 2),
+                int(point[1] - ch_image.size[1] / 2)
+            ),
+            mask=ch_image,
+        )

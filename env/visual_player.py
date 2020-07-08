@@ -107,11 +107,10 @@ def main():
         steps = 0
         restart = False
         while True:
-            done = None
-            info = {}
-            for _ in range(1):
-                s, r, done, info = env.step(action)
-                total_reward += r
+
+            s, r, done, info = env.step(action)
+            total_reward += r
+
             print(f"action {action}")
             print("step {} total_reward {}".format(steps, total_reward))
 

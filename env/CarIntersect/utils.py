@@ -1,6 +1,6 @@
 import os
 from collections import defaultdict
-from typing import List, NamedTuple, Any, Optional, Tuple, Union, Dict, Set
+from typing import List, NamedTuple, Optional, Tuple, Union, Dict, Set
 import cv2
 import numpy as np
 from shapely.geometry import Polygon
@@ -8,7 +8,10 @@ from skimage.measure import label, regionprops
 import copy
 from PIL import Image
 
-from env.CarIntersect.cvat_loader import CvatDataset
+from .cvat_loader import CvatDataset
+from .geometry_utils import TrackType
+from . import geometry_utils as Geom
+from . import image_utils as Img
 
 
 class CarImage(NamedTuple):
@@ -16,7 +19,7 @@ class CarImage(NamedTuple):
     hashable_obj: str
 
     pil_image: Image.Image
-    mask: np.ndarray
+    mask: Image.Image
 
 
 class DataSupporter:
@@ -26,55 +29,39 @@ class DataSupporter:
        provided via this class functions.
 
     """
-    # for training
     def __init__(self, settings):
         self._settings = settings
 
         self._image_scale = self._settings['image_scale']
-        self._background_image: Image.Image = Image.open(self._settings['background_path'])
-        self._background_image.convert('RGBA')
-        self._sended_background = None
+        self._background_image = DataSupporter._load_pil_image(self._settings['background_path'])
+        self._background_image = self._background_image.convert('RGBA')
 
         # in XY coordinates, not in a IMAGE coordinates
         self._original_image_size = np.array([self._background_image.size[1], self._background_image.size[0]])
+        assert abs(self._original_image_size[0] - self._original_image_size[1]) < 10, \
+            "AAA, panic, we didn't expect such difficult case"
 
         # NOTE we want to use target image size
-        # two cases of image scaling
-        # case one, we have tow float number for scaling background image and for scaling car images
-        # base on both cases we wiil compute two entities: target size of image and scaling factor for car images
-        if 'image_target_size' not in self._image_scale.keys() or self._image_scale['image_target_size'] is None:
-            assert self._image_scale['back_image_scale_factor'] is not None
-            assert self._image_scale['car_image_scale_factor'] is not None
+        assert isinstance(self._image_scale['image_target_size'], (list, tuple))
+        assert len(self._image_scale['image_target_size']) == 2
 
-            self._image_scale['image_target_size'] = tuple(map(int,
-                self._original_image_size * self._image_scale['back_image_scale_factor']
-            ))
-            print(self._image_scale['image_target_size'])
-        # second case, we have target size of image, and relative car image scaling
+        if self._image_scale['relative_car_scale'] is None:
+            self._image_scale['relative_car_scale'] = 1.0
+
+        self._image_scale['image_target_size'] = tuple(self._image_scale['image_target_size'])
+
+        if 'animation_target_size' not in self._image_scale.keys():
+            self._image_scale['animation_target_size'] = (200, 200)
         else:
-            assert isinstance(self._image_scale['image_target_size'], (list, tuple))
-            assert len(self._image_scale['image_target_size']) == 2
-
-            if self._image_scale['relative_car_scale'] is None:
-                self._image_scale['relative_car_scale'] = 1.0
-
-            self._image_scale['back_image_scale_factor'] = (
-                self._image_scale['image_target_size'][0] / self._original_image_size[0]
-            )
-
-            # this parameter will be used for car image scaling
-            self._image_scale['car_image_scale_factor'] = (
-                self._image_scale['back_image_scale_factor'] * self._image_scale['relative_car_scale']
-            )
-
-            self._image_scale['image_target_size'] = tuple(self._image_scale['image_target_size'])
+            if isinstance(self._image_scale['animation_target_size'], (tuple, list)):
+                assert len(self._image_scale['animation_target_size']) == 2
+                self._image_scale['animation_target_size'] = tuple(self._image_scale['animation_target_size'])
 
         # just two numbers of field in pyBox2D coordinate system
-        # BLACK_MAGIC_CONST = 335
-        self.BLACK_MAGIC_CONST = 100
+        self.PLAYFIELD_SIZE = 100
         self._playfield_size = np.array([
-            self.BLACK_MAGIC_CONST * self._background_image.size[1] / self._background_image.size[0],
-            self.BLACK_MAGIC_CONST
+            self.PLAYFIELD_SIZE * self._background_image.size[1] / self._background_image.size[0],
+            self.PLAYFIELD_SIZE
         ])
         # technical field
         self._data = CvatDataset()
@@ -82,71 +69,82 @@ class DataSupporter:
 
         # list of car images
         self._cars: List[CarImage] = []
-        self._image_memory = {}
+        self._car_image_memory = {}
         self._load_car_images(self._settings['cars_path'])
+        print(f'Loaded {len(self._cars)} car images')
 
         # Preparing tracks
         # _tracks is for all tracks: dict with track name as key and Dict as track description
         #   track description is also Dict with two (or one) keys : "line", "polygon"(optional)
         #       "line" is numpy with track points
         #       "polygon" is numpy array with points if surrounding polygon (may be not present for bots tracks)
-        self._tracks: Dict[str, Dict[str, Union[np.ndarray, Polygon]]] = {}
+        self._tracks: Dict[str, TrackType] = {}
         # _agent_track_list is just list of string - track names that can be used for agent
         self._agent_track_list = self._settings['agent_tracks']
         # _bot_track_list is just list of string - track names that can be used for bots
         self._bot_track_list = self._settings['bots_tracks']
         self._extract_tracks()
 
-        # index of image -> [dict of angle index -> [image] ]
-        # like a memory cache for rotated car images
-
-        # coefficients of images scaling for animation records, not so small as for RL image state
-        self.FULL_RENDER_COEFF = self._settings['image_scale']['image_scale_for_animation_records']
-        self._render_back = None
-        self._true_image_memory = {}
-
-        # print some statistics
-        # print(f'count of car images: {self.car_image_count}')
-        # print(f'count of track count: {self.track_count}')
-        # print(f'background image shape: {self._image_size * self._background_image_scale}')
-        # print(f'play field shape: {self._playfield_size}')
-
         self._track_point_image: Optional[Image.Image] = None
         self.load_track_point_image()
+        if self._track_point_image is not None:
+            self._track_point_image = Img.resize_pil_image(
+                self._track_point_image,
+                coef=self._get_checkpoint_size_coef(),
+            )
+
+        print(f'cheskpoint size : {self.get_checkpoint_size()}')
+
+    def get_checkpoint_size(self) -> float:
+        if self._track_point_image is None:
+            scale = 10
+        else:
+            scale = self._track_point_image.size[0]
+        return 1.0 * scale / 2 * self.playfield_size[0] / self._original_image_size[0]
+
+    @staticmethod
+    def image_coef() -> float:
+        return 0.4
+
+    @staticmethod
+    def _load_pil_image(path: str) -> Image.Image:
+        return Img.resize_pil_image(
+            Image.open(path),
+            coef=DataSupporter.image_coef(),
+        )
 
     def get_target_image_size(self) -> Tuple[int, int]:
         return self._image_scale['image_target_size']
+
+    def get_animation_target_size(self) -> Union[None, Tuple[int, int]]:
+        if isinstance(self._image_scale['animation_target_size'], (list, tuple)):
+            return self._image_scale['animation_target_size']
+        return None
 
     def load_track_point_image(self) -> None:
         path_to_tp = os.path.join('.', 'env_data', 'track_point.png')
 
         if os.path.exists(path_to_tp):
-            self._track_point_image = Image.open(path_to_tp)
+            self._track_point_image = DataSupporter._load_pil_image(path_to_tp)
             return
 
         path_to_tp = os.path.join('.', 'env', 'env_data', 'track_point.png')
 
         if os.path.exists(path_to_tp):
-            self._track_point_image = Image.open(path_to_tp)
+            self._track_point_image = DataSupporter._load_pil_image(path_to_tp)
             return
 
         if self._settings['state']['checkpoints']['show']:
             raise ValueError("can't find checkpoint image!")
 
-    def im_scale(self) -> float:
-        return self.get_background_image_scale / self.FULL_RENDER_COEFF
-
-    def get_trackpoint_size(self) -> float:
-        return self._settings['state']['checkpoints']['size'] / 10
+    def _get_checkpoint_size_coef(self) -> float:
+        if not self._settings['state'].get('checkpoints', {'show': False})['show']:
+            return 1.0
+        return float(self._settings['state']['checkpoints']['size'])
 
     def checkpoint_image(self) -> Image.Image:
         assert self._track_point_image is not None
-        if not hasattr(self, '_track_point_image_not_full'):
-            self._track_point_image_not_full: Image.Image = DataSupporter.resize_pil_image(
-                self._track_point_image,
-                coef=self._settings['state']['checkpoints']['size'] / 10,
-            )
-        return self._track_point_image_not_full
+        return self._track_point_image
 
     @property
     def car_features_list(self) -> Set[str]:
@@ -170,7 +168,7 @@ class DataSupporter:
         self._playfield_size = size
 
     @staticmethod
-    def convert_XY2YX(points: np.array):
+    def convert_XY2YX(points: np.ndarray):
         if len(points.shape) == 2:
             return np.array([points[:, 1], points[:, 0]]).T
         if points.shape == (2, ):
@@ -178,7 +176,7 @@ class DataSupporter:
         raise ValueError
 
     @staticmethod
-    def do_with_points(track_obj, func):
+    def do_with_points(track_obj: TrackType, func) -> TrackType:
         """
         Perform given functions under 'line' array.
         :param track_obj: dict with two keys:
@@ -237,12 +235,7 @@ class DataSupporter:
         return self._data
 
     def get_background(self) -> Image.Image:
-        if self._render_back is None:
-            self._render_back = DataSupporter.resize_pil_image(
-                self._background_image,
-                coef=self.FULL_RENDER_COEFF,
-            ).convert('RGBA')
-        return self._render_back.copy()
+        return self._background_image.copy()
 
     def _load_car_images(self, cars_path):
         """
@@ -250,103 +243,52 @@ class DataSupporter:
         """
         import os
         for folder in sorted(os.listdir(cars_path)):
-            try:
-                mask = cv2.imread(os.path.join(cars_path, folder, 'mask.bmp'))
-                real_image = cv2.imread(os.path.join(cars_path, folder, 'image.jpg'))
+            pil_image = DataSupporter._load_pil_image(os.path.join(cars_path, folder, 'image.jpg'))
+            mask = DataSupporter._load_pil_image(os.path.join(cars_path, folder, 'mask.bmp')).convert('1')
+            if mask.size != pil_image.size:
+                continue
 
-                if mask.shape[:2] != real_image.shape[:2]:
-                    continue
+            r, g, b = map(np.array, pil_image.convert('RGB').split())
 
-                del real_image
+            # noinspection PyTypeChecker
+            alpha = np.where(np.array(mask) == 0, 0, 255).astype('uint8')
 
-                label_image = label(mask[:, :, 0])
-                region = regionprops(label_image)[0]
-                min_y, min_x, max_y, max_x = region.bbox
+            pil_image = cv2.merge((r, g, b, alpha))
+            pil_image = Image.fromarray(pil_image, mode='RGBA')
 
-                region_size_y = (max_y - min_y)
-                region_size_x = (max_x - min_x)
+            car = CarImage(
+                size=np.array(pil_image.size, dtype=np.int32),
+                hashable_obj=f"{cars_path}--{folder}",
+                pil_image=pil_image,
+                mask=mask,
+            )
 
-                pil_image: Image.Image = Image.open(os.path.join(cars_path, folder, 'image.jpg'))
-                pil_image.convert('RGB')
-                r, g, b = map(np.array, pil_image.split())
-                alpha = np.where(mask == 0, 0, 255).astype('uint8')[:, :, 0]
-                pil_image = cv2.merge((r, g, b, alpha))
-                pil_image = Image.fromarray(pil_image, mode='RGBA')
-
-                car = CarImage(
-                    size=np.array([region_size_x, region_size_y]),
-                    hashable_obj=os.path.join(cars_path, folder, 'mask.bmp'),
-                    pil_image=pil_image,
-                    mask=Image.open(os.path.join(cars_path, folder, 'mask.bmp')),
-                )
-
-                self._cars.append(car)
-                self._image_memory[car.hashable_obj] = dict()
-            except Exception as e:
-                raise e
-                # print(f'error while parsing car image source: {os.path.join(cars_path, folder)}')
+            self._cars.append(car)
+            self._car_image_memory[car.hashable_obj] = dict()
 
     def get_rotated_car_image(self, car) -> Tuple[Image.Image, Image.Image]:
-        if car.car_image.hashable_obj not in self._true_image_memory.keys():
-            self._true_image_memory[car.car_image.hashable_obj] = dict()
+        if car.car_image.hashable_obj not in self._car_image_memory.keys():
+            self._car_image_memory[car.car_image.hashable_obj] = dict()
         angle_index = car.angle_index
 
-        if angle_index in self._true_image_memory[car.car_image.hashable_obj].keys():
-            return self._true_image_memory[car.car_image.hashable_obj][angle_index]
+        if angle_index in self._car_image_memory[car.car_image.hashable_obj].keys():
+            return self._car_image_memory[car.car_image.hashable_obj][angle_index]
 
-        pil_rotated_resized = DataSupporter.rotate_pil_image(
-            DataSupporter.resize_pil_image(car.car_image.pil_image, self.FULL_RENDER_COEFF),
-            -car.angle_degree - 90,
-        )
-        pil_rotated_resized_mask = DataSupporter.rotate_pil_image(
-            DataSupporter.resize_pil_image(car.car_image.mask, self.FULL_RENDER_COEFF),
+        pil_rotated_resized = Img.rotate_pil_image(
+            Img.resize_pil_image(car.car_image.pil_image, self._image_scale['relative_car_scale']),
             -car.angle_degree - 90,
         )
 
-        self._true_image_memory[car.car_image.hashable_obj][angle_index] = \
-            (pil_rotated_resized, pil_rotated_resized_mask.convert('1'))
-        return self._true_image_memory[car.car_image.hashable_obj][angle_index]
+        pil_rotated_resized_mask = Img.rotate_pil_image(
+            Img.resize_pil_image(car.car_image.mask, self._image_scale['relative_car_scale']),
+            -car.angle_degree - 90,
+        )
 
-    @staticmethod
-    def resize_pil_image(image: Image, coef: Optional[float] = None, size: Optional[Tuple[int, int]] = None) -> Image:
-        if size is None:
-            assert coef is not None
-            (width, height) = (int(image.width * coef), int(image.height * coef))
-        else:
-            assert isinstance(size, (list, tuple))
-            assert len(size) == 2
-            (width, height) = size
-        im_resized = image.resize((width, height))
-        return im_resized
-
-    @staticmethod
-    def rotate_pil_image(image: Image, angle_degree: float) -> Image:
-        return image.rotate(angle=angle_degree, fillcolor=(0, 0, 0, 0), expand=True)
-
-    @staticmethod
-    def rotate_image(image, angle, scale=1.0):
-        # grab the dimensions of the image and then determine the
-        # center
-        (h, w) = image.shape[:2]
-        (cX, cY) = (w // 2, h // 2)
-
-        # grab the rotation matrix (applying the negative of the
-        # angle to rotate clockwise), then grab the sine and cosine
-        # (i.e., the rotation components of the matrix)
-        M = cv2.getRotationMatrix2D((cX, cY), -angle, scale)
-        cos = np.abs(M[0, 0])
-        sin = np.abs(M[0, 1])
-
-        # compute the new bounding dimensions of the image
-        nW = int((h * sin) + (w * cos))
-        nH = int((h * cos) + (w * sin))
-
-        # adjust the rotation matrix to take into account translation
-        M[0, 2] += (nW / 2) - cX
-        M[1, 2] += (nH / 2) - cY
-
-        # perform the actual rotation and return the image
-        return cv2.warpAffine(image, M, (nW, nH))
+        self._car_image_memory[car.car_image.hashable_obj][angle_index] = (
+            pil_rotated_resized,
+            pil_rotated_resized_mask.convert('1'),
+        )
+        return self._car_image_memory[car.car_image.hashable_obj][angle_index]
 
     def _extract_tracks(self):
         """
@@ -355,11 +297,13 @@ class DataSupporter:
         tracks = defaultdict(lambda: {'line': None, 'polygon': None}, {})
         for item in self._data.get_polylines(0):
             if item['label'] == 'track_line':
-                tracks[item['attributes']['title']]['line'] = np.array(item['points'])
+                # noinspection PyTypeChecker
+                tracks[item['attributes']['title']]['line'] = np.array(item['points']) * DataSupporter.image_coef()
 
         for item in self._data.get_polygons(0):
             if item['label'] == 'track_polygon':
-                tracks[item['attributes']['title']]['polygon'] = np.array(item['points'])
+                # noinspection PyTypeChecker
+                tracks[item['attributes']['title']]['polygon'] = np.array(item['points']) * DataSupporter.image_coef()
 
         self._agent_track_list = set(self._agent_track_list)
 
@@ -379,49 +323,11 @@ class DataSupporter:
 
             self._tracks[track_title] = {
                 'polygon': Polygon(self.convertIMG2PLAY(track_object['polygon'])),
-                # 'polygon': Polygon(track_object['polygon']),
                 'line': self.convertIMG2PLAY(track_object['line']),
             }
 
         self._agent_track_list = np.array(list(self._agent_track_list))
         self._bot_track_list = np.array(list(self._bot_track_list))
-
-    @staticmethod
-    def _dist(pointA, pointB) -> float:
-        """
-        Just Euclidean distance.
-        """
-        return np.sqrt(np.sum((pointA - pointB)**2))
-
-    def _expand_track(self, track_obj, max_dist: float = 10.0) -> Dict[str, Any]:
-        """
-        Insert point in existing polyline, while dist between point more then max_dist.
-        As a result track_obj['line'] will contain more points.
-        """
-        max_dist /= self._background_image.size[0] / self._playfield_size[0]
-        track = np.array(track_obj['line'])
-        expanded_track = [track[0]]
-
-        for index in range(1, len(track)):
-            first, second = track[index - 1], track[index]
-            num_points_to_insert = int((DataSupporter._dist(first, second) - max_dist * 0.7) / max_dist)
-            if num_points_to_insert == 0:
-                expanded_track.append(second)
-                continue
-
-            vector_to_add = (second - first) / DataSupporter._vector_len(second - first) * max_dist
-            for i in range(1, num_points_to_insert + 1):
-                expanded_track.append(first + vector_to_add * i)
-            expanded_track.append(second)
-
-        return {
-            'polygon': track_obj['polygon'],
-            'line': np.array(expanded_track),
-        }
-
-    @staticmethod
-    def _vector_len(v: np.ndarray) -> float:
-        return float(np.sqrt((v**2).sum()))
 
     def peek_car_image(self, is_for_agent: bool, index: Optional[int] = None):
         """
@@ -436,12 +342,12 @@ class DataSupporter:
             index = np.random.choice(np.arange(len(self._cars)))
         return copy.deepcopy(self._cars[index])
 
-    def peek_track(self, is_for_agent, expand_points: Optional[float] = 50):
+    def peek_track(self, is_for_agent, expand_points_pixels: Optional[float] = 50) -> TrackType:
         """
         Return random track object.
         :param is_for_agent:
-        :param expand_points: if provided increase number of points in 'line' part of track object
-        :return:
+        :param expand_points_pixels: if provided increase number of points in 'line' part of track object
+        :return: TrackType
         """
         if is_for_agent:
             index = np.random.choice(self._agent_track_list)
@@ -450,81 +356,9 @@ class DataSupporter:
             index = np.random.choice(self._bot_track_list)
             track = self._tracks[index]
 
-        # track['line'] = self.convertIMG2PLAY(track['line'])
-
-        if expand_points is not None:
-            return self._expand_track(track, expand_points)
+        if expand_points_pixels is not None:
+            return Geom.expand_track(
+                track,
+                expand_points_pixels * self._playfield_size[0] / self._original_image_size[0],
+            )
         return track
-
-    @staticmethod
-    def dist(pointA: np.array, pointB: np.array) -> float:
-        """
-        Just another Euclidean distance.
-        """
-        if pointA.shape != (2, ) or pointB.shape != (2, ):
-            raise ValueError('incorrect points shape')
-        return np.sqrt(np.sum((pointA - pointB)**2))
-
-    @staticmethod
-    def get_track_angle(track_obj: np.array, index=0) -> float:
-        """
-        Return angle between OX and track_obj['line'][index] -> track_obj['line'][index + 1] points
-        """
-        track = track_obj
-        if isinstance(track_obj, dict):
-            track = track_obj['line']
-        if index == len(track):
-            index -= 1
-        angle = DataSupporter.angle_by_2_points(
-            track[index],
-            track[index + 1]
-        )
-        return angle
-
-    @staticmethod
-    def get_track_initial_position(track: Union[np.array, Dict[str, Any]]) -> np.array:
-        """
-        Just return starting position for track object.
-        """
-        if isinstance(track, dict):
-            return track['line'][0]
-        if isinstance(track, (np.ndarray, list)):
-            return track[0]
-
-        raise ValueError('unknown track type, fix me!')
-
-    @staticmethod
-    def angle_by_2_points(
-            pointA: np.array,
-            pointB: np.array,
-    ) -> float:
-        return DataSupporter.angle_by_3_points(
-            np.array(pointA) + np.array([1.0, 0.0]),
-            np.array(pointA),
-            np.array(pointB),
-        )
-
-    @staticmethod
-    def angle_by_3_points(
-            pointA: np.array,
-            pointB: np.array,
-            pointC: np.array) -> float:
-        """
-        compute angle
-        :param pointA: np.array of shape (2, )
-        :param pointB: np.array of shape (2, )
-        :param pointC: np.array of shape (2, )
-        :return: angle in radians between AB and BC
-        """
-        if pointA.shape != (2,) or pointB.shape != (2,) or pointC.shape != (2,):
-            raise ValueError('incorrect points shape')
-
-        def unit_vector(vector):
-            return vector / np.linalg.norm(vector)
-
-        def angle_between(v1, v2):
-            v1_u = unit_vector(v1)
-            v2_u = unit_vector(v2)
-            return np.arctan2(np.cross(v1_u, v2_u), np.dot(v1_u, v2_u))
-
-        return angle_between(pointA - pointB, pointC - pointB)
