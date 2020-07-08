@@ -10,7 +10,7 @@ action_repeat: 4
 # train
 num_train_steps: 1000000
 num_train_iters: 1
-num_seed_steps: 1000
+num_seed_steps: 10000
 replay_buffer_capacity: 100000
 seed: 1
 # eval
@@ -47,7 +47,7 @@ agent:
     lr: ${lr}
     actor_update_frequency: 2
     critic_tau: 0.01
-    critic_target_update_frequency: 2
+    critic_target_update_frequency: 4
     batch_size: ${batch_size}
     
 critic:

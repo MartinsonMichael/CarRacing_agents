@@ -62,6 +62,8 @@ def make_common_env_config(exp_env_config: Dict[str, str]) -> Dict[str, Any]:
         config_part = yaml.load(open(exp_env_config[config_part_name], 'r'))
         env_config.update(config_part)
 
+    print(env_config)
+
     return env_config
 
 
@@ -76,6 +78,7 @@ def main():
                         help="do not restart simulation after fail")
     parser.add_argument("--exp-settings", type=str)
     parser.add_argument("--env-settings", type=str)
+    parser.add_argument("--off-full-render", default=False, action='store_true')
     parser.add_argument("--show-agent-track", default=False, action='store_true', help="debug mode")
     args = parser.parse_args()
 
@@ -95,7 +98,7 @@ def main():
 
     # create window with image
     viewer = SimpleImageViewer()
-    viewer.imshow(env.env.render(full_image=True))
+    viewer.imshow(env.env.render(full_image=not args.off_full_render))
     viewer.window.on_key_press = key_press
     viewer.window.on_key_release = key_release
     while True:
@@ -116,7 +119,7 @@ def main():
             print(info, end='\n\n')
 
             steps += 1
-            viewer.imshow(env.render_with_settings(full_image=True, draw_agent_track=args.show_agent_track))
+            viewer.imshow(env.env.render(full_image=not args.off_full_render))
 
             if args.delay is not None:
                 time.sleep(args.delay)

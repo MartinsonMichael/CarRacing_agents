@@ -17,17 +17,9 @@ annotation_path: "env/env_data/tracks/named_track_annotation_v1.2.xml"
 # Scales to resize background image and cars image,
 #   something like compression for better performance
 image_scale:
-  # set these params
-#  back_image_scale_factor: 0.12
-#  car_image_scale_factor: 0.1
-
-  # or theses
   image_target_size: [84, 84]
-  relative_car_scale: 0.9
-
-  # Coefficient of image scaling (both background and cars) while record animation,
-  #   smth like trade-off between quality and disk memory efficiency.
-  image_scale_for_animation_records: 0.5
+  relative_car_scale: 0.8
+  animation_target_size: [300, 300]
 
 
 ## ----------- REWARD PART ----------- ##
@@ -35,7 +27,7 @@ image_scale:
 reward:
     # How frequently insert check-points between CVAT track points
     #   number represent distance in pixels
-  track_checkpoint_expanding: 50
+  track_checkpoint_expanding: 40
 
   # Rewards for events
   is_collided: 0.0
@@ -88,7 +80,7 @@ state:
   # show or not checkpoint on image, unused if `picture` is false
   checkpoints:
     show: true
-    size: 10
+    size: 5.0
     hide_on_reach: true
 
   # List of car features to use.

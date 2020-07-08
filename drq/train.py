@@ -85,6 +85,7 @@ class Workspace(object):
 
         images = []
         record_cur_episode = False
+        total_updates = 0
 
         while self.step < self.cfg.num_train_steps:
             if done:
@@ -109,6 +110,7 @@ class Workspace(object):
                         'total_env_steps': total_env_step,
                         'track_progress': info.get('track_progress', 0.0),
                         'env_steps': episode_step,
+                        'total_updates': total_updates,
                     })
 
                 obs = self.env.reset()
@@ -127,8 +129,9 @@ class Workspace(object):
                     action = self.agent.act(obs, sample=True)
 
             # run training update
-            if self.step >= self.cfg.num_seed_steps and self.step % 10 == 0:
+            if self.step >= self.cfg.num_seed_steps and self.step % 2 == 0:
                 for _ in range(self.cfg.num_train_iters):
+                    total_updates += 1
                     self.agent.update(self.replay_buffer, self.logger, self.step)
 
             next_obs, reward, done, info = self.env.step(action)
@@ -165,6 +168,12 @@ def main(cfg):
     if 'NAME' in os.environ.keys():
         NAME = os.environ['NAME']
 
+    if 'ENV_CONFIG_PATH' in os.environ.keys():
+        cfg.car_intersect_config = os.environ['ENV_CONFIG_PATH']
+
+    if 'DEVICE' in os.environ.keys():
+        cfg.device = os.environ['DEVICE']
+
     try:
         env_settings = json.load(open(cfg.car_intersect_config, 'r'))
     except:
@@ -176,6 +185,12 @@ def main(cfg):
         name=f'drq_original_{NAME}',
         config=env_settings,
     )
+    cfg.seed = np.random.randint(0, 2 ** 16 - 1)
+
+    print(f'use name : {NAME}')
+    print(f'use env config : {cfg.car_intersect_config}')
+    print(f'use seed : {cfg.seed}')
+    print(f'use device : {cfg.device}')
 
     env = CarIntersect(settings_file_path_or_settings=env_settings)
     env = DictToTupleWrapper(env)
@@ -186,10 +201,6 @@ def main(cfg):
     os.chdir(ps)
     print(f'dir after changes: {os.path.abspath(os.path.curdir)}')
 
-    if 'DEVICE' in os.environ.keys():
-        cfg.device = os.environ['DEVICE']
-    cfg.seed = np.random.randint(0, 2**16-1)
-    print(f'use seed : {cfg.seed}')
     workspace = Workspace(cfg, env=env)
     workspace.run()
 
