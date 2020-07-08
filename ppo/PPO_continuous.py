@@ -199,7 +199,7 @@ class PPO:
 
             sum_ppo_loss += float(loss.mean().detach().cpu().numpy())
             sum_ppo_critic_loss += float(critic_loss.mean().detach().cpu().numpy())
-            sum_ppo_actor_loss += float(actor_loss.mean().detach().numpy())
+            sum_ppo_actor_loss += float(actor_loss.mean().detach().cpu().numpy())
 
             self.optimizer.zero_grad()
             loss.mean().backward()
