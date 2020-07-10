@@ -1,37 +1,35 @@
 import json
+import time
 
-import dmc2gym
-import wandb
+import hydra
 import numpy as np
+import torch
+import wandb
 import yaml
+
+import utils
+from logger import Logger as original_Logger
+from replay_buffer import ReplayBuffer
 
 if __name__ == '__main__':
     try:
         import os
         import sys
+
         sys.path.insert(0, os.path.abspath(os.path.pardir))
 
         from env import OnlyImageTaker, DictToTupleWrapper, ChannelSwapper, ImageStackWrapper
+        from env.common_envs_utils.env_makers import get_EnvCreator_with_memory_safe_combiner
         from env.CarIntersect import CarIntersect
         from common_agents_utils.logger import Logger
     except:
         print("If you launch this from . folder, you probably will have some import problems.")
 
 
-import os
-import time
-
-import hydra
-import torch
-
-import utils
-from logger import Logger as original_Logger
-from replay_buffer import ReplayBuffer
-
-
 class Workspace(object):
-    def __init__(self, cfg, env):
+    def __init__(self, cfg, env, phi):
         self.env = env
+        self.phi = phi
 
         # self.env = dmc2gym.make(
         #     domain_name='CarIntersect',
@@ -58,15 +56,23 @@ class Workspace(object):
         utils.set_seed_everywhere(cfg.seed)
         self.device = torch.device(cfg.device)
 
-        cfg.agent.params.obs_shape = self.env.observation_space.shape
+        cfg.agent.params.obs_shape = self.phi(self.env.reset()).shape
+        print(f'DRQ: get observation shape : {cfg.agent.params.obs_shape}')
+
         cfg.agent.params.action_shape = self.env.action_space.shape
+        print(f'DRQ: get action shape : {cfg.agent.params.obs_shape}')
+
         cfg.agent.params.action_range = [-1, +1]
         self.agent = hydra.utils.instantiate(cfg.agent)
 
-        self.replay_buffer = ReplayBuffer(self.env.observation_space.shape,
-                                          self.env.action_space.shape,
-                                          cfg.replay_buffer_capacity,
-                                          self.cfg.image_pad, self.device)
+        self.replay_buffer = ReplayBuffer(
+            obs_shape=cfg.agent.params.obs_shape,
+            action_shape=self.env.action_space.shape,
+            capacity=cfg.replay_buffer_capacity,
+            image_pad=self.cfg.image_pad,
+            device=self.device,
+            phi=self.phi,
+        )
 
         self.step = 0
 
@@ -93,7 +99,7 @@ class Workspace(object):
                 if record_cur_episode:
                     wandb.log({
                         'animation': wandb.Video(
-                            np.transpose(np.array(images)[::3, ::2, ::2, :], (0, 3, 1, 2)),
+                            np.transpose(np.array(images), (0, 3, 1, 2)),
                             fps=4,
                             format="gif",
                         )
@@ -126,10 +132,10 @@ class Workspace(object):
                 action = self.env.action_space.sample()
             else:
                 with utils.eval_mode(self.agent):
-                    action = self.agent.act(obs, sample=True)
+                    action = self.agent.act(self.phi(obs), sample=True)
 
             # run training update
-            if self.step >= self.cfg.num_seed_steps and self.step % 2 == 0:
+            if self.step >= self.cfg.num_seed_steps and self.step % 8 == 0:
                 for _ in range(self.cfg.num_train_iters):
                     total_updates += 1
                     self.agent.update(self.replay_buffer, self.logger, self.step)
@@ -157,7 +163,6 @@ class Workspace(object):
 
 @hydra.main(config_path='config.yaml', strict=True)
 def main(cfg):
-
     print(f'cur dir : {os.path.abspath(os.path.curdir)}')
     ps = os.path.abspath(os.path.curdir)
 
@@ -174,10 +179,15 @@ def main(cfg):
     if 'DEVICE' in os.environ.keys():
         cfg.device = os.environ['DEVICE']
 
+    if 'TEST' in os.environ.keys():
+        print('DRQ launcher: TEST settings is used')
+        cfg.num_seed_steps = 1000
+
     try:
         env_settings = json.load(open(cfg.car_intersect_config, 'r'))
     except:
         env_settings = yaml.load(open(cfg.car_intersect_config, 'r'))
+
 
     wandb.init(
         project='CarRacing_MassExp_test',
@@ -192,19 +202,15 @@ def main(cfg):
     print(f'use seed : {cfg.seed}')
     print(f'use device : {cfg.device}')
 
-    env = CarIntersect(settings_file_path_or_settings=env_settings)
-    env = DictToTupleWrapper(env)
-    env = ChannelSwapper(env)
-    env = ImageStackWrapper(env)
-    env = OnlyImageTaker(env)
+    env_maker, phi = get_EnvCreator_with_memory_safe_combiner(env_settings)
+    env = env_maker()
 
     os.chdir(ps)
     print(f'dir after changes: {os.path.abspath(os.path.curdir)}')
 
-    workspace = Workspace(cfg, env=env)
+    workspace = Workspace(cfg, env=env, phi=phi)
     workspace.run()
 
 
 if __name__ == '__main__':
-
     main()

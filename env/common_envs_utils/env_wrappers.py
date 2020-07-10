@@ -110,23 +110,30 @@ class ImageStackWrapper(gym.Wrapper):
         assert isinstance(self.observation_space, gym.spaces.Tuple), "work only with observation as tuple"
         assert channel_order in ['hwc', 'chw', None], "channel order mus be one of ['hwc', 'chw'], " \
                                                       "or None for autodetect"
+
+        in_obs_shape = self.observation_space.spaces[0].shape
         if channel_order is None:
-            if self.observation_space.spaces[0].shape[0] == 3:
+            if in_obs_shape[0] == 3:
                 self._channel_order = 'chw'
-            elif self.observation_space.spaces[0].shape[2] == 3:
+            elif in_obs_shape[2] == 3:
                 self._channel_order = 'hwc'
             else:
-                raise ValueError(f"can't determine channel order for shape {self.observation_space.spaces[0].shape}")
+                raise ValueError(f"can't determine channel order for shape {in_obs_shape}")
+            print(f'ImageStackWrapper: determine image channel order as : {self._channel_order}, '
+                  f'shape was {in_obs_shape}')
         else:
             self._channel_order = channel_order
 
-        shape = self.observation_space.spaces[0].shape
-        if channel_order == 'hwc':
-            self._final_image_shape = tuple((shape[0], shape[1], shape[2] * self._stack_len))
-            self._single_channel_num = shape[2]
+        if self._channel_order == 'hwc':
+            self._final_image_shape = tuple((in_obs_shape[0], in_obs_shape[1], in_obs_shape[2] * self._stack_len))
+            self._reset_image_shape = tuple((in_obs_shape[0], in_obs_shape[1], in_obs_shape[2] * (self._stack_len - 1)))
+            self._single_channel_num = in_obs_shape[2]
         else:
-            self._final_image_shape = tuple((shape[0] * self._stack_len, shape[1], shape[2]))
-            self._single_channel_num = shape[0]
+            self._final_image_shape = tuple((in_obs_shape[0] * self._stack_len, in_obs_shape[1], in_obs_shape[2]))
+            self._reset_image_shape = tuple((in_obs_shape[0] * (self._stack_len - 1), in_obs_shape[1], in_obs_shape[2]))
+            self._single_channel_num = in_obs_shape[0]
+        print(f'ImageStackWrapper: final image shape will be : {self._final_image_shape}')
+
         self.observation_space.spaces = gym.spaces.Tuple((
             gym.spaces.Box(low=0, high=255, shape=self._final_image_shape, dtype=np.uint8),
             self.observation_space.spaces[1],
@@ -135,23 +142,15 @@ class ImageStackWrapper(gym.Wrapper):
     def _get_concatenate_axis(self) -> int:
         return 2 if self._channel_order == 'hwc' else 0
 
-    def _get_zero_obs_for_steps(self, step_num: int) -> np.ndarray:
-        if self._channel_order == 'hwc':
-            return np.zeros((
-                *self._final_image_shape[:2],
-                step_num * self._single_channel_num,
-            ), dtype=np.uint8)
-        else:
-            return np.zeros((
-                step_num * self._single_channel_num,
-                *self._final_image_shape[1:],
-            ), dtype=np.uint8)
-
-    def _get_stack_buffer(self, action, step_num):
+    def _get_stack_buffer(self, action, reset: bool = False):
         total_reward = 0.0
         done, info, last_obs = None, None, None
-        final_image_obs = self._get_zero_obs_for_steps(step_num)
-        for index in range(step_num):
+        if reset:
+            final_image_obs = np.zeros(self._reset_image_shape, dtype=np.uint8)
+        else:
+            final_image_obs = np.zeros(self._final_image_shape, dtype=np.uint8)
+
+        for index in range(self._stack_len if not reset else self._stack_len - 1):
             obs, reward, done, info = self.env.step(action)
             last_obs = obs
             total_reward += reward
@@ -168,11 +167,11 @@ class ImageStackWrapper(gym.Wrapper):
         return tuple((final_image_obs, *last_obs[1:])), total_reward, done, info
 
     def step(self, action):
-        return self._get_stack_buffer(action, self._stack_len)
+        return self._get_stack_buffer(action, reset=False)
 
     def reset(self):
         initial_obs = self.env.reset()
-        obs, _, _, _ = self._get_stack_buffer(self._neutral_action, self._stack_len - 1)
+        obs, _, _, _ = self._get_stack_buffer(self._neutral_action, reset=True)
         image_obs = np.concatenate([initial_obs[0], obs[0]], axis=self._get_concatenate_axis())
         return tuple((image_obs, *obs[1:]))
 
@@ -185,5 +184,27 @@ class OnlyImageTaker(gym.ObservationWrapper):
 
     def observation(self, obs):
         assert isinstance(obs, tuple), "OnlyImageTaker expect observation to be tuple, " \
+                                      f"but it has type : {type(obs)}"
+        return obs[0]
+
+
+class ObservationCombiner(gym.ObservationWrapper):
+    def __init__(self, env, channel_order: str = 'hwc'):
+        raise NotImplemented
+        assert channel_order in ['hwc', 'chw']
+        super().__init__(env)
+        # spaces [0] - image
+        # spaces [1] - vector
+
+        self.observation_space = self.env.observation_space.spaces[0]
+
+    def _combine_hwc(self, obs: Tuple[NpA, NpA]) -> NpA:
+        pass
+
+    def _combine_chw(self, obs: Tuple[NpA, NpA]) -> NpA:
+        pass
+
+    def observation(self, obs):
+        assert isinstance(obs, tuple), "ObservationCombiner expect observation to be tuple, " \
                                       f"but it has type : {type(obs)}"
         return obs[0]

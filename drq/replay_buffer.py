@@ -9,17 +9,22 @@ import utils
 
 class ReplayBuffer(object):
     """Buffer to store environment transitions."""
-    def __init__(self, obs_shape, action_shape, capacity, image_pad, device):
+    def __init__(self, obs_shape, action_shape, capacity, image_pad, device, phi=None):
         self.capacity = capacity
         self.device = device
+        self.phi = phi
+
+        print(f'DRQ: ReplayBuffer: get observation shape : {obs_shape}')
 
         self.aug_trans = nn.Sequential(
             nn.ReplicationPad2d(image_pad),
             kornia.augmentation.RandomCrop((obs_shape[-1], obs_shape[-1])),
         )
 
-        self.obses = np.empty((capacity, *obs_shape), dtype=np.uint8)
-        self.next_obses = np.empty((capacity, *obs_shape), dtype=np.uint8)
+        # self.obses = np.empty((capacity, *obs_shape), dtype=np.uint8)
+        # self.next_obses = np.empty((capacity, *obs_shape), dtype=np.uint8)
+        self.obses = list()
+        self.next_obses = list()
         self.actions = np.empty((capacity, *action_shape), dtype=np.float32)
         self.rewards = np.empty((capacity, 1), dtype=np.float32)
         self.not_dones = np.empty((capacity, 1), dtype=np.float32)
@@ -32,10 +37,21 @@ class ReplayBuffer(object):
         return self.capacity if self.full else self.idx
 
     def add(self, obs, action, reward, next_obs, done, done_no_max):
-        np.copyto(self.obses[self.idx], obs)
+        # np.copyto(self.obses[self.idx], obs)
+        if self.idx >= len(self.obses):
+            self.obses.append(obs)
+        else:
+            self.obses[self.idx] = obs
+
         np.copyto(self.actions[self.idx], action)
         np.copyto(self.rewards[self.idx], reward)
-        np.copyto(self.next_obses[self.idx], next_obs)
+
+        # np.copyto(self.next_obses[self.idx], next_obs)
+        if self.idx >= len(self.next_obses):
+            self.next_obses.append(next_obs)
+        else:
+            self.next_obses[self.idx] = next_obs
+
         np.copyto(self.not_dones[self.idx], not done)
         np.copyto(self.not_dones_no_max[self.idx], not done_no_max)
 
@@ -47,20 +63,19 @@ class ReplayBuffer(object):
                                  self.capacity if self.full else self.idx,
                                  size=batch_size)
 
-        obses = self.obses[idxs]
-        next_obses = self.next_obses[idxs]
+        obses = np.array([self.phi(self.obses[ind]) for ind in idxs])
         obses_aug = obses.copy()
+
+        next_obses = np.array([self.phi(self.next_obses[ind]) for ind in idxs])
         next_obses_aug = next_obses.copy()
 
         obses = torch.as_tensor(obses, device=self.device).float()
         next_obses = torch.as_tensor(next_obses, device=self.device).float()
         obses_aug = torch.as_tensor(obses_aug, device=self.device).float()
-        next_obses_aug = torch.as_tensor(next_obses_aug,
-                                         device=self.device).float()
+        next_obses_aug = torch.as_tensor(next_obses_aug, device=self.device).float()
         actions = torch.as_tensor(self.actions[idxs], device=self.device)
         rewards = torch.as_tensor(self.rewards[idxs], device=self.device)
-        not_dones_no_max = torch.as_tensor(self.not_dones_no_max[idxs],
-                                           device=self.device)
+        not_dones_no_max = torch.as_tensor(self.not_dones_no_max[idxs], device=self.device)
 
         obses = self.aug_trans(obses)
         next_obses = self.aug_trans(next_obses)

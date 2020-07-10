@@ -63,6 +63,10 @@ def vector_phi(x):
 
 def both_phi(x):
     image, vector = x
+    # expect image to have hwc channel order
+    assert image.shape == (84, 84, 12), f"image shape : {image.shape}"
+    assert vector.shape == (7,), f"vector shape : {vector.shape}"
+
     vector_channel = np.ones(shape=list(image.shape[:-1]) + [len(vector)], dtype=np.float32) * vector
     combined = np.concatenate([image.astype(np.float32) / 255, vector_channel], axis=-1)
     return np.transpose(combined, (2, 1, 0))
@@ -72,6 +76,7 @@ def make_CarRacing_Both(settings: Dict, discrete_wrapper: Type[ActionWrapper] = 
     def f():
         env = CarIntersect(settings_file_path_or_settings=settings)
         env = DictToTupleWrapper(env)
+        env = ImageStackWrapper(env)
         if discrete_wrapper is not None:
             env = discrete_wrapper(env)
         return env
@@ -82,7 +87,6 @@ def make_CarRacing_Vector(settings: Dict, discrete_wrapper: Type[ActionWrapper] 
     def f():
         env = CarIntersect(settings_file_path_or_settings=settings)
         env = DictToTupleWrapper(env)
-        # env = OnlyVectorsTaker(env)
         if discrete_wrapper is not None:
             env = discrete_wrapper(env)
         return env
@@ -93,7 +97,6 @@ def make_CarRacing_Picture(settings: Dict, discrete_wrapper: Type[ActionWrapper]
     def f():
         env = CarIntersect(settings_file_path_or_settings=settings)
         env = DictToTupleWrapper(env)
-        # env = OnlyImageTaker(env)
         env = ChannelSwapper(env)
         env = ImageStackWrapper(env)
         if discrete_wrapper is not None:

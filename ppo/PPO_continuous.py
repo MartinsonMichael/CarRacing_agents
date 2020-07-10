@@ -181,7 +181,10 @@ class PPO:
                     ),
                 ),
             )
-            critic_loss = torch.clamp(critic_loss, -1.0, 1.0)
+
+            if self.hyperparameters.get('loss_critic_clip_value', None) is not None:
+                value = self.hyperparameters['loss_critic_clip_value']
+                critic_loss = torch.clamp(critic_loss, -value, +value)
 
             advantage = discount_reward - state_value.detach()
             policy_ratio = torch.exp(new_log_probs - log_probs.detach())
@@ -189,13 +192,25 @@ class PPO:
             term_1 = policy_ratio * advantage
             term_2 = torch.clamp(policy_ratio, 1 - self.eps_clip, 1 + self.eps_clip) * advantage
 
-            actor_loss = -1 * torch.clamp(torch.min(term_1, term_2), -1.0, 1.0)
+            actor_loss = -1 * torch.min(term_1, term_2)
+
+            if self.hyperparameters.get('loss_actor_clip_value', None) is not None:
+                value = self.hyperparameters['loss_actor_clip_value']
+                actor_loss = torch.clamp(actor_loss, -value, +value)
+
+            if self.hyperparameters.get('entropy_clip_value', None) is not None:
+                value = self.hyperparameters['entropy_clip_value']
+                new_entropy = torch.clamp(new_entropy, -value, +value)
 
             loss = (
                 actor_loss
-                - 0.0 * new_entropy
+                - 0.01 * new_entropy
                 + 0.5 * critic_loss
             )
+
+            if self.hyperparameters.get('loss_clip_value', None) is not None:
+                value = self.hyperparameters['loss_clip_value']
+                loss = torch.clamp(loss, -value, +value)
 
             sum_ppo_loss += float(loss.mean().detach().cpu().numpy())
             sum_ppo_critic_loss += float(critic_loss.mean().detach().cpu().numpy())

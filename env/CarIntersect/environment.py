@@ -98,6 +98,13 @@ class CarIntersect(gym.Env, EzPickle):
         # self.seed()
         # self.reset(first=True)
 
+        if len(set(self._data_loader.car_features_list) - DummyCar.car_features_set()) > 0:
+            raise ValueError(
+                f"incorrect car features list\n"
+                f"you pass : {set(self._data_loader.car_features_list)}\n"
+                f"we expect some of {DummyCar.car_features_set()}"
+            )
+
     def _init_world(self):
         """
         function to create shapely polygons, which define road zones, not road zone

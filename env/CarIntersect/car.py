@@ -1,4 +1,4 @@
-from typing import Dict, Union, List
+from typing import Dict, Union, List, Set
 
 import numpy as np
 import math
@@ -208,21 +208,18 @@ class DummyCar:
 
         self._i_am_still_alive = True
 
-    def get_vector_state(self, bot_list=None) -> np.ndarray:
-        """Return vector this car features, list of features to include into vector provided in env setting file"""
-        state = []
-        CAR_FEATURES = {
+    @staticmethod
+    def car_features_set() -> Set[str]:
+        return {
             'hull_position', 'hull_angle', 'car_speed', 'wheels_positions',
             'track_sensor', 'road_sensor', 'finish_sensor', 'cross_road_sensor',
             'collide_sensor', 'checkpoint_sensor',
             'car_radar_1', 'car_radar_2', 'car_radar_3', 'time',
         }
-        if len(set(self.data_loader.car_features_list) - CAR_FEATURES) > 0:
-            raise ValueError(
-                f"incorrect car features list\n"
-                f"you pass : {set(self.data_loader.car_features_list)}\n"
-                f"we expect some of {CAR_FEATURES}"
-            )
+
+    def get_vector_state(self, bot_list=None) -> np.ndarray:
+        """Return vector this car features, list of features to include into vector provided in env setting file"""
+        state = []
 
         if 'hull_position' in self.data_loader.car_features_list:
             state.extend([
