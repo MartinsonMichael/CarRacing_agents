@@ -190,7 +190,7 @@ def main(cfg):
 
 
     wandb.init(
-        project='CarRacing_MassExp_test',
+        project='CarRacing_DRQ',
         reinit=True,
         name=f'drq_original_{NAME}',
         config=env_settings,
