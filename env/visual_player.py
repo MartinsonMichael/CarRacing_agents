@@ -79,7 +79,7 @@ def main():
     parser.add_argument("--exp-settings", type=str)
     parser.add_argument("--env-settings", type=str)
     parser.add_argument("--off-full-render", default=False, action='store_true')
-    parser.add_argument("--show-agent-track", default=False, action='store_true', help="debug mode")
+    parser.add_argument("--show-state", default=False, action='store_true', help="debug mode")
     args = parser.parse_args()
 
     if args.exp_settings is not None:
@@ -118,7 +118,10 @@ def main():
             print(info, end='\n\n')
 
             steps += 1
-            viewer.imshow(env.env.render(full_image=not args.off_full_render))
+            if args.show_state:
+                viewer.imshow(s['picture'])
+            else:
+                viewer.imshow(env.env.render(full_image=not args.off_full_render))
 
             if args.delay is not None:
                 time.sleep(args.delay)

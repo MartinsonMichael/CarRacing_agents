@@ -248,10 +248,6 @@ class CarIntersect(gym.Env, EzPickle):
         if len(self.bot_cars) < self.num_bots:
             self.create_bot_car()
 
-        self.picture_state = None
-        if self._settings['state']['picture']:
-            self.picture_state = self.render()
-
         done = self.rewarder.get_step_done(self.car.stats)
         step_reward = self.rewarder.get_step_reward(self.car.stats)
 
@@ -259,20 +255,23 @@ class CarIntersect(gym.Env, EzPickle):
         info.update(self.car.DEBUG_create_radar_state(2, self.bot_cars))
 
         self._was_done = done
-        return self._create_state(), step_reward, done, info
+        return (
+            {
+                'picture': self._create_image_state().astype(np.uint8),
+                'car_vector':
+                    self.car.get_vector_state(self.bot_cars).astype(np.float32)
+                    if len(self._settings['state']['vector_car_features']) != 0
+                    else None,
+            },
+            step_reward,
+            done,
+            info,
+        )
 
-    def _create_state(self) -> Dict[str, Union[None, np.ndarray]]:
-        return {
-            'picture':
-                self.picture_state.astype(np.uint8)
-                if self._settings['state']['picture']
-                else None,
-            'car_vector':
-                self.car.get_vector_state(self.bot_cars).astype(np.float32)
-                if len(self._settings['state']['vector_car_features']) != 0
-                else None,
-            # 'env_vector': self._create_vector_env_static_description().astype(np.float32),
-        }
+    def _create_image_state(self) -> Union[None, np.ndarray]:
+        if not self._settings['state']['picture']:
+            return None
+        return self.render()
 
     @lru_cache(maxsize=None)
     def _create_vector_env_static_description(self) -> np.ndarray:
@@ -327,6 +326,17 @@ class CarIntersect(gym.Env, EzPickle):
                 car=self.car,
                 hide_on_reach=self._settings['state']['checkpoints']['hide_on_reach'],
             )
+
+        if self._settings['state'].get('crop_near_agent', {'use': False})['use']:
+            car_x, car_y = self.car.position_IMG
+            bounds = self._settings['state']['crop_near_agent']['size']
+
+            background_image = background_image.crop((
+                car_x - bounds / 2,
+                car_y - bounds / 2,
+                car_x + bounds / 2,
+                car_y + bounds / 2,
+            ))
 
         if full_image:
             if self._data_loader.get_animation_target_size() is not None:

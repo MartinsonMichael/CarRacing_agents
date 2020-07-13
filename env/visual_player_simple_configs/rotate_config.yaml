@@ -77,10 +77,14 @@ state:
   # Use or not to use image. If "false", in observation dict it will appear as None.
   picture: true
 
+  crop_near_agent:
+    use: true
+    size: 150 # in pixels from agent center
+
   # show or not checkpoint on image, unused if `picture` is false
   checkpoints:
     show: true
-    size: 5.0
+    size: 3.0
     hide_on_reach: true
 
   # List of car features to use.

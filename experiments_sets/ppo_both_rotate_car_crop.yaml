@@ -1,0 +1,38 @@
+# Global settings
+env:
+  path_config: env/configs/basic_PATH_config.yaml
+  reward_config: env/configs/minimal_REWARD_config.yaml
+  state_config: env/configs/basic_STATE_config.yaml
+
+
+# Agents to use, with theirs configs
+agents:
+  ppo: ppo/ppo_config.yaml
+
+# Common part of logger config
+general_config: general_config.yaml
+
+#   All possible features names:
+#     'hull_position', 'hull_angle', 'car_speed', 'wheels_positions',
+#     'track_sensor', 'road_sensor', 'finish_sensor', 'cross_road_sensor',
+#     'collide_sensor', 'checkpoint_sensor',
+#     'car_radar_1', 'car_radar_2', 'car_radar_3',
+#     'time'
+
+# Local env changes
+env_changes:
+  - agent_tracks : ["rotate"]
+    state:
+      picture: true
+      crop_near_agent:
+        use: true
+        size: 150
+      checkpoints:
+        show: true
+        size: 5
+        hide_on_reach: true
+      vector_car_features: ['hull_position', 'hull_angle', 'car_speed']
+    reward:
+      track_checkpoint_expanding: 25
+
+
