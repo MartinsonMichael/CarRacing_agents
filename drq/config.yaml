@@ -11,7 +11,7 @@ action_repeat: 4
 num_train_steps: 1000000
 num_train_iters: 1
 num_seed_steps: 10000
-replay_buffer_capacity: 100000
+replay_buffer_capacity: 250000
 seed: 1
 # eval
 eval_frequency: 5000
@@ -28,7 +28,7 @@ frame_stack: 4
 # global params
 lr: 1e-3
 # IMPORTANT: please use a batch size of 512 to reproduce the results in the paper. Hovewer, with a smaller batch size it still works well.
-batch_size: 128
+batch_size: 256
 
 # agent configuration
 agent:

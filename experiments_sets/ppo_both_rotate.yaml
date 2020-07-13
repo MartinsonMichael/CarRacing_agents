@@ -29,5 +29,7 @@ env_changes:
         size: 5
         hide_on_reach: true
       vector_car_features: ['hull_position', 'hull_angle', 'car_speed']
+    reward:
+      track_checkpoint_expanding: 25
 
 

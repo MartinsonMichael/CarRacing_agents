@@ -27,7 +27,7 @@ image_scale:
 reward:
     # How frequently insert check-points between CVAT track points
     #   number represent distance in pixels
-  track_checkpoint_expanding: 40
+  track_checkpoint_expanding: 25
 
   # Rewards for events
   is_collided: 0.0
