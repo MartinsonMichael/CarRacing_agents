@@ -1,5 +1,6 @@
 # This part of config s common for all agents and contain technical params.
 log_interval: 2
+eval_episode_freq: 1
 animation_record_frequency: 2
 wandb_animation_frequency: 5 # among usual animation freq
 record_animation: true

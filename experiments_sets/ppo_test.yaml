@@ -2,12 +2,12 @@
 env:
   path_config: env/configs/basic_PATH_config.yaml
   reward_config: env/configs/minimal_REWARD_config.yaml
-  state_config: env/configs/basic_STATE_config.yaml
+  state_config: env/configs/persistent_STATE_config.yaml
 
 
 # Agents to use, with theirs configs
 agents:
-  ppo-drq: ppo/ppo_test_config.yaml
+  ppo: ppo/ppo_test_config.yaml
 
 # Common part of logger config
 general_config: general_test_config.yaml

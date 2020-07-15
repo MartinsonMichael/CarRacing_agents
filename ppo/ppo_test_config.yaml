@@ -1,5 +1,6 @@
 # Basic ppo specific config
 ---
+# sub param for icm
 use_icm: false
 icm_phi: 'config.phi'
 icm_gradient_clipping: 1.5
@@ -7,6 +8,17 @@ icm_gradient_clipping: 1.5
 # sub param for drq
 drq_padding: 2
 drq_augment_num: 1 # excluding original state
+
+# loss clipping
+loss_actor_clip_value: null # number or null
+loss_critic_clip_value: null # number or null
+entropy_clip_value: null # number or null
+loss_clip_value: null # number or null
+
+
+# cheet reward
+linear_negative_reward_drop_steps: -1
+use_reward_discount: true
 
 
 num_episodes_to_run: 50

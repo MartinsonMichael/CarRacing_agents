@@ -1,11 +1,8 @@
 import os
-from copy import copy
-from threading import Thread
 from typing import Dict, Any, Union, Optional
 from collections import defaultdict
 
 import wandb
-import tensorflow as tf
 import numpy as np
 
 from common_agents_utils import Config
@@ -17,12 +14,10 @@ class Logger:
             self,
             model_config: Optional[Config] = None,
             use_wandb: bool = True,
-            use_tensorboard: bool = True,
             use_console: bool = True,
             log_interval: int = 20
     ):
         self.use_wandb = use_wandb
-        self.use_tensorboard = use_tensorboard
         self.use_console = use_console
 
         self.model_config = model_config
@@ -32,38 +27,31 @@ class Logger:
         self.episode_number: int = 0
 
         self._keeping_stats = None
-        self._part_stats = dict()
 
-    def log_it(self, stats: Optional[Dict] = None) -> None:
-        if stats is None:
-            stats = copy(self._part_stats)
-            self._part_stats = {}
-        self._accumulate_stats(stats)
+    def log_it(self, stats: Dict) -> None:
+        for key, value in Logger._accumulate_stats(stats).items():
+            self._stats[key].append(value)
+
+    def log_and_publish(self, stats: Dict) -> None:
+        stats = Logger._accumulate_stats(stats)
+        self._publish_logs(stats, self.episode_number)
+
+    def on_episode_end(self) -> None:
         self.episode_number += 1
         if self.episode_number % self.log_interval == 0:
-            self._publish_logs()
-
-    def add_stat(self, part_of_stats: Dict) -> None:
-        self._part_stats.update(part_of_stats)
+            _stats = Logger._get_mean_logs(self._stats)
+            self._publish_logs(_stats, self.episode_number)
 
     def on_training_end(self) -> None:
         if self._keeping_stats is None:
-            self._keeping_stats = self._get_mean_logs()
+            self._keeping_stats = self._get_mean_logs(self._stats)
 
         if self.model_config is not None:
             self._write_finals_to_csv()
 
     @staticmethod
-    def _delayed_animation_logging(image_array, path, step):
-        wandb.log(
-            {os.path.basename(path): wandb.Video(np.array(image_array))},
-            step=step,
-        )
-
-    def log_video(self, path_or_file_name) -> None:
-        wandb.save(path_or_file_name)
-
-    def _accumulate_stats(self, stats: Dict[str, Any]) -> None:
+    def _accumulate_stats(stats: Dict[str, Any]) -> Dict:
+        accumulated = defaultdict(list, {})
         for key, value in stats.items():
             if isinstance(value, (list, np.ndarray)):
                 _value = np.mean(value)
@@ -71,48 +59,40 @@ class Logger:
                 _value = value
             else:
                 raise ValueError(f"Logger -> unknown type : {type(value)} with value : {value}")
-            self._stats[key].append(float(_value))
+            accumulated[key].append(float(_value))
+        return accumulated
 
-    def _get_mean_logs(self) -> Dict[str, float]:
+    @staticmethod
+    def _get_mean_logs(stats) -> Dict[str, float]:
         _stats = {}
-        for key, value in self._stats.items():
+        for key, value in stats.items():
             _stats[key] = float(np.mean(value))
         return _stats
 
-    def _publish_logs(self) -> None:
-        self._stats = self._get_mean_logs()
+    def _publish_logs(self, stats, episode_number) -> None:
+        _stats = Logger._get_mean_logs(stats)
         self._keeping_stats = self._stats
 
         if self.use_console:
-            self._publish_console()
+            Logger._publish_console(_stats, episode_number)
         if self.use_wandb:
-            self._publish_wandb()
-        if self.use_tensorboard:
-            self._publish_tensorboard()
+            Logger._publish_wandb(_stats, episode_number)
         self._stats = defaultdict(list, {})
 
-    def _publish_wandb(self) -> None:
+    @staticmethod
+    def _publish_wandb(stats: Dict, episode_number: int) -> None:
         try:
-            wandb.log(row=self._stats, step=self.episode_number)
+            wandb.log(row=stats, step=episode_number)
         except:
             print('call wandb init. Currently wandb log is disabled')
 
-    def _publish_tensorboard(self) -> None:
-        if self.model_config is None:
-            return
-        if hasattr(self.model_config, 'tf_writer'):
-            if self.model_config.tf_writer is None:
-                return
-            with self.model_config.tf_writer.as_default():
-                for name, value in self._stats.items():
-                    tf.summary.scalar(name=name, data=value, step=self.episode_number)
-
-    def _publish_console(self) -> None:
+    @staticmethod
+    def _publish_console(stats: Dict, episode_number: int) -> None:
         print("Episode %d\tR %.4f\tTime %.1f\tTrack %.2f" % (
-                self.episode_number,
-                self._stats.get('reward', None),
-                self._stats.get('env_steps', None),
-                self._stats.get('track_progress', -1),
+                episode_number,
+                stats.get('reward', stats.get('EVAL reward', None)),
+                stats.get('env_steps', stats.get('EVAL env_steps', None)),
+                stats.get('track_progress', stats.get('EVAL track_progress', None)),
             )
         )
 

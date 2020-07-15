@@ -104,6 +104,7 @@ class CarIntersect(gym.Env, EzPickle):
                 f"you pass : {set(self._data_loader.car_features_list)}\n"
                 f"we expect some of {DummyCar.car_features_set()}"
             )
+        self._next_reset_eval: bool = False
 
     def _init_world(self):
         """
@@ -139,15 +140,24 @@ class CarIntersect(gym.Env, EzPickle):
                 bot_car.destroy()
                 del bot_car
 
-    def reset(self, force=False, first=False, eval=False):
+    def make_next_run_eval(self) -> None:
+        """
+        Set eval mode for current episode
+        :return: None
+        """
+        self._next_reset_eval = True
+
+    def reset(self, force=False, first=False) -> Dict[str, Union[None, np.ndarray]]:
         """
         recreate agent car and bots cars_full
         :return: initial state
         """
-        if eval:
+
+        if self._next_reset_eval:
             self._data_loader.start_eval()
         else:
             self._data_loader.stop_eval()
+        self._next_reset_eval = False
 
         self._was_done = False
         self._destroy()

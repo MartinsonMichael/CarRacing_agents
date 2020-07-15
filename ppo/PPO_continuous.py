@@ -68,9 +68,7 @@ class PPO:
         self.episode_number = 0
         self.global_step_number = 0
         self._total_grad_steps = 0
-        self.current_game_stats = None
         self._wandb_anim_save = 0
-        self.flush_stats()
 
         self.accumulated_reward_mean = None
         self.accumulated_reward_std = None
@@ -87,20 +85,6 @@ class PPO:
 
     def update_old_policy(self):
         self.ac_old.load_state_dict(self.ac.state_dict())
-
-    def update_current_game_stats(self, reward, done, info):
-        self.current_game_stats['reward'] += reward
-        self.current_game_stats['env_steps'] += 1.0
-
-        if 'is_finish' in info.keys():
-            self.current_game_stats['finish'] = info['is_finish']
-        if 'track_progress' in info.keys():
-            self.current_game_stats['track_progress'] = info['track_progress']
-        if 'is_collided' in info.keys():
-            self.current_game_stats['is_collided'] = info['is_collided']
-
-    def flush_stats(self):
-        self.current_game_stats = defaultdict(float, {})
 
     def save(self, suffix=None):
         current_save_path = os.path.join(
@@ -156,7 +140,7 @@ class PPO:
         if self.hyperparameters.get('use_reward_discount', True):
             discount_reward = (discount_reward - discount_reward.mean()) / (discount_reward.std() + 1e-5)
 
-        self.current_game_stats.update({
+        self.stat_logger.log_it({
             'discount_reward MEAN': float(discount_reward.detach().cpu().numpy().mean()),
             'discount_reward MAX': float(discount_reward.detach().cpu().numpy().max()),
         })
@@ -221,7 +205,7 @@ class PPO:
             torch.nn.utils.clip_grad_norm_(self.ac.parameters(), self.hyperparameters['gradient_clipping_norm'])
             self.optimizer.step()
 
-        self.current_game_stats.update({
+        self.stat_logger.log_it({
             'ppo_loss': float(sum_ppo_loss) / self.hyperparameters['learning_updates_per_learning_session'],
             'ppo_actor_loss': float(sum_ppo_actor_loss) / self.hyperparameters['learning_updates_per_learning_session'],
             'ppo_critic_loss': float(sum_ppo_critic_loss) / self.hyperparameters['learning_updates_per_learning_session'],
@@ -237,19 +221,11 @@ class PPO:
 
                 self.run_one_episode()
 
-                self._exp_moving_track_progress = (
-                        0.98 * self._exp_moving_track_progress +
-                        0.02 * self.current_game_stats.get('track_progress', 0)
-                )
-                self.current_game_stats.update({
-                    'moving_track_progress': self._exp_moving_track_progress,
+                self.stat_logger.log_it({
                     'total_env_episode': self.episode_number,
                     'total_env_steps': self.global_step_number,
                     'total_grad_steps': self._total_grad_steps,
                 })
-                self.stat_logger.log_it(self.current_game_stats)
-
-                self.flush_stats()
 
                 if self.global_step_number % self.config.eval_episode_freq == 0:
                     self.run_one_episode(eval=True)
@@ -266,7 +242,9 @@ class PPO:
             pass
 
     def run_one_episode(self, eval: bool = False):
-        state = self.env.reset(eval=eval)
+        if eval:
+            self.env.make_next_run_eval()
+        state = self.env.reset()
         record_anim = eval or (
             self.episode_number % self.config.animation_record_frequency == 0 and
             self.config.record_animation
@@ -288,8 +266,6 @@ class PPO:
                 eval=eval,
             )
             next_state, reward, done, info = self.env.step(action)
-
-            self.update_current_game_stats(reward, done, info)
 
             if record_anim:
                 images.append(self.env.render(full_image=True))
@@ -316,12 +292,23 @@ class PPO:
                     or info.get('need_reset', False) \
                     or episode_len > self.config.max_episode_len \
                     or self.global_step_number >= self.config.env_steps_to_run:
+                stats = {
+                        'reward': total_reward,
+                        'track_progress': info.get('track_progress', -1),
+                        'env_steps': episode_len,
+                    }
                 if eval:
                     print("\nEval episode:\nR %.4f\tTime %.1f\tTrack %.2f\n" % (
                         total_reward,
                         episode_len,
                         info.get('track_progress', -1),
                     ))
+                    stats = {'EVAL ' + key: value for key, value in stats.items()}
+                    self.stat_logger.log_and_publish(stats)
+                else:
+                    self.stat_logger.log_it(stats)
+                    self.stat_logger.on_episode_end()
+
                 if record_anim:
                     wandb_anim_record: bool = False
                     if self._wandb_anim_save % self.config.wandb_animation_frequency == 0:
