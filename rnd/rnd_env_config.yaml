@@ -2,14 +2,14 @@
 ---
 ## ----------- PATH part ----------- ##
 # Path to folder with cars image and masks
-cars_path: "env_data/cars"
+cars_path: "env/env_data/cars"
 
 # Indexes of cars images which will be used for agent's car
 agent_image_indexes: [0]
 
 # Paths to background image and CVAT annotation of this image
-background_path: "env_data/tracks/background_image_1520_1520.jpg"
-annotation_path: "env_data/tracks/named_track_annotation_v1.2.xml"
+background_path: "env/env_data/tracks/background_image_1520_1520.jpg"
+annotation_path: "env/env_data/tracks/named_track_annotation_v1.2.xml"
 # Possible tracks for this annotation:
 #   Agent: "rotate", "rotate-small", "rotate-over-line", "line"
 #   Bot: same as agent's + "bot-vertical-line", "bot-rotate-small", "bot-rotate-big"
@@ -27,7 +27,7 @@ image_scale:
 reward:
     # How frequently insert check-points between CVAT track points
     #   number represent distance in pixels
-  track_checkpoint_expanding: 40
+  track_checkpoint_expanding: 25
 
   # Rewards for events
   is_collided: 0.0
@@ -42,19 +42,19 @@ reward:
 
   #
   new_tiles_count: 0.5
-  speed_multiplication_bonus: 0.0000
+  speed_multiplication_bonus: 0.0005
 
   speed_per_point: 0.0
 
   if_speed_more_then_threshold: 0.0
   speed_threshold: 0.0
+
   time_per_point: 0.0
   time_per_tick: 0.0
 
 # Done flags
 done:
-#  true_flags_to_done: ["is_out_of_map", "is_finish"]
-  true_flags_to_done: ["is_out_of_road", "is_out_of_map", "is_out_of_track", "is_finish"]
+  true_flags_to_done: ["is_out_of_road", "is_out_of_map", "is_out_of_track", "is_finish", "is_collided"]
   false_flags_to_done : []
 
 
@@ -71,25 +71,16 @@ bot_number : 0
 #   For each newly generated bot arbitrary track will be picked.
 bots_tracks: []
 
-
-# use on not random start position (on track)
-random_start_position: true
-random_start_position_bots: false
-
 # Config of agent's observation
 state:
 
   # Use or not to use image. If "false", in observation dict it will appear as None.
   picture: true
 
-  crop_near_agent:
-    use: false
-    size: 150 # in pixels from agent center
-
   # show or not checkpoint on image, unused if `picture` is false
   checkpoints:
     show: true
-    size: 1.0
+    size: 5.0
     hide_on_reach: true
 
   # List of car features to use.
@@ -102,7 +93,7 @@ state:
   #     'collide_sensor', 'checkpoint_sensor',
   #     'car_radar_1', 'car_radar_2', 'car_radar_3',
   #     'time'
-  vector_car_features: ["hull_angle", "hull_position", "checkpoint_sensor", "car_speed"]
+  vector_car_features: ['hull_position', 'hull_angle', 'car_speed']
 
   # Unused field, but actually env can return vector description of track's polygons
   #   All possible features names:

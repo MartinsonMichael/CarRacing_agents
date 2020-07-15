@@ -17,7 +17,7 @@ class PPO:
     def __init__(self, config: Config):
         self.name = config.name
         self.stat_logger: Logger = Logger(config, log_interval=config.log_interval)
-        self.config = config
+        self.config: Config = config
         self.hyperparameters = config.hyperparameters
         self.eps_clip = config.hyperparameters['eps_clip']
 
@@ -251,6 +251,9 @@ class PPO:
 
                 self.flush_stats()
 
+                if self.global_step_number % self.config.eval_episode_freq == 0:
+                    self.run_one_episode(eval=True)
+
                 # print(f"{self.global_step_number} / {self.config.env_steps_to_run}")
                 if self.global_step_number >= self.config.env_steps_to_run:
                     break
@@ -262,24 +265,30 @@ class PPO:
             # self.save(suffix='final')
             pass
 
-    def run_one_episode(self):
-        state = self.env.reset()
-        record_anim = (
+    def run_one_episode(self, eval: bool = False):
+        state = self.env.reset(eval=eval)
+        record_anim = eval or (
             self.episode_number % self.config.animation_record_frequency == 0 and
             self.config.record_animation
         )
 
         done = False
-        self.episode_number += 1
+        if not eval:
+            self.episode_number += 1
         total_reward = 0
         episode_len = 0
         images = []
 
         while not done:
             # Running policy_old:
-            action, log_prob, _ = self.ac.sample_action(self.config.phi(state), to_numpy=True, remove_batch=True)
+            action, log_prob, _ = self.ac.sample_action(
+                self.config.phi(state),
+                to_numpy=True,
+                remove_batch=True,
+                eval=eval,
+            )
             next_state, reward, done, info = self.env.step(action)
-            self.global_step_number += 1
+
             self.update_current_game_stats(reward, done, info)
 
             if record_anim:
@@ -288,21 +297,31 @@ class PPO:
             total_reward += reward
             episode_len += 1
 
-            self.memory.add_experience(
-                is_single=True,
-                state=state, action=action, reward=reward, next_state=next_state, done=done, log_prob=log_prob,
-            )
-            state = next_state
+            if not eval:
+                self.global_step_number += 1
 
-            # update if its time
-            if self.global_step_number % self.hyperparameters['update_every_n_steps'] == 0:
-                self.update()
-                self.memory.remove_all()
+                self.memory.add_experience(
+                    is_single=True,
+                    state=state, action=action, reward=reward, next_state=next_state, done=done, log_prob=log_prob,
+                )
+
+                # update if its time
+                if self.global_step_number % self.hyperparameters['update_every_n_steps'] == 0:
+                    self.update()
+                    self.memory.remove_all()
+
+            state = next_state
 
             if done \
                     or info.get('need_reset', False) \
                     or episode_len > self.config.max_episode_len \
                     or self.global_step_number >= self.config.env_steps_to_run:
+                if eval:
+                    print("\nEval episode:\nR %.4f\tTime %.1f\tTrack %.2f\n" % (
+                        total_reward,
+                        episode_len,
+                        info.get('track_progress', -1),
+                    ))
                 if record_anim:
                     wandb_anim_record: bool = False
                     if self._wandb_anim_save % self.config.wandb_animation_frequency == 0:
@@ -312,7 +331,7 @@ class PPO:
                         target=save_as_mp4,
                         args=(
                             images,
-                            f'animation/PPO/{self.name}/_R:_{total_reward}_Time:_{episode_len}_{time.time()}.mp4',
+                            f"animation/PPO/{self.name}/{'EVAL' if eval else ''}_R:_{total_reward}_Time:_{episode_len}_{time.time()}.mp4",
                             self.stat_logger,
                             wandb_anim_record
                         ),

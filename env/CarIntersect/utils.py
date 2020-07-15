@@ -95,6 +95,29 @@ class DataSupporter:
 
         print(f'cheskpoint size : {self.get_checkpoint_size()}')
 
+        self._eval_mode: bool = False
+
+    def start_eval(self) -> None:
+        self._eval_mode = True
+
+    def stop_eval(self) -> None:
+        self._eval_mode = False
+
+    def get_track_start_position(self, track_obj: TrackType, is_bot: bool) -> Tuple[int, int, float, int]:
+        """Return start x, y, and angle"""
+        ind = 0
+        if not self._eval_mode:
+            if is_bot and self._settings.get('random_start_position_bots', False):
+                ind = np.random.choice(len(track_obj['line']) - 1)
+            if not is_bot and self._settings.get('random_start_position', False):
+                ind = np.random.choice(len(track_obj['line']) - 1)
+
+        return [
+            *track_obj['line'][ind],
+            Geom.angle_by_2_points(track_obj['line'][ind], track_obj['line'][ind + 1]) - np.pi / 2,
+            ind
+        ]
+
     def get_checkpoint_size(self) -> float:
         if self._track_point_image is None:
             scale = 10

@@ -11,5 +11,6 @@ try:
         id='CarIntersect-v0',
         entry_point='env.CarIntersect.environment:CarIntersect',
     )
+    print('register CarIntersect-v0')
 except:
     print('fail to register gym env \'CarIntersect\'')

@@ -26,6 +26,7 @@ class Config(object):
         self.animation_record_frequency: int = None
         self.wandb_animation_frequency: int = None
         self.record_animation: bool = None
+        self.eval_episode_freq: int = None
 
     def __repr__(self) -> str:
         s = ""

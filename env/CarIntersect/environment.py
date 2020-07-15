@@ -139,11 +139,16 @@ class CarIntersect(gym.Env, EzPickle):
                 bot_car.destroy()
                 del bot_car
 
-    def reset(self, force=False, first=False):
+    def reset(self, force=False, first=False, eval=False):
         """
         recreate agent car and bots cars_full
         :return: initial state
         """
+        if eval:
+            self._data_loader.start_eval()
+        else:
+            self._data_loader.stop_eval()
+
         self._was_done = False
         self._destroy()
         self.time = 0

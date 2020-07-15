@@ -5,7 +5,8 @@ from gym import ActionWrapper
 import numpy as np
 
 from env.common_envs_utils import \
-    ChannelSwapper, DictToTupleWrapper, ImageStackWrapper
+    ChannelSwapper, DictToTupleWrapper, ImageStackWrapper, \
+    OnlyImageTaker, OnlyVectorTaker
 from env.CarIntersect import CarIntersect
 
 
@@ -36,19 +37,35 @@ def get_EnvCreator_with_memory_safe_combiner(
     state = get_state_type_from_settings(settings)
     if state == 'image':
         return (
-            make_CarRacing_Picture(settings, discrete_wrapper),
+            lambda: make_CarRacing_Picture(settings, discrete_wrapper),
             image_phi,
         )
     if state == 'vector':
         return (
-            make_CarRacing_Vector(settings, discrete_wrapper),
+            lambda: make_CarRacing_Vector(settings, discrete_wrapper),
             vector_phi,
         )
     if state == 'both':
         return (
-            make_CarRacing_Both(settings, discrete_wrapper),
+            lambda: make_CarRacing_Both(settings, discrete_wrapper),
             both_phi,
         )
+
+
+def get_EnvCreator_with_pure_vectors(
+        settings: Dict,
+        discrete_wrapper: Type[ActionWrapper] = None
+) -> Callable:
+    """
+    Return function to make env and function to create np.ndarray from env returned state
+    """
+    state = get_state_type_from_settings(settings)
+    if state == 'image':
+        return lambda: OnlyImageTaker(make_CarRacing_Picture(settings, discrete_wrapper))
+    if state == 'vector':
+        return lambda: OnlyVectorTaker(make_CarRacing_Vector(settings, discrete_wrapper))
+    if state == 'both':
+        raise ValueError("pure vector can't crete env with mode 'both'")
 
 
 def image_phi(x):
@@ -72,34 +89,28 @@ def both_phi(x):
     return np.transpose(combined, (2, 1, 0))
 
 
-def make_CarRacing_Both(settings: Dict, discrete_wrapper: Type[ActionWrapper] = None) -> Callable:
-    def f():
-        env = CarIntersect(settings_file_path_or_settings=settings)
-        env = DictToTupleWrapper(env)
-        env = ImageStackWrapper(env)
-        if discrete_wrapper is not None:
-            env = discrete_wrapper(env)
-        return env
-    return f
+def make_CarRacing_Both(settings: Dict, discrete_wrapper: Type[ActionWrapper] = None) -> CarIntersect:
+    env = CarIntersect(settings_file_path_or_settings=settings)
+    env = DictToTupleWrapper(env)
+    env = ImageStackWrapper(env)
+    if discrete_wrapper is not None:
+        env = discrete_wrapper(env)
+    return env
 
 
-def make_CarRacing_Vector(settings: Dict, discrete_wrapper: Type[ActionWrapper] = None) -> Callable:
-    def f():
-        env = CarIntersect(settings_file_path_or_settings=settings)
-        env = DictToTupleWrapper(env)
-        if discrete_wrapper is not None:
-            env = discrete_wrapper(env)
-        return env
-    return f
+def make_CarRacing_Vector(settings: Dict, discrete_wrapper: Type[ActionWrapper] = None) -> CarIntersect:
+    env = CarIntersect(settings_file_path_or_settings=settings)
+    env = DictToTupleWrapper(env)
+    if discrete_wrapper is not None:
+        env = discrete_wrapper(env)
+    return env
 
 
-def make_CarRacing_Picture(settings: Dict, discrete_wrapper: Type[ActionWrapper] = None) -> Callable:
-    def f():
-        env = CarIntersect(settings_file_path_or_settings=settings)
-        env = DictToTupleWrapper(env)
-        env = ChannelSwapper(env)
-        env = ImageStackWrapper(env)
-        if discrete_wrapper is not None:
-            env = discrete_wrapper(env)
-        return env
-    return f
+def make_CarRacing_Picture(settings: Dict, discrete_wrapper: Type[ActionWrapper] = None) -> CarIntersect:
+    env = CarIntersect(settings_file_path_or_settings=settings)
+    env = DictToTupleWrapper(env)
+    env = ChannelSwapper(env)
+    env = ImageStackWrapper(env)
+    if discrete_wrapper is not None:
+        env = discrete_wrapper(env)
+    return env

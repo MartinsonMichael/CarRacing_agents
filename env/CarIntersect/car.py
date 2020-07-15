@@ -81,9 +81,7 @@ class DummyCar:
         }
 
         # all coordinates in XY format, not in IMAGE coordinates
-        init_x, init_y = Geom.get_track_initial_position(self.track)
-        init_angle = Geom.get_track_angle(track) - np.pi / 2
-        # width_y, height_x = self.car_image.size
+        init_x, init_y, init_angle, init_track_index = self.data_loader.get_track_start_position(self.track, self.is_bot)
 
         self.world = world
 
@@ -198,7 +196,7 @@ class DummyCar:
 
         self._time: int = 0
         self.userData = self
-        self._track_point: int = 0
+        self._track_point: int = init_track_index
         self._old_track_point: int = 0
         self._state_data = None
         self._flush_stats()

@@ -188,6 +188,18 @@ class OnlyImageTaker(gym.ObservationWrapper):
         return obs[0]
 
 
+class OnlyVectorTaker(gym.ObservationWrapper):
+    def __init__(self, env):
+        super().__init__(env)
+
+        self.observation_space = self.env.observation_space.spaces[1]
+
+    def observation(self, obs):
+        assert isinstance(obs, tuple), "OnlyImageTaker expect observation to be tuple, " \
+                                      f"but it has type : {type(obs)}"
+        return obs[1]
+
+
 class ObservationCombiner(gym.ObservationWrapper):
     def __init__(self, env, channel_order: str = 'hwc'):
         raise NotImplemented

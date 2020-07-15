@@ -195,17 +195,24 @@ class ActorCritic(nn.Module):
         else:
             return torch.tanh(action_out), self.action_std
 
-    def sample_action(self, state, **kwargs) -> Tuple[npTT, npTT, npTT]:
+    def sample_action(self, state, eval: bool = False, **kwargs) -> Tuple[npTT, npTT, npTT]:
         """
         Sample action from gauss distribution
         Return: action, log_prob, entropy
         """
-        distribution = Normal(*self._get_mean_std(state))
+        mean, std = self._get_mean_std(state)
+        distribution = Normal(mean, std)
         action = torch.clamp(distribution.sample(), -1, 1)
-        return \
-            process_kwargs(action.detach(), **kwargs), \
-            process_kwargs(distribution.log_prob(action), **kwargs), \
-            process_kwargs(distribution.entropy(), **kwargs),
+        if not eval:
+            return \
+                process_kwargs(action.detach(), **kwargs), \
+                process_kwargs(distribution.log_prob(action), **kwargs), \
+                process_kwargs(distribution.entropy(), **kwargs),
+        else:
+            return \
+                process_kwargs(torch.clamp(mean, -1, 1).detach(), **kwargs), \
+                process_kwargs(distribution.log_prob(action), **kwargs), \
+                process_kwargs(distribution.entropy(), **kwargs),
 
     def estimate_action(self, state, action) -> Tuple[TT, TT]:
         """
