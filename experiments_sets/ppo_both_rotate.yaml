@@ -22,6 +22,8 @@ general_config: general_config.yaml
 # Local env changes
 env_changes:
   - agent_tracks : ["rotate"]
+    random_start_position: true
+    random_start_position_bots: false
     state:
       picture: true
       checkpoints:
