@@ -355,6 +355,7 @@ def main():
                 exp_class='RND',
                 exp_name=NAME,
             )
+            logger.on_episode_end()
 
 
 if __name__ == '__main__':
