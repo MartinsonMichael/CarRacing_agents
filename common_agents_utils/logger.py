@@ -90,9 +90,9 @@ class Logger:
     def _publish_console(stats: Dict, episode_number: int) -> None:
         print("Episode %d\tR %.4f\tTime %.1f\tTrack %.2f" % (
                 episode_number,
-                stats.get('reward', stats.get('EVAL reward', None)),
-                stats.get('env_steps', stats.get('EVAL env_steps', None)),
-                stats.get('track_progress', stats.get('EVAL track_progress', None)),
+                stats.get('reward', stats.get('EVAL reward', -1)),
+                stats.get('env_steps', stats.get('EVAL env_steps', -1)),
+                stats.get('track_progress', stats.get('EVAL track_progress', -1)),
             )
         )
 
