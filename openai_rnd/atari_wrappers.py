@@ -203,7 +203,7 @@ def make_atari(env_id, max_episode_steps=500):
     # env = gym.make(env_id)
     env = makeCarIntersect('openai_rnd/rnd_env_config.yaml')
     env._max_episode_steps = max_episode_steps*4
-    assert 'NoFrameskip' in env.spec.id
+    #assert 'NoFrameskip' in env.spec.id
     env = StickyActionEnv(env)
     env = MaxAndSkipEnv(env, skip=4)
     # if "Montezuma" in env_id or "Pitfall" in env_id:

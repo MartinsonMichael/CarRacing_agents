@@ -13,11 +13,11 @@ def canonical_dtype(orig_dt):
 
 class StochasticPolicy(object):
     def __init__(self, scope, ob_space, ac_space):
-        self.abs_scope = (tf.get_variable_scope().name + '/' + scope).lstrip('/')
+        self.abs_scope = (tf.compat.v1.get_variable_scope().name + '/' + scope).lstrip('/')
         self.ob_space = ob_space
         self.ac_space = ac_space
         self.pdtype = make_pdtype(ac_space)
-        self.ph_new = tf.placeholder(dtype=tf.float32, shape=(None, None), name='new')
+        self.ph_new = tf.compat.v1.placeholder(dtype=tf.float32, shape=(None, None), name='new')
         self.ph_ob_keys = []
         self.ph_ob_dtypes = {}
         shapes = {}
@@ -39,13 +39,13 @@ class StochasticPolicy(object):
             self.ph_ob_keys = [None]
             self.ph_ob_dtypes = { None: box.dtype }
             shapes = { None: box.shape }
-        self.ph_ob = OrderedDict([(k, tf.placeholder(
+        self.ph_ob = OrderedDict([(k, tf.compat.v1.placeholder(
                 canonical_dtype(self.ph_ob_dtypes[k]),
                 (None, None,) + tuple(shapes[k]),
                 name=(('obs/%s'%k) if k is not None else 'obs')
             )) for k in self.ph_ob_keys ])
         assert list(self.ph_ob.keys())==self.ph_ob_keys, "\n%s\n%s\n" % (list(self.ph_ob.keys()), self.ph_ob_keys)
-        ob_shape = tf.shape(next(iter(self.ph_ob.values())))
+        ob_shape = tf.shape(input=next(iter(self.ph_ob.values())))
         self.sy_nenvs  = ob_shape[0]
         self.sy_nsteps = ob_shape[1]
         self.ph_ac = self.pdtype.sample_placeholder([None, None], name='ac')

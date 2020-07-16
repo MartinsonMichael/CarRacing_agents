@@ -14,10 +14,10 @@ def to2d(x):
 
 
 
-class GRUCell(tf.nn.rnn_cell.RNNCell):
+class GRUCell(tf.compat.v1.nn.rnn_cell.RNNCell):
     """Gated Recurrent Unit cell (cf. http://arxiv.org/abs/1406.1078)."""
     def __init__(self, num_units, rec_gate_init=-1.0):
-        tf.nn.rnn_cell.RNNCell.__init__(self)
+        tf.compat.v1.nn.rnn_cell.RNNCell.__init__(self)
         self._num_units = num_units
         self.rec_gate_init = rec_gate_init
     @property
@@ -55,13 +55,13 @@ class CnnGruPolicy(StochasticPolicy):
             'large': 4
         }[policy_size]
         rep_size = 512
-        self.ph_mean = tf.placeholder(dtype=tf.float32, shape=list(ob_space.shape[:2])+[1], name="obmean")
-        self.ph_std = tf.placeholder(dtype=tf.float32, shape=list(ob_space.shape[:2])+[1], name="obstd")
+        self.ph_mean = tf.compat.v1.placeholder(dtype=tf.float32, shape=list(ob_space.shape[:2])+[1], name="obmean")
+        self.ph_std = tf.compat.v1.placeholder(dtype=tf.float32, shape=list(ob_space.shape[:2])+[1], name="obstd")
         memsize *= enlargement
         hidsize *= enlargement
         convfeat = 16*enlargement
         self.ob_rms = RunningMeanStd(shape=list(ob_space.shape[:2])+[1], use_mpi=not update_ob_stats_independently_per_gpu)
-        ph_istate = tf.placeholder(dtype=tf.float32,shape=(None,memsize), name='state')
+        ph_istate = tf.compat.v1.placeholder(dtype=tf.float32,shape=(None,memsize), name='state')
         pdparamsize = self.pdtype.param_shape()[0]
         self.memsize = memsize
 
@@ -122,14 +122,14 @@ class CnnGruPolicy(StochasticPolicy):
         activ = tf.nn.relu
         yes_gpu = any(get_available_gpus())
 
-        with tf.variable_scope(scope, reuse=reuse), tf.device('/gpu:0' if yes_gpu else '/cpu:0'):
+        with tf.compat.v1.variable_scope(scope, reuse=reuse), tf.device('/gpu:0' if yes_gpu else '/cpu:0'):
             X = activ(conv(X, 'c1', nf=32, rf=8, stride=4, init_scale=np.sqrt(2), data_format=data_format))
             X = activ(conv(X, 'c2', nf=64, rf=4, stride=2, init_scale=np.sqrt(2), data_format=data_format))
             X = activ(conv(X, 'c3', nf=64, rf=4, stride=1, init_scale=np.sqrt(2), data_format=data_format))
             X = to2d(X)
             X = activ(fc(X, 'fc1', nh=hidsize, init_scale=np.sqrt(2)))
             X = tf.reshape(X, [sy_nenvs, sy_nsteps, hidsize])
-            X, snext = tf.nn.dynamic_rnn(
+            X, snext = tf.compat.v1.nn.dynamic_rnn(
                 GRUCell(memsize, rec_gate_init=rec_gate_init), (X, ph_new[:,:,None]),
                 dtype=tf.float32, time_major=False, initial_state=ph_istate)
             X = tf.reshape(X, (-1, memsize))
@@ -180,16 +180,16 @@ class CnnGruPolicy(StochasticPolicy):
                 X_r_hat = tf.nn.relu(fc(X_r_hat, 'fc1r_hat2_pred', nh=256 * enlargement, init_scale=np.sqrt(2)))
                 X_r_hat = fc(X_r_hat, 'fc1r_hat3_pred', nh=rep_size, init_scale=np.sqrt(2))
 
-        self.feat_var = tf.reduce_mean(tf.nn.moments(X_r, axes=[0])[1])
-        self.max_feat = tf.reduce_max(tf.abs(X_r))
-        self.int_rew = tf.reduce_mean(tf.square(tf.stop_gradient(X_r) - X_r_hat), axis=-1, keep_dims=True)
+        self.feat_var = tf.reduce_mean(input_tensor=tf.nn.moments(x=X_r, axes=[0])[1])
+        self.max_feat = tf.reduce_max(input_tensor=tf.abs(X_r))
+        self.int_rew = tf.reduce_mean(input_tensor=tf.square(tf.stop_gradient(X_r) - X_r_hat), axis=-1, keepdims=True)
         self.int_rew = tf.reshape(self.int_rew, (self.sy_nenvs, self.sy_nsteps - 1))
 
         noisy_targets = tf.stop_gradient(X_r)
-        self.aux_loss = tf.reduce_mean(tf.square(noisy_targets - X_r_hat), -1)
-        mask = tf.random_uniform(shape=tf.shape(self.aux_loss), minval=0., maxval=1., dtype=tf.float32)
+        self.aux_loss = tf.reduce_mean(input_tensor=tf.square(noisy_targets - X_r_hat), axis=-1)
+        mask = tf.random.uniform(shape=tf.shape(input=self.aux_loss), minval=0., maxval=1., dtype=tf.float32)
         mask = tf.cast(mask < self.proportion_of_exp_used_for_predictor_update, tf.float32)
-        self.aux_loss = tf.reduce_sum(mask * self.aux_loss) / tf.maximum(tf.reduce_sum(mask), 1.)
+        self.aux_loss = tf.reduce_sum(input_tensor=mask * self.aux_loss) / tf.maximum(tf.reduce_sum(input_tensor=mask), 1.)
 
     def define_dynamics_prediction_rew(self, convfeat, rep_size, enlargement):
         #Dynamics based bonus.
@@ -236,16 +236,16 @@ class CnnGruPolicy(StochasticPolicy):
                 X_r_hat = tf.nn.relu(fc(cond(X_r_hat), 'fc1r_hat2_pred', nh=256 * enlargement, init_scale=np.sqrt(2)))
                 X_r_hat = fc(cond(X_r_hat), 'fc1r_hat3_pred', nh=rep_size, init_scale=np.sqrt(2))
 
-        self.feat_var = tf.reduce_mean(tf.nn.moments(X_r, axes=[0])[1])
-        self.max_feat = tf.reduce_max(tf.abs(X_r))
-        self.int_rew = tf.reduce_mean(tf.square(tf.stop_gradient(X_r) - X_r_hat), axis=-1, keep_dims=True)
+        self.feat_var = tf.reduce_mean(input_tensor=tf.nn.moments(x=X_r, axes=[0])[1])
+        self.max_feat = tf.reduce_max(input_tensor=tf.abs(X_r))
+        self.int_rew = tf.reduce_mean(input_tensor=tf.square(tf.stop_gradient(X_r) - X_r_hat), axis=-1, keepdims=True)
         self.int_rew = tf.reshape(self.int_rew, (self.sy_nenvs, self.sy_nsteps - 1))
 
         noisy_targets = tf.stop_gradient(X_r)
-        self.aux_loss = tf.reduce_mean(tf.square(noisy_targets - X_r_hat), -1)
-        mask = tf.random_uniform(shape=tf.shape(self.aux_loss), minval=0., maxval=1., dtype=tf.float32)
+        self.aux_loss = tf.reduce_mean(input_tensor=tf.square(noisy_targets - X_r_hat), axis=-1)
+        mask = tf.random.uniform(shape=tf.shape(input=self.aux_loss), minval=0., maxval=1., dtype=tf.float32)
         mask = tf.cast(mask < self.proportion_of_exp_used_for_predictor_update, tf.float32)
-        self.aux_loss = tf.reduce_sum(mask * self.aux_loss) / tf.maximum(tf.reduce_sum(mask), 1.)
+        self.aux_loss = tf.reduce_sum(input_tensor=mask * self.aux_loss) / tf.maximum(tf.reduce_sum(input_tensor=mask), 1.)
 
     def initial_state(self, n):
         return np.zeros((n, self.memsize), np.float32)
@@ -265,7 +265,7 @@ class CnnGruPolicy(StochasticPolicy):
         feed1.update({self.ph_mean: self.ob_rms.mean, self.ph_std: self.ob_rms.var ** 0.5})
         # for f in feed1:
         #     print(f)
-        a, vpred_int,vpred_ext, nlp, newstate, ent = tf.get_default_session().run(
+        a, vpred_int,vpred_ext, nlp, newstate, ent = tf.compat.v1.get_default_session().run(
             [self.a_samp, self.vpred_int_rollout,self.vpred_ext_rollout, self.nlp_samp, self.snext_rollout, self.entropy_rollout],
             feed_dict={**feed1, **feed2})
         return a[:,0], vpred_int[:,0],vpred_ext[:,0], nlp[:,0], newstate, ent[:,0]
