@@ -6,6 +6,7 @@ import yaml
 from gym.envs.classic_control.rendering import SimpleImageViewer
 from pyglet.window import key
 
+
 if __name__ == '__main__':
     try:
         import os
@@ -15,6 +16,7 @@ if __name__ == '__main__':
         print("If you launch this from env folder, you probably will have some import problems.")
 
 from env.CarIntersect.environment import CarIntersect
+from env.common_envs_utils.env_wrappers import ImageToGreyScale, DictToTupleWrapper
 from env.common_envs_utils.action_wrappers import DiscreteWrapper
 
 action = 0
@@ -91,7 +93,7 @@ def main():
     else:
         raise ValueError('provide settings to use')
 
-    env = DiscreteWrapper(env)
+    env = ImageToGreyScale(DiscreteWrapper(DictToTupleWrapper(env)))
 
     env.reset()
     time.sleep(3.0)
@@ -119,7 +121,7 @@ def main():
 
             steps += 1
             if args.show_state:
-                viewer.imshow(s['picture'])
+                viewer.imshow(s[0])
             else:
                 viewer.imshow(env.env.render(full_image=not args.off_full_render))
 

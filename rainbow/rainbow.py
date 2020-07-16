@@ -303,7 +303,6 @@ class Rainbow:
                         args=(
                             images,
                             f'animation/Rainbow/{self.name}/_R:_{total_reward}_Time:_{episode_len}_{time.time()}.mp4',
-                            self.stat_logger
                         ),
                     ).start()
 

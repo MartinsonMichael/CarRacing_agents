@@ -19,7 +19,7 @@ annotation_path: "env/env_data/tracks/named_track_annotation_v1.2.xml"
 image_scale:
   image_target_size: [84, 84]
   relative_car_scale: 0.8
-  animation_target_size: [300, 300]
+  animation_target_size: [400, 400]
 
 
 ## ----------- REWARD PART ----------- ##
@@ -80,7 +80,7 @@ state:
   # show or not checkpoint on image, unused if `picture` is false
   checkpoints:
     show: true
-    size: 5.0
+    size: 2.0
     hide_on_reach: true
 
   # List of car features to use.
@@ -93,7 +93,7 @@ state:
   #     'collide_sensor', 'checkpoint_sensor',
   #     'car_radar_1', 'car_radar_2', 'car_radar_3',
   #     'time'
-  vector_car_features: ['hull_position', 'hull_angle', 'car_speed']
+  vector_car_features: []
 
   # Unused field, but actually env can return vector description of track's polygons
   #   All possible features names:

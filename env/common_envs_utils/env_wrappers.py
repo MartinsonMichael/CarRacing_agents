@@ -200,6 +200,51 @@ class OnlyVectorTaker(gym.ObservationWrapper):
         return obs[1]
 
 
+class ImageToGreyScale(gym.ObservationWrapper):
+    def __init__(self, env):
+        super().__init__(env)
+
+        image_shape = self.observation_space.spaces[0].shape
+        assert image_shape[0] == 3 or image_shape[2] == 3, "Can convert only image with one shape eq to 3"
+
+        if image_shape[0] == 3:
+            self.observation_space.spaces = (
+                gym.spaces.Box(
+                    low=0,
+                    high=255,
+                    shape=(1, image_shape[1], image_shape[2]),
+                    dtype=np.uint8,
+                ),
+                self.observation_space.spaces[1],
+            )
+        else:
+            self.observation_space.spaces = (
+                gym.spaces.Box(
+                    low=0,
+                    high=255,
+                    shape=(image_shape[0], image_shape[1], 1),
+                    dtype=np.uint8,
+                ),
+                self.observation_space.spaces[1],
+            )
+
+    @staticmethod
+    def to_gray_scale(img: NpA) -> NpA:
+        if img.shape[2] == 3:
+            r, g, b = img[:, :, 0], img[:, :, 1], img[:, :, 2]
+            gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
+            return gray
+        else:
+            r, g, b = img[0, :, :], img[1, :, :], img[2, :, :]
+            gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
+            return gray
+
+    def observation(self, obs):
+        assert isinstance(obs, tuple), "OnlyImageTaker expect observation to be tuple, " \
+                                       f"but it has type : {type(obs)}"
+        return ImageToGreyScale.to_gray_scale(obs[0]), obs[1]
+
+
 class ObservationCombiner(gym.ObservationWrapper):
     def __init__(self, env, channel_order: str = 'hwc'):
         raise NotImplemented
@@ -220,3 +265,12 @@ class ObservationCombiner(gym.ObservationWrapper):
         assert isinstance(obs, tuple), "ObservationCombiner expect observation to be tuple, " \
                                       f"but it has type : {type(obs)}"
         return obs[0]
+
+
+class CarIntersectEvalWrapper(gym.Wrapper):
+    def __init__(self, env):
+        super().__init__(env)
+
+    def reset(self, **kwargs):
+        self.env.make_next_run_eval()
+        return self.env.reset(**kwargs)

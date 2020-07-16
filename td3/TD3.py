@@ -222,7 +222,6 @@ class TD3:
                         args=(
                             images,
                             f'animation/TD3/{self.config.name}/_R:_{total_reward}_Time:_{episode_len}_{time.time()}.mp4',
-                            self.stat_logger
                         ),
                     ).start()
                 if info.get('need_reset', False):

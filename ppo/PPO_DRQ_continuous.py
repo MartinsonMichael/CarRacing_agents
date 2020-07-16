@@ -352,7 +352,6 @@ class PPO_DRQ:
                         args=(
                             images,
                             f'animation/PPO-DQR/{self.name}/_R:_{total_reward}_Time:_{episode_len}_{time.time()}.mp4',
-                            self.stat_logger,
                             wandb_anim_record,
                         ),
                     ).start()

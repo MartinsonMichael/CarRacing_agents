@@ -39,7 +39,7 @@ def episode_visualizer(env, action_picker, name='test', folder='save_animation_f
 
 # f'./save_animation_folder/{datetime.datetime.now()}.mp4'
 
-def save_as_mp4(image_array, save_path, logger, save_to_wandb: bool = True) -> None:
+def save_as_mp4(image_array, save_path, save_to_wandb: bool = True) -> None:
     dpi = 72.0
     xpixels, ypixels = image_array[0].shape[:2]
     fig = plt.figure(figsize=(ypixels / dpi, xpixels / dpi), dpi=dpi)
@@ -65,7 +65,7 @@ def save_as_mp4(image_array, save_path, logger, save_to_wandb: bool = True) -> N
     if save_to_wandb:
         wandb.log({
             'animation': wandb.Video(
-                np.transpose(np.array(image_array)[::3, ::2, ::2, :], (0, 3, 1, 2)),
+                np.transpose(np.array(image_array)[::3, :, :, :], (0, 3, 1, 2)),
                 fps=4,
                 format="gif",
             )
