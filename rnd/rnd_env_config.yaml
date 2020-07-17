@@ -71,6 +71,10 @@ bot_number : 0
 #   For each newly generated bot arbitrary track will be picked.
 bots_tracks: []
 
+
+random_start_position: true
+random_start_position_bots: false
+
 # Config of agent's observation
 state:
 
