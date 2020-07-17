@@ -114,7 +114,8 @@ class PpoAgent(object):
         self.int_coeff = int_coeff
         self.use_news = use_news
         self.update_ob_stats_every_step = update_ob_stats_every_step
-        self.abs_scope = (tf.get_variable_scope().name + '/' + scope).lstrip('/')
+        # self.abs_scope = (tf.get_variable_scope().name + '/' + scope).lstrip('/')
+        self.abs_scope = ("openairnd_ppo_agent" + '/' + scope).lstrip('/')
         self.testing = testing
         self.comm_log = MPI.COMM_SELF
         if comm is not None and comm.Get_size() > 1:

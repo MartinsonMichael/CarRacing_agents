@@ -13,7 +13,8 @@ def canonical_dtype(orig_dt):
 
 class StochasticPolicy(object):
     def __init__(self, scope, ob_space, ac_space):
-        self.abs_scope = (tf.compat.v1.get_variable_scope().name + '/' + scope).lstrip('/')
+        # self.abs_scope = (tf.compat.v1.get_variable_scope().name + '/' + scope).lstrip('/')
+        self.abs_scope = ("StochasticPolicy" + '/' + scope).lstrip('/')
         self.ob_space = ob_space
         self.ac_space = ac_space
         self.pdtype = make_pdtype(ac_space)
