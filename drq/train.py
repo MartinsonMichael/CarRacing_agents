@@ -108,19 +108,20 @@ class Workspace(object):
         record_cur_episode = False
         total_updates = 0
 
-        while self.step < self.cfg.num_train_steps:
+        while self.step < self.cfg.num_train_steps:it
 
             if self.step % 10000 == 0:
-                evaluate_and_log(
-                    eval_env=self.eval_env,
-                    action_get_method=lambda eval_state: self.agent.act(self.phi(eval_state), sample=False),
-                    logger=logger,
-                    log_animation=True,
-                    exp_class='DRQ_original',
-                    exp_name=self.cfg.name,
-                    max_episode_len=500,
-                )
-                logger.on_episode_end()
+                with utils.eval_mode(self.agent):
+                    evaluate_and_log(
+                        eval_env=self.eval_env,
+                        action_get_method=lambda eval_state: self.agent.act(self.phi(eval_state), sample=False),
+                        logger=logger,
+                        log_animation=True,
+                        exp_class='DRQ_original',
+                        exp_name=self.cfg.name,
+                        max_episode_len=500,
+                    )
+                    logger.on_episode_end()
 
             if done:
                 if record_cur_episode:

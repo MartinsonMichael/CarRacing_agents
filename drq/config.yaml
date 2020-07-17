@@ -1,4 +1,5 @@
 # env
+name: drq_original_
 env: CarIntersect
 car_intersect_config: drq/drq_full_config.yaml
 # IMPORTANT: if action_repeat is used the effective number of env steps needs to be
