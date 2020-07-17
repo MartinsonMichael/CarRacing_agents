@@ -86,7 +86,8 @@ class Workspace(object):
 
         logger = Logger(
             model_config=None,
-            use_wandb=True, use_console=True, use_tensorboard=False,
+            use_wandb=True,
+            use_console=True,
             log_interval=2,
         )
 
