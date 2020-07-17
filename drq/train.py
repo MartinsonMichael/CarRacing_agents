@@ -20,6 +20,8 @@ if __name__ == '__main__':
 
         from env import OnlyImageTaker, DictToTupleWrapper, ChannelSwapper, ImageStackWrapper
         from env.common_envs_utils.env_makers import get_EnvCreator_with_memory_safe_combiner
+        from env.common_envs_utils.env_evaluater import evaluate_and_log, create_eval_env
+
         from env.CarIntersect import CarIntersect
         from common_agents_utils.logger import Logger
     except:
@@ -30,6 +32,8 @@ class Workspace(object):
     def __init__(self, cfg, env, phi):
         self.env = env
         self.phi = phi
+
+        self.eval_env = create_eval_env(env)
 
         # self.env = dmc2gym.make(
         #     domain_name='CarIntersect',
@@ -86,6 +90,17 @@ class Workspace(object):
             log_interval=2,
         )
 
+        evaluate_and_log(
+            eval_env=self.eval_env,
+            action_get_method=lambda eval_state: self.agent.act(self.phi(eval_state), sample=False),
+            logger=logger,
+            log_animation=True,
+            exp_class='DRQ_original',
+            exp_name=self.cfg.name,
+            max_episode_len=500,
+            debug=True,
+        )
+
         info = dict()
         total_env_step = 0
 
@@ -94,8 +109,20 @@ class Workspace(object):
         total_updates = 0
 
         while self.step < self.cfg.num_train_steps:
-            if done:
 
+            if self.step % 10000 == 0:
+                evaluate_and_log(
+                    eval_env=self.eval_env,
+                    action_get_method=lambda eval_state: self.agent.act(self.phi(eval_state), sample=False),
+                    logger=logger,
+                    log_animation=True,
+                    exp_class='DRQ_original',
+                    exp_name=self.cfg.name,
+                    max_episode_len=500,
+                )
+                logger.on_episode_end()
+
+            if done:
                 if record_cur_episode:
                     wandb.log({
                         'animation': wandb.Video(
@@ -118,6 +145,7 @@ class Workspace(object):
                         'env_steps': episode_step,
                         'total_updates': total_updates,
                     })
+                    logger.on_episode_end()
 
                 obs = self.env.reset()
                 done = False
@@ -172,6 +200,7 @@ def main(cfg):
     NAME = str(time.time())
     if 'NAME' in os.environ.keys():
         NAME = os.environ['NAME']
+    cfg.name = NAME
 
     if 'ENV_CONFIG_PATH' in os.environ.keys():
         cfg.car_intersect_config = os.environ['ENV_CONFIG_PATH']
