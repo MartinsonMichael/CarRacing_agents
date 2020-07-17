@@ -5,11 +5,11 @@ from mpi_util import mpi_moments
 
 
 def fc(x, scope, nh, *, init_scale=1.0, init_bias=0.0):
-    with tf.compat.v1.variable_scope(scope):
-        nin = x.get_shape()[1].value
-        w = tf.compat.v1.get_variable("w", [nin, nh], initializer=ortho_init(init_scale))
-        b = tf.compat.v1.get_variable("b", [nh], initializer=tf.compat.v1.constant_initializer(init_bias))
-        return tf.matmul(x, w)+b
+    # with tf.compat.v1.variable_scope(scope):
+    nin = x.get_shape()[1].value
+    w = tf.compat.v1.get_variable("w", [nin, nh], initializer=ortho_init(init_scale))
+    b = tf.compat.v1.get_variable("b", [nh], initializer=tf.compat.v1.constant_initializer(init_bias))
+    return tf.matmul(x, w)+b
 
 def conv(x, scope, *, nf, rf, stride, pad='VALID', init_scale=1.0, data_format='NHWC', one_dim_bias=False):
     if data_format == 'NHWC':
@@ -25,12 +25,12 @@ def conv(x, scope, *, nf, rf, stride, pad='VALID', init_scale=1.0, data_format='
     bias_var_shape = [nf] if one_dim_bias else [1, nf, 1, 1]
     nin = x.get_shape()[channel_ax].value
     wshape = [rf, rf, nin, nf]
-    with tf.compat.v1.variable_scope(scope):
-        w = tf.compat.v1.get_variable("w", wshape, initializer=ortho_init(init_scale))
-        b = tf.compat.v1.get_variable("b", bias_var_shape, initializer=tf.compat.v1.constant_initializer(0.0))
-        if not one_dim_bias and data_format == 'NHWC':
-            b = tf.reshape(b, bshape)
-        return b + tf.nn.conv2d(input=x, filters=w, strides=strides, padding=pad, data_format=data_format)
+    # with tf.compat.v1.variable_scope(scope):
+    w = tf.compat.v1.get_variable("w", wshape, initializer=ortho_init(init_scale))
+    b = tf.compat.v1.get_variable("b", bias_var_shape, initializer=tf.compat.v1.constant_initializer(0.0))
+    if not one_dim_bias and data_format == 'NHWC':
+        b = tf.reshape(b, bshape)
+    return b + tf.nn.conv2d(input=x, filters=w, strides=strides, padding=pad, data_format=data_format)
 
 def ortho_init(scale=1.0):
     def _ortho_init(shape, dtype, partition_info=None):

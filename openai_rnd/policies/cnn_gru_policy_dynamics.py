@@ -122,7 +122,8 @@ class CnnGruPolicy(StochasticPolicy):
         activ = tf.nn.relu
         yes_gpu = any(get_available_gpus())
 
-        with tf.compat.v1.variable_scope(scope, reuse=reuse), tf.device('/gpu:0' if yes_gpu else '/cpu:0'):
+        # with tf.compat.v1.variable_scope(scope, reuse=reuse), tf.device('/gpu:0' if yes_gpu else '/cpu:0'):
+        with tf.device('/gpu:0' if yes_gpu else '/cpu:0'):
             X = activ(conv(X, 'c1', nf=32, rf=8, stride=4, init_scale=np.sqrt(2), data_format=data_format))
             X = activ(conv(X, 'c2', nf=64, rf=4, stride=2, init_scale=np.sqrt(2), data_format=data_format))
             X = activ(conv(X, 'c3', nf=64, rf=4, stride=1, init_scale=np.sqrt(2), data_format=data_format))

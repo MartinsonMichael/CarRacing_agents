@@ -127,60 +127,60 @@ class PpoAgent(object):
             self.comm_train, self.comm_train_size = self.comm_log, self.comm_log.Get_size()
         self.is_log_leader = self.comm_log.Get_rank()==0
         self.is_train_leader = self.comm_train.Get_rank()==0
-        with tf.variable_scope(scope):
-            self.best_ret = -np.inf
-            self.local_best_ret = - np.inf
-            self.rooms = []
-            self.local_rooms = []
-            self.scores = []
-            self.ob_space = ob_space
-            self.ac_space = ac_space
-            self.stochpol = stochpol_fn()
-            self.nepochs = nepochs
-            self.cliprange = cliprange
-            self.nsteps = nsteps
-            self.nminibatches = nminibatches
-            self.gamma = gamma
-            self.gamma_ext = gamma_ext
-            self.lam = lam
-            self.adam_hps = adam_hps or dict()
-            self.ph_adv = tf.placeholder(tf.float32, [None, None])
-            self.ph_ret_int = tf.placeholder(tf.float32, [None, None])
-            self.ph_ret_ext = tf.placeholder(tf.float32, [None, None])
-            self.ph_oldnlp = tf.placeholder(tf.float32, [None, None])
-            self.ph_oldvpred = tf.placeholder(tf.float32, [None, None])
-            self.ph_lr = tf.placeholder(tf.float32, [])
-            self.ph_lr_pred = tf.placeholder(tf.float32, [])
-            self.ph_cliprange = tf.placeholder(tf.float32, [])
+        # with tf.variable_scope(scope):
+        self.best_ret = -np.inf
+        self.local_best_ret = - np.inf
+        self.rooms = []
+        self.local_rooms = []
+        self.scores = []
+        self.ob_space = ob_space
+        self.ac_space = ac_space
+        self.stochpol = stochpol_fn()
+        self.nepochs = nepochs
+        self.cliprange = cliprange
+        self.nsteps = nsteps
+        self.nminibatches = nminibatches
+        self.gamma = gamma
+        self.gamma_ext = gamma_ext
+        self.lam = lam
+        self.adam_hps = adam_hps or dict()
+        self.ph_adv = tf.placeholder(tf.float32, [None, None])
+        self.ph_ret_int = tf.placeholder(tf.float32, [None, None])
+        self.ph_ret_ext = tf.placeholder(tf.float32, [None, None])
+        self.ph_oldnlp = tf.placeholder(tf.float32, [None, None])
+        self.ph_oldvpred = tf.placeholder(tf.float32, [None, None])
+        self.ph_lr = tf.placeholder(tf.float32, [])
+        self.ph_lr_pred = tf.placeholder(tf.float32, [])
+        self.ph_cliprange = tf.placeholder(tf.float32, [])
 
-            #Define loss.
-            neglogpac = self.stochpol.pd_opt.neglogp(self.stochpol.ph_ac)
-            entropy = tf.reduce_mean(self.stochpol.pd_opt.entropy())
-            vf_loss_int = (0.5 * vf_coef) * tf.reduce_mean(tf.square(self.stochpol.vpred_int_opt - self.ph_ret_int))
-            vf_loss_ext = (0.5 * vf_coef) * tf.reduce_mean(tf.square(self.stochpol.vpred_ext_opt - self.ph_ret_ext))
-            vf_loss = vf_loss_int + vf_loss_ext
-            ratio = tf.exp(self.ph_oldnlp - neglogpac) # p_new / p_old
-            negadv = - self.ph_adv
-            pg_losses1 = negadv * ratio
-            pg_losses2 = negadv * tf.clip_by_value(ratio, 1.0 - self.ph_cliprange, 1.0 + self.ph_cliprange)
-            pg_loss = tf.reduce_mean(tf.maximum(pg_losses1, pg_losses2))
-            ent_loss =  (- ent_coef) * entropy
-            approxkl = .5 * tf.reduce_mean(tf.square(neglogpac - self.ph_oldnlp))
-            maxkl    = .5 * tf.reduce_max(tf.square(neglogpac - self.ph_oldnlp))
-            clipfrac = tf.reduce_mean(tf.to_float(tf.greater(tf.abs(ratio - 1.0), self.ph_cliprange)))
-            loss = pg_loss + ent_loss + vf_loss + self.stochpol.aux_loss
+        #Define loss.
+        neglogpac = self.stochpol.pd_opt.neglogp(self.stochpol.ph_ac)
+        entropy = tf.reduce_mean(self.stochpol.pd_opt.entropy())
+        vf_loss_int = (0.5 * vf_coef) * tf.reduce_mean(tf.square(self.stochpol.vpred_int_opt - self.ph_ret_int))
+        vf_loss_ext = (0.5 * vf_coef) * tf.reduce_mean(tf.square(self.stochpol.vpred_ext_opt - self.ph_ret_ext))
+        vf_loss = vf_loss_int + vf_loss_ext
+        ratio = tf.exp(self.ph_oldnlp - neglogpac) # p_new / p_old
+        negadv = - self.ph_adv
+        pg_losses1 = negadv * ratio
+        pg_losses2 = negadv * tf.clip_by_value(ratio, 1.0 - self.ph_cliprange, 1.0 + self.ph_cliprange)
+        pg_loss = tf.reduce_mean(tf.maximum(pg_losses1, pg_losses2))
+        ent_loss =  (- ent_coef) * entropy
+        approxkl = .5 * tf.reduce_mean(tf.square(neglogpac - self.ph_oldnlp))
+        maxkl    = .5 * tf.reduce_max(tf.square(neglogpac - self.ph_oldnlp))
+        clipfrac = tf.reduce_mean(tf.to_float(tf.greater(tf.abs(ratio - 1.0), self.ph_cliprange)))
+        loss = pg_loss + ent_loss + vf_loss + self.stochpol.aux_loss
 
-            #Create optimizer.
-            params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=self.abs_scope)
-            # logger.info("PPO: using MpiAdamOptimizer connected to %i peers" % self.comm_train_size)
-            trainer = MpiAdamOptimizer(self.comm_train, learning_rate=self.ph_lr, **self.adam_hps)
-            grads_and_vars = trainer.compute_gradients(loss, params)
-            grads, vars = zip(*grads_and_vars)
-            if max_grad_norm:
-                _, _grad_norm = tf.clip_by_global_norm(grads, max_grad_norm)
-            global_grad_norm = tf.global_norm(grads)
-            grads_and_vars = list(zip(grads, vars))
-            self._train = trainer.apply_gradients(grads_and_vars)
+        #Create optimizer.
+        params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=self.abs_scope)
+        # logger.info("PPO: using MpiAdamOptimizer connected to %i peers" % self.comm_train_size)
+        trainer = MpiAdamOptimizer(self.comm_train, learning_rate=self.ph_lr, **self.adam_hps)
+        grads_and_vars = trainer.compute_gradients(loss, params)
+        grads, vars = zip(*grads_and_vars)
+        if max_grad_norm:
+            _, _grad_norm = tf.clip_by_global_norm(grads, max_grad_norm)
+        global_grad_norm = tf.global_norm(grads)
+        grads_and_vars = list(zip(grads, vars))
+        self._train = trainer.apply_gradients(grads_and_vars)
 
         #Quantities for reporting.
         self._losses = [loss, pg_loss, vf_loss, entropy, clipfrac, approxkl, maxkl, self.stochpol.aux_loss,
