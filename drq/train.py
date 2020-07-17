@@ -108,7 +108,7 @@ class Workspace(object):
         record_cur_episode = False
         total_updates = 0
 
-        while self.step < self.cfg.num_train_steps:it
+        while self.step < self.cfg.num_train_steps:
 
             if self.step % 10000 == 0:
                 with utils.eval_mode(self.agent):
