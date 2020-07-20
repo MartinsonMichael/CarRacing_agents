@@ -1,38 +1,21 @@
 import json
-import time
-
-import gym
-import torch
-import wandb
-import yaml
-from agents import RNDAgent
-from envs import AtariEnvironment
-
-from car_intersect_env_maker import makeCarIntersect, evaluate_and_log, create_eval_env
-from utils import RunningMeanStd, RewardForwardFilter, make_train_data
-from config import default_config
-from torch.multiprocessing import Pipe
-
-# from tensorboardX import SummaryWriter
+import os
 
 import numpy as np
+import gym
+import wandb
+import yaml
+from torch.multiprocessing import Pipe
 
-if __name__ == '__main__':
-    try:
-        import os
-        import sys
+from .agents import RNDAgent
+from .envs import AtariEnvironment
+from .utils import RunningMeanStd, RewardForwardFilter, make_train_data
+from .config import default_config
 
-        sys.path.insert(0, os.path.abspath(os.path.pardir))
-
-        from env.common_envs_utils.env_makers import get_EnvCreator_with_pure_vectors
-        from env.common_envs_utils.action_wrappers import DiscreteWrapper
-        from common_agents_utils.logger import Logger
-    except:
-        print("If you launch this from . folder, you probably will have some import problems.")
+from .car_intersect_env_maker import makeCarIntersect, evaluate_and_log, create_eval_env, Logger
 
 
 def main():
-    NAME = str(time.time())
     if 'NAME' in os.environ.keys():
         NAME = os.environ['NAME']
     else:
@@ -210,14 +193,15 @@ def main():
     print('End to initalize...')
 
     while True:
-        total_state, total_reward, total_done, total_next_state, total_action, total_int_reward, total_next_obs, total_ext_values, total_int_values, total_policy, total_policy_np = \
+        total_state, total_reward, total_done, total_next_state, total_action, total_int_reward, total_next_obs, total_ext_values, total_int_values, total_policy_log_prob, total_policy_log_prob_np = \
             [], [], [], [], [], [], [], [], [], [], []
         global_step += (num_worker * num_step)
         global_update += 1
 
         # Step 1. n-step rollout
         for _ in range(num_step):
-            actions, value_ext, value_int, policy = agent.get_action(np.float32(states) / 255.)
+            # actions, value_ext, value_int, policy = agent.get_action(np.float32(states) / 255.)
+            actions, value_ext, value_int, policy_log_prob = agent.get_action(np.float32(states) / 255.)
 
             for parent_conn, action in zip(parent_conns, actions):
                 parent_conn.send(action)
@@ -252,8 +236,11 @@ def main():
             total_action.append(actions)
             total_ext_values.append(value_ext)
             total_int_values.append(value_int)
-            total_policy.append(policy)
-            total_policy_np.append(policy.cpu().numpy())
+
+            # total_policy.append(policy)
+            # total_policy_np.append(policy.cpu().numpy())
+            total_policy_log_prob.append(policy_log_prob)
+            total_policy_log_prob_np.append(policy_log_prob.cpu().numpy())
 
             states = next_states[:, :, :, :]
 
@@ -288,7 +275,7 @@ def main():
         total_next_obs = np.stack(total_next_obs).transpose([1, 0, 2, 3, 4]).reshape([-1, 1, 84, 84])
         total_ext_values = np.stack(total_ext_values).transpose()
         total_int_values = np.stack(total_int_values).transpose()
-        total_logging_policy = np.vstack(total_policy_np)
+        # total_logging_policy = np.vstack(total_policy_np)
 
         # Step 2. calculate intrinsic reward
         # running mean intrinsic reward
@@ -336,7 +323,7 @@ def main():
         # Step 5. Training!
         agent.train_model(np.float32(total_state) / 255., ext_target, int_target, total_action,
                           total_adv, ((total_next_obs - obs_rms.mean) / np.sqrt(obs_rms.var)).clip(-5, 5),
-                          total_policy)
+                          total_policy_log_prob)
 
         # if global_step % (num_worker * num_step * 100) == 0:
         #     print('Now Global Step :{}'.format(global_step))

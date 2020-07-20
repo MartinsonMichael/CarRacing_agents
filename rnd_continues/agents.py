@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 import torch
 import torch.optim as optim
+from torch.distributions import Normal
 
 from torch.distributions.categorical import Categorical
 
@@ -55,20 +56,20 @@ class RNDAgent(object):
 
         self.model = self.model.to(self.device)
 
-    def get_action(self, state):
+    def get_action(self, state, sample: bool = True):
         state = torch.Tensor(state).to(self.device)
         state = state.float()
-        policy, value_ext, value_int = self.model(state)
-        action_prob = F.softmax(policy, dim=-1).data.cpu().numpy()
+        action_mean, value_ext, value_int = self.model(state)
 
-        action = self.random_choice_prob_index(action_prob)
+        if not sample:
+            action = action_mean
+            log_prob = None
+        else:
+            distribution = Normal(action_mean, 0.5)
+            action = torch.clamp(distribution.sample(), -1, 1)
+            log_prob = distribution.log_prob(action)
 
-        return action, value_ext.data.cpu().numpy().squeeze(), value_int.data.cpu().numpy().squeeze(), policy.detach()
-
-    @staticmethod
-    def random_choice_prob_index(p, axis=1):
-        r = np.expand_dims(np.random.rand(p.shape[1 - axis]), axis=axis)
-        return (p.cumsum(axis=axis) > r).argmax(axis=axis)
+        return action, value_ext.data.cpu().numpy().squeeze(), value_int.data.cpu().numpy().squeeze(), log_prob.detach()
 
     def compute_intrinsic_reward(self, next_obs):
         next_obs = torch.FloatTensor(next_obs).to(self.device)
@@ -79,7 +80,7 @@ class RNDAgent(object):
 
         return intrinsic_reward.data.cpu().numpy()
 
-    def train_model(self, s_batch, target_ext_batch, target_int_batch, y_batch, adv_batch, next_obs_batch, old_policy):
+    def train_model(self, s_batch, target_ext_batch, target_int_batch, y_batch, adv_batch, next_obs_batch, old_policy_log_prob):
         s_batch = torch.FloatTensor(s_batch).to(self.device)
         target_ext_batch = torch.FloatTensor(target_ext_batch).to(self.device)
         target_int_batch = torch.FloatTensor(target_int_batch).to(self.device)
@@ -91,11 +92,12 @@ class RNDAgent(object):
         forward_mse = nn.MSELoss(reduction='none')
 
         with torch.no_grad():
-            policy_old_list = torch.stack(old_policy).permute(1, 0, 2).contiguous().view(-1, self.action_size).to(
-                self.device)
-
-            m_old = Categorical(F.softmax(policy_old_list, dim=-1))
-            log_prob_old = m_old.log_prob(y_batch)
+            # policy_old_list = torch.stack(old_policy).permute(1, 0, 2).contiguous().view(-1, self.action_size).to(
+            #     self.device)
+            #
+            # m_old = Categorical(F.softmax(policy_old_list, dim=-1))
+            # log_prob_old = m_old.log_prob(y_batch)
+            log_prob_old = old_policy_log_prob
             # ------------------------------------------------------------
 
         for i in range(self.epoch):

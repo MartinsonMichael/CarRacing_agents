@@ -150,10 +150,10 @@ class CnnActorCriticNetwork(nn.Module):
 
     def forward(self, state):
         x = self.feature(state)
-        policy = self.actor(x)
+        action_mean = self.actor(x)
         value_ext = self.critic_ext(self.extra_layer(x) + x)
         value_int = self.critic_int(self.extra_layer(x) + x)
-        return policy, value_ext, value_int
+        return action_mean, value_ext, value_int
 
 
 class RNDModel(nn.Module):

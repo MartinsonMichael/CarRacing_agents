@@ -20,7 +20,7 @@ def makeCarIntersect(settings):
     env = DictToTupleWrapper(env)
     # env = ChannelSwapper(env)
     env = ImageToGreyScale(env)
-    env = DiscreteWrapper(env)
+    # env = DiscreteWrapper(env)
     env = OnlyImageTaker(env)
 
     return env
