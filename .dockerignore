@@ -1,5 +1,9 @@
 model_saves/
 wandb/
+drq/wandb/
+rnd/wandb/
+openai_rnd/wandb/
+
 *_tables/
 logs/
 media/

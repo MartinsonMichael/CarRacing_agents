@@ -16,9 +16,14 @@ RUN apt-get update \
        python-opengl \
        python3-setuptools
 
+RUN apt-get install -y libopenmpi-dev
+
 RUN pip3 install --upgrade pip
 COPY openai_rnd_requirements.txt /tmp/
 RUN pip3 install -r /tmp/openai_rnd_requirements.txt
+
+RUN apt-get update --fix-missing
+
 RUN apt-get install -y git
 RUN pip3 install git+git://github.com/denisyarats/dmc2gym.git
 RUN pip3 install wandb
