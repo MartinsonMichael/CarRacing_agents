@@ -7,8 +7,8 @@ import torch.optim as optim
 
 from torch.distributions.categorical import Categorical
 
-from model import CnnActorCriticNetwork, RNDModel
-from utils import global_grad_norm_
+from .model import CnnActorCriticNetwork, RNDModel
+from .utils import global_grad_norm_
 
 
 class RNDAgent(object):
