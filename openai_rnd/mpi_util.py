@@ -18,7 +18,7 @@ def sync_from_root(sess, variables, comm=None):
             comm.bcast(sess.run(var))
         else:
             import tensorflow as tf
-            sess.run(tf.compat.v1.assign(var, comm.bcast(None)))
+            sess.run(tf.assign(var, comm.bcast(None)))
 
 # def gpu_count():
 #     """
@@ -120,13 +120,13 @@ def dict_gather_mean(comm, d):
         k2mean[k] = np.mean(li, axis=0) if len(li) == size else np.nan
     return k2mean
 
-class MpiAdamOptimizer(tf.compat.v1.train.AdamOptimizer):
+class MpiAdamOptimizer(tf.train.AdamOptimizer):
     """Adam optimizer that averages gradients across mpi processes."""
     def __init__(self, comm, **kwargs):
         self.comm = comm
-        tf.compat.v1.train.AdamOptimizer.__init__(self, **kwargs)
+        tf.train.AdamOptimizer.__init__(self, **kwargs)
     def compute_gradients(self, loss, var_list, **kwargs):
-        grads_and_vars = tf.compat.v1.train.AdamOptimizer.compute_gradients(self, loss, var_list, **kwargs)
+        grads_and_vars = tf.train.AdamOptimizer.compute_gradients(self, loss, var_list, **kwargs)
         grads_and_vars = [(g, v) for g, v in grads_and_vars if g is not None]
         flat_grad = tf.concat([tf.reshape(g, (-1,)) for g, v in grads_and_vars], axis=0)
         shapes = [v.shape.as_list() for g, v in grads_and_vars]
@@ -140,7 +140,7 @@ class MpiAdamOptimizer(tf.compat.v1.train.AdamOptimizer):
             np.divide(buf, float(num_tasks), out=buf)
             return buf
 
-        avg_flat_grad = tf.compat.v1.py_func(_collect_grads, [flat_grad], tf.float32)
+        avg_flat_grad = tf.py_func(_collect_grads, [flat_grad], tf.float32)
         avg_flat_grad.set_shape(flat_grad.shape)
         avg_grads = tf.split(avg_flat_grad, sizes, axis=0)
         avg_grads_and_vars = [(tf.reshape(g, v.shape), v)

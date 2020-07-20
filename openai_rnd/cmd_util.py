@@ -2,13 +2,13 @@
 Helpers for scripts like run_atari.py.
 """
 
-# import os
+import os
 
-# import gym
+import gym
 # from gym.wrappers import FlattenDictWrapper
 # from mpi4py import MPI
-# from baselines import logger
-# from monitor import Monitor
+from baselines import logger
+from monitor import Monitor
 from atari_wrappers import make_atari, wrap_deepmind
 from vec_env import SubprocVecEnv
 
@@ -22,7 +22,7 @@ def make_atari_env(env_id, num_env, seed, wrapper_kwargs=None, start_index=0, ma
         def _thunk():
             env = make_atari(env_id, max_episode_steps=max_episode_steps)
             env.seed(seed + rank)
-            # env = Monitor(env, logger.get_dir() and os.path.join(logger.get_dir(), str(rank)), allow_early_resets=True)
+            env = Monitor(env, logger.get_dir() and os.path.join(logger.get_dir(), str(rank)), allow_early_resets=True)
             return wrap_deepmind(env, **wrapper_kwargs)
         return _thunk
     # set_global_seeds(seed)

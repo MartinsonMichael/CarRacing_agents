@@ -16,13 +16,11 @@ except:
 
 
 def makeCarIntersect(settings):
-    os.chdir('..')
     env = CarIntersect(settings_file_path_or_settings=settings)
-    os.chdir('openai_rnd')
     env = DictToTupleWrapper(env)
     # env = ChannelSwapper(env)
-    # env = ImageToGreyScale(env)
-    # env = DiscreteWrapper(env)
+    env = ImageToGreyScale(env)
+    env = DiscreteWrapper(env)
     env = OnlyImageTaker(env)
 
     return env

@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 from collections import deque
 import gym
@@ -201,18 +203,18 @@ class AddRandomStateToInfo(gym.Wrapper):
 
 def make_atari(env_id, max_episode_steps=500):
     # env = gym.make(env_id)
-    env = makeCarIntersect('openai_rnd/rnd_env_config.yaml')
+    os.chdir('..')
+    env = makeCarIntersect(os.path.join('openai_rnd', 'openai_end_env_config.yaml'))
     env._max_episode_steps = max_episode_steps*4
-    #assert 'NoFrameskip' in env.spec.id
+    # assert 'NoFrameskip' in env.spec.id
     env = StickyActionEnv(env)
-    env = MaxAndSkipEnv(env, skip=4)
+    # env = MaxAndSkipEnv(env, skip=4)
     # if "Montezuma" in env_id or "Pitfall" in env_id:
     #     env = MontezumaInfoWrapper(env, room_address=3 if "Montezuma" in env_id else 1)
     # else:
     #     env = DummyMontezumaInfoWrapper(env)
-    # env = AddRandomStateToInfo(env)
+    env = AddRandomStateToInfo(env)
     return env
-
 
 def wrap_deepmind(env, clip_rewards=True, frame_stack=False, scale=False):
     """Configure environment for DeepMind-style Atari.

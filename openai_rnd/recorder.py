@@ -4,7 +4,7 @@ from collections import defaultdict
 
 import numpy as np
 
-# from baselines import logger
+from baselines import logger
 from mpi4py import MPI
 
 def is_square(n):
@@ -69,6 +69,6 @@ class Recorder(object):
         return False
 
     def get_filename(self):
-        filename = os.path.join('animation', 'videos_{}.pk'.format(MPI.COMM_WORLD.Get_rank()))
+        filename = os.path.join(logger.get_dir(), 'videos_{}.pk'.format(MPI.COMM_WORLD.Get_rank()))
         return filename
 

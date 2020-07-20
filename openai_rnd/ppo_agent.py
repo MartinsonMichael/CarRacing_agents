@@ -6,7 +6,7 @@ import numpy as np
 import psutil
 import tensorflow as tf
 from mpi4py import MPI
-# from baselines import logger
+from baselines import logger
 import tf_util
 from recorder import Recorder
 from utils import explained_variance
@@ -114,8 +114,7 @@ class PpoAgent(object):
         self.int_coeff = int_coeff
         self.use_news = use_news
         self.update_ob_stats_every_step = update_ob_stats_every_step
-        # self.abs_scope = (tf.get_variable_scope().name + '/' + scope).lstrip('/')
-        self.abs_scope = ("openairnd_ppo_agent" + '/' + scope).lstrip('/')
+        self.abs_scope = (tf.get_variable_scope().name + '/' + scope).lstrip('/')
         self.testing = testing
         self.comm_log = MPI.COMM_SELF
         if comm is not None and comm.Get_size() > 1:
@@ -127,60 +126,60 @@ class PpoAgent(object):
             self.comm_train, self.comm_train_size = self.comm_log, self.comm_log.Get_size()
         self.is_log_leader = self.comm_log.Get_rank()==0
         self.is_train_leader = self.comm_train.Get_rank()==0
-        # with tf.variable_scope(scope):
-        self.best_ret = -np.inf
-        self.local_best_ret = - np.inf
-        self.rooms = []
-        self.local_rooms = []
-        self.scores = []
-        self.ob_space = ob_space
-        self.ac_space = ac_space
-        self.stochpol = stochpol_fn()
-        self.nepochs = nepochs
-        self.cliprange = cliprange
-        self.nsteps = nsteps
-        self.nminibatches = nminibatches
-        self.gamma = gamma
-        self.gamma_ext = gamma_ext
-        self.lam = lam
-        self.adam_hps = adam_hps or dict()
-        self.ph_adv = tf.placeholder(tf.float32, [None, None])
-        self.ph_ret_int = tf.placeholder(tf.float32, [None, None])
-        self.ph_ret_ext = tf.placeholder(tf.float32, [None, None])
-        self.ph_oldnlp = tf.placeholder(tf.float32, [None, None])
-        self.ph_oldvpred = tf.placeholder(tf.float32, [None, None])
-        self.ph_lr = tf.placeholder(tf.float32, [])
-        self.ph_lr_pred = tf.placeholder(tf.float32, [])
-        self.ph_cliprange = tf.placeholder(tf.float32, [])
+        with tf.variable_scope(scope):
+            self.best_ret = -np.inf
+            self.local_best_ret = - np.inf
+            self.rooms = []
+            self.local_rooms = []
+            self.scores = []
+            self.ob_space = ob_space
+            self.ac_space = ac_space
+            self.stochpol = stochpol_fn()
+            self.nepochs = nepochs
+            self.cliprange = cliprange
+            self.nsteps = nsteps
+            self.nminibatches = nminibatches
+            self.gamma = gamma
+            self.gamma_ext = gamma_ext
+            self.lam = lam
+            self.adam_hps = adam_hps or dict()
+            self.ph_adv = tf.placeholder(tf.float32, [None, None])
+            self.ph_ret_int = tf.placeholder(tf.float32, [None, None])
+            self.ph_ret_ext = tf.placeholder(tf.float32, [None, None])
+            self.ph_oldnlp = tf.placeholder(tf.float32, [None, None])
+            self.ph_oldvpred = tf.placeholder(tf.float32, [None, None])
+            self.ph_lr = tf.placeholder(tf.float32, [])
+            self.ph_lr_pred = tf.placeholder(tf.float32, [])
+            self.ph_cliprange = tf.placeholder(tf.float32, [])
 
-        #Define loss.
-        neglogpac = self.stochpol.pd_opt.neglogp(self.stochpol.ph_ac)
-        entropy = tf.reduce_mean(self.stochpol.pd_opt.entropy())
-        vf_loss_int = (0.5 * vf_coef) * tf.reduce_mean(tf.square(self.stochpol.vpred_int_opt - self.ph_ret_int))
-        vf_loss_ext = (0.5 * vf_coef) * tf.reduce_mean(tf.square(self.stochpol.vpred_ext_opt - self.ph_ret_ext))
-        vf_loss = vf_loss_int + vf_loss_ext
-        ratio = tf.exp(self.ph_oldnlp - neglogpac) # p_new / p_old
-        negadv = - self.ph_adv
-        pg_losses1 = negadv * ratio
-        pg_losses2 = negadv * tf.clip_by_value(ratio, 1.0 - self.ph_cliprange, 1.0 + self.ph_cliprange)
-        pg_loss = tf.reduce_mean(tf.maximum(pg_losses1, pg_losses2))
-        ent_loss =  (- ent_coef) * entropy
-        approxkl = .5 * tf.reduce_mean(tf.square(neglogpac - self.ph_oldnlp))
-        maxkl    = .5 * tf.reduce_max(tf.square(neglogpac - self.ph_oldnlp))
-        clipfrac = tf.reduce_mean(tf.to_float(tf.greater(tf.abs(ratio - 1.0), self.ph_cliprange)))
-        loss = pg_loss + ent_loss + vf_loss + self.stochpol.aux_loss
+            #Define loss.
+            neglogpac = self.stochpol.pd_opt.neglogp(self.stochpol.ph_ac)
+            entropy = tf.reduce_mean(self.stochpol.pd_opt.entropy())
+            vf_loss_int = (0.5 * vf_coef) * tf.reduce_mean(tf.square(self.stochpol.vpred_int_opt - self.ph_ret_int))
+            vf_loss_ext = (0.5 * vf_coef) * tf.reduce_mean(tf.square(self.stochpol.vpred_ext_opt - self.ph_ret_ext))
+            vf_loss = vf_loss_int + vf_loss_ext
+            ratio = tf.exp(self.ph_oldnlp - neglogpac) # p_new / p_old
+            negadv = - self.ph_adv
+            pg_losses1 = negadv * ratio
+            pg_losses2 = negadv * tf.clip_by_value(ratio, 1.0 - self.ph_cliprange, 1.0 + self.ph_cliprange)
+            pg_loss = tf.reduce_mean(tf.maximum(pg_losses1, pg_losses2))
+            ent_loss =  (- ent_coef) * entropy
+            approxkl = .5 * tf.reduce_mean(tf.square(neglogpac - self.ph_oldnlp))
+            maxkl    = .5 * tf.reduce_max(tf.square(neglogpac - self.ph_oldnlp))
+            clipfrac = tf.reduce_mean(tf.to_float(tf.greater(tf.abs(ratio - 1.0), self.ph_cliprange)))
+            loss = pg_loss + ent_loss + vf_loss + self.stochpol.aux_loss
 
-        #Create optimizer.
-        params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=self.abs_scope)
-        # logger.info("PPO: using MpiAdamOptimizer connected to %i peers" % self.comm_train_size)
-        trainer = MpiAdamOptimizer(self.comm_train, learning_rate=self.ph_lr, **self.adam_hps)
-        grads_and_vars = trainer.compute_gradients(loss, params)
-        grads, vars = zip(*grads_and_vars)
-        if max_grad_norm:
-            _, _grad_norm = tf.clip_by_global_norm(grads, max_grad_norm)
-        global_grad_norm = tf.global_norm(grads)
-        grads_and_vars = list(zip(grads, vars))
-        self._train = trainer.apply_gradients(grads_and_vars)
+            #Create optimizer.
+            params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=self.abs_scope)
+            logger.info("PPO: using MpiAdamOptimizer connected to %i peers" % self.comm_train_size)
+            trainer = MpiAdamOptimizer(self.comm_train, learning_rate=self.ph_lr, **self.adam_hps)
+            grads_and_vars = trainer.compute_gradients(loss, params)
+            grads, vars = zip(*grads_and_vars)
+            if max_grad_norm:
+                _, _grad_norm = tf.clip_by_global_norm(grads, max_grad_norm)
+            global_grad_norm = tf.global_norm(grads)
+            grads_and_vars = list(zip(grads, vars))
+            self._train = trainer.apply_gradients(grads_and_vars)
 
         #Quantities for reporting.
         self._losses = [loss, pg_loss, vf_loss, entropy, clipfrac, approxkl, maxkl, self.stochpol.aux_loss,
@@ -224,7 +223,7 @@ class PpoAgent(object):
         self.I.close()
         self.I = None
 
-    # @logger.profile("update")
+    @logger.profile("update")
     def update(self):
 
         #Some logic gathering best ret, rooms etc using MPI.
@@ -243,16 +242,16 @@ class PpoAgent(object):
         local_best_rets = MPI.COMM_WORLD.allgather(self.local_best_ret)
         n_rooms = sum(MPI.COMM_WORLD.allgather([len(self.local_rooms)]), [])
 
-        # if MPI.COMM_WORLD.Get_rank() == 0:
-        #     logger.info(f"Rooms visited {self.rooms}")
-        #     logger.info(f"Best return {self.best_ret}")
-        #     logger.info(f"Best local return {sorted(local_best_rets)}")
-        #     logger.info(f"eprews {sorted(eprews)}")
-        #     logger.info(f"n_rooms {sorted(n_rooms)}")
-        #     logger.info(f"Extrinsic coefficient {self.ext_coeff}")
-        #     logger.info(f"Gamma {self.gamma}")
-        #     logger.info(f"Gamma ext {self.gamma_ext}")
-        #     logger.info(f"All scores {sorted(self.scores)}")
+        if MPI.COMM_WORLD.Get_rank() == 0:
+            logger.info(f"Rooms visited {self.rooms}")
+            logger.info(f"Best return {self.best_ret}")
+            logger.info(f"Best local return {sorted(local_best_rets)}")
+            logger.info(f"eprews {sorted(eprews)}")
+            logger.info(f"n_rooms {sorted(n_rooms)}")
+            logger.info(f"Extrinsic coefficient {self.ext_coeff}")
+            logger.info(f"Gamma {self.gamma}")
+            logger.info(f"Gamma ext {self.gamma_ext}")
+            logger.info(f"All scores {sorted(self.scores)}")
 
 
         #Normalize intrinsic rewards.
@@ -357,11 +356,11 @@ class PpoAgent(object):
         verbose = True
         if verbose and self.is_log_leader:
             samples = np.prod(self.I.buf_advs.shape)
-            # logger.info("buffer shape %s, samples_per_mpi=%i, mini_per_mpi=%i, samples=%i, mini=%i " % (
-            #         str(self.I.buf_advs.shape),
-            #         samples, samples//self.nminibatches,
-            #         samples*self.comm_train_size, samples*self.comm_train_size//self.nminibatches))
-            # logger.info(" "*6 + fmt_row(13, self.loss_names))
+            logger.info("buffer shape %s, samples_per_mpi=%i, mini_per_mpi=%i, samples=%i, mini=%i " % (
+                    str(self.I.buf_advs.shape),
+                    samples, samples//self.nminibatches,
+                    samples*self.comm_train_size, samples*self.comm_train_size//self.nminibatches))
+            logger.info(" "*6 + fmt_row(13, self.loss_names))
 
 
         epoch = 0
@@ -388,8 +387,8 @@ class PpoAgent(object):
             lossdict = dict_gather(self.comm_train, lossdict, op='mean')
             maxmaxkl = dict_gather(self.comm_train, {"maxkl":_maxkl}, op='max')
             lossdict["maxkl"] = maxmaxkl["maxkl"]
-            # if verbose and self.is_log_leader:
-            #     logger.info("%i:%03i %s" % (epoch, start, fmt_row(13, [lossdict[n] for n in self.loss_names])))
+            if verbose and self.is_log_leader:
+                logger.info("%i:%03i %s" % (epoch, start, fmt_row(13, [lossdict[n] for n in self.loss_names])))
             start += envsperbatch
             if start == self.I.nenvs:
                 epoch += 1
@@ -426,7 +425,7 @@ class PpoAgent(object):
                 out = self.I.env_results[l]
         return out
 
-    # @logger.profile("step")
+    @logger.profile("step")
     def step(self):
         #Does a rollout.
         t = self.I.step_count % self.nsteps
@@ -447,9 +446,9 @@ class PpoAgent(object):
             sli = slice(l * self.I.lump_stride, (l + 1) * self.I.lump_stride)
             memsli = slice(None) if self.I.mem_state is NO_STATES else sli
             dict_obs = self.stochpol.ensure_observation_is_dict(obs)
-            # with logger.ProfileKV("policy_inference"):
+            with logger.ProfileKV("policy_inference"):
                 #Calls the policy and value function on current observation.
-            acs, vpreds_int, vpreds_ext, nlps, self.I.mem_state[memsli], ent = self.stochpol.call(dict_obs, news, self.I.mem_state[memsli],
+                acs, vpreds_int, vpreds_ext, nlps, self.I.mem_state[memsli], ent = self.stochpol.call(dict_obs, news, self.I.mem_state[memsli],
                                                                                                                update_obs_stats=self.update_ob_stats_every_step)
             self.env_step(l, acs)
 
@@ -477,8 +476,8 @@ class PpoAgent(object):
                 for k in self.stochpol.ph_ob_keys:
                     self.I.buf_ob_last[k][sli] = dict_nextobs[k]
                 self.I.buf_new_last[sli] = nextnews
-                # with logger.ProfileKV("policy_inference"):
-                _, self.I.buf_vpred_int_last[sli], self.I.buf_vpred_ext_last[sli], _, _, _ = self.stochpol.call(dict_nextobs, nextnews, self.I.mem_state[memsli], update_obs_stats=False)
+                with logger.ProfileKV("policy_inference"):
+                    _, self.I.buf_vpred_int_last[sli], self.I.buf_vpred_ext_last[sli], _, _, _ = self.stochpol.call(dict_nextobs, nextnews, self.I.mem_state[memsli], update_obs_stats=False)
                 self.I.buf_rews_ext[sli, t] = rews
 
             #Calcuate the intrinsic rewards for the rollout.

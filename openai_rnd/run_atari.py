@@ -2,7 +2,7 @@
 import functools
 import os
 
-# from baselines import logger
+from baselines import logger
 from mpi4py import MPI
 import mpi_util
 import tf_util
@@ -12,8 +12,6 @@ from policies.cnn_policy_param_matched import CnnPolicy
 from ppo_agent import PpoAgent
 from utils import set_global_seeds
 from vec_env import VecFrameStack
-
-
 
 
 def train(*, env_id, num_env, hps, num_timesteps, seed):
@@ -75,8 +73,8 @@ def train(*, env_id, num_env, hps, num_timesteps, seed):
     while True:
         info = agent.step()
         if info['update']:
-            # logger.logkvs(info['update'])
-            # logger.dumpkvs()
+            logger.logkvs(info['update'])
+            logger.dumpkvs()
             counter += 1
         if agent.I.stats['tcount'] > num_timesteps:
             break
@@ -104,17 +102,17 @@ def main():
     parser.add_argument('--update_ob_stats_from_random_agent', type=int, default=1)
     parser.add_argument('--proportion_of_exp_used_for_predictor_update', type=float, default=1.)
     parser.add_argument('--tag', type=str, default='')
-    parser.add_argument('--policy', type=str, default='cnn', choices=['cnn', 'rnn'])
+    parser.add_argument('--policy', type=str, default='rnn', choices=['cnn', 'rnn'])
     parser.add_argument('--int_coeff', type=float, default=1.)
     parser.add_argument('--ext_coeff', type=float, default=2.)
     parser.add_argument('--dynamics_bonus', type=int, default=0)
 
 
     args = parser.parse_args()
-    # logger.configure(dir=logger.get_dir(), format_strs=['stdout', 'log', 'csv'] if MPI.COMM_WORLD.Get_rank() == 0 else [])
-    # if MPI.COMM_WORLD.Get_rank() == 0:
-        # with open(os.path.join(logger.get_dir(), 'experiment_tag.txt'), 'w') as f:
-        #     f.write(args.tag)
+    logger.configure(dir=logger.get_dir(), format_strs=['stdout', 'log', 'csv'] if MPI.COMM_WORLD.Get_rank() == 0 else [])
+    if MPI.COMM_WORLD.Get_rank() == 0:
+        with open(os.path.join(logger.get_dir(), 'experiment_tag.txt'), 'w') as f:
+            f.write(args.tag)
         # shutil.copytree(os.path.dirname(os.path.abspath(__file__)), os.path.join(logger.get_dir(), 'code'))
 
     mpi_util.setup_mpi_gpus()
