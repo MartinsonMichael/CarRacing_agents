@@ -171,6 +171,9 @@ class PPO:
                 critic_loss = torch.clamp(critic_loss, -value, +value)
 
             advantage = discount_reward - state_value.detach()
+
+            print('log_probs shape', log_probs.shape)
+
             policy_ratio = torch.exp(new_log_probs - log_probs.detach())
 
             term_1 = policy_ratio * advantage
@@ -216,30 +219,22 @@ class PPO:
 
     def train(self):
         print('Start to train PPO')
-        try:
-            while True:
+        while True:
 
-                self.run_one_episode()
+            self.run_one_episode()
 
-                self.stat_logger.log_it({
-                    'total_env_episode': self.episode_number,
-                    'total_env_steps': self.global_step_number,
-                    'total_grad_steps': self._total_grad_steps,
-                })
+            self.stat_logger.log_it({
+                'total_env_episode': self.episode_number,
+                'total_env_steps': self.global_step_number,
+                'total_grad_steps': self._total_grad_steps,
+            })
 
-                if self.global_step_number % self.config.eval_episode_freq == 0:
-                    self.run_one_episode(eval=True)
+            if self.global_step_number % self.config.eval_episode_freq == 0:
+                self.run_one_episode(eval=True)
 
-                # print(f"{self.global_step_number} / {self.config.env_steps_to_run}")
-                if self.global_step_number >= self.config.env_steps_to_run:
-                    break
-
-                # if self.episode_number % self.hyperparameters['save_frequency_episode'] == 0:
-                #     self.save()
-        finally:
-            self.stat_logger.on_training_end()
-            # self.save(suffix='final')
-            pass
+            # print(f"{self.global_step_number} / {self.config.env_steps_to_run}")
+            if self.global_step_number >= self.config.env_steps_to_run:
+                break
 
     def run_one_episode(self, eval: bool = False):
         if eval:

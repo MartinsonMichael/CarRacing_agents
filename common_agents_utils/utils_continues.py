@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from gym import spaces
-from torch.distributions import Normal
+from torch.distributions import MultivariateNormal
 
 from common_agents_utils.torch_gym_modules import StateLayer, get_activated_ratio, make_it_batched_torch_tensor, \
     process_kwargs
@@ -168,6 +168,10 @@ class ActorCritic(nn.Module):
         self.action_std = action_std
         self.device = device
 
+        # varianse matrix
+        self.action_std_eye = torch.eye(self.action_size).to(self.device)
+        self.action_std_eye.requires_grad = False
+
         if self.action_std is None and not self.double_action_size_on_output:
             raise ValueError("provide one of 'action_std', 'double_action_size_on_output'")
 
@@ -191,9 +195,9 @@ class ActorCritic(nn.Module):
     def _get_mean_std(self, state) -> Tuple[TT, TT]:
         action_out = self.actor(state)
         if self.double_action_size_on_output:
-            return torch.tanh(action_out[:, self.action_size:]), action_out[:, :self.action_size]
+            return torch.tanh(action_out[:, self.action_size:]), self.action_std_eye * action_out[:, :self.action_size]
         else:
-            return torch.tanh(action_out), self.action_std
+            return torch.tanh(action_out), torch.eye(self.action_size) * self.action_std_eye
 
     def sample_action(self, state, eval: bool = False, **kwargs) -> Tuple[npTT, npTT, npTT]:
         """
@@ -201,18 +205,23 @@ class ActorCritic(nn.Module):
         Return: action, log_prob, entropy
         """
         mean, std = self._get_mean_std(state)
-        distribution = Normal(mean, std)
-        action = torch.clamp(distribution.sample(), -1, 1)
+        distribution = MultivariateNormal(mean, std)
+
         if not eval:
-            return \
-                process_kwargs(action.detach(), **kwargs), \
-                process_kwargs(distribution.log_prob(action), **kwargs), \
-                process_kwargs(distribution.entropy(), **kwargs),
+            action = torch.clamp(distribution.sample(), -1, 1).detach()
         else:
-            return \
-                process_kwargs(torch.clamp(mean, -1, 1).detach(), **kwargs), \
-                process_kwargs(distribution.log_prob(action), **kwargs), \
-                process_kwargs(distribution.entropy(), **kwargs),
+            action = torch.clamp(mean, -1, 1).detach()
+
+        log_prob = distribution.log_prob(action)
+        log_prob = log_prob.view((-1, 1))
+
+        entropy = distribution.entropy()
+
+        return (
+            process_kwargs(action, **kwargs),
+            process_kwargs(log_prob, **kwargs),
+            process_kwargs(entropy, **kwargs),
+        )
 
     def estimate_action(self, state, action) -> Tuple[TT, TT]:
         """
@@ -220,8 +229,8 @@ class ActorCritic(nn.Module):
         Return: action, log_prob, entropy
         """
         _action = make_it_batched_torch_tensor(action, self.device)
-        distribution = Normal(*self._get_mean_std(state))
-        return distribution.log_prob(_action), distribution.entropy()
+        distribution = MultivariateNormal(*self._get_mean_std(state))
+        return distribution.log_prob(_action).view((-1, 1)), distribution.entropy().view((-1, 1))
 
     def forward(self, **kwargs: Any):
         raise NotImplemented

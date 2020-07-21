@@ -36,6 +36,7 @@ def evaluate_and_log(
         print(f"action type : {type(action)}")
         if hasattr(action, 'shape'):
             print(f"action shape : {action.shape}")
+        print(f"action: {action}")
 
     total_reward = 0
     total_steps = 0
