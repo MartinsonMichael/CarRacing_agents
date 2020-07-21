@@ -177,23 +177,23 @@ def main():
     # normalize obs
     print('Start to initailize observation normalization parameter.....')
 
-    print('ALERT! pass section')
-    assert 'home-test' in NAME
-    # next_obs = []
-    # for step in range(num_step * pre_obs_norm_step):
-    #     actions = np.random.uniform(-1, 1, size=(num_worker, action_size))
-    #
-    #     for parent_conn, action in zip(parent_conns, actions):
-    #         parent_conn.send(action)
-    #
-    #     for parent_conn in parent_conns:
-    #         s, r, d, rd, lr = parent_conn.recv()
-    #         next_obs.append(s[3, :, :].reshape([1, 84, 84]))
-    #
-    #     if len(next_obs) % (num_step * num_worker) == 0:
-    #         next_obs = np.stack(next_obs)
-    #         obs_rms.update(next_obs)
-    #         next_obs = []
+    # print('ALERT! pass section')
+    # assert 'home-test' in NAME
+    next_obs = []
+    for step in range(num_step * pre_obs_norm_step):
+        actions = np.random.uniform(-1, 1, size=(num_worker, action_size))
+
+        for parent_conn, action in zip(parent_conns, actions):
+            parent_conn.send(action)
+
+        for parent_conn in parent_conns:
+            s, r, d, rd, lr = parent_conn.recv()
+            next_obs.append(s[3, :, :].reshape([1, 84, 84]))
+
+        if len(next_obs) % (num_step * num_worker) == 0:
+            next_obs = np.stack(next_obs)
+            obs_rms.update(next_obs)
+            next_obs = []
     print('End to initalize...')
 
     while True:
