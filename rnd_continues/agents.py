@@ -4,12 +4,12 @@ import torch.nn.functional as F
 import torch.nn as nn
 import torch
 import torch.optim as optim
-from torch.distributions import Normal
+from torch.distributions import MultivariateNormal
 
 from torch.distributions.categorical import Categorical
 
-from .model import CnnActorCriticNetwork, RNDModel
-from .utils import global_grad_norm_
+from model import CnnActorCriticNetwork, RNDModel
+from utils import global_grad_norm_
 
 
 class RNDAgent(object):
@@ -56,18 +56,23 @@ class RNDAgent(object):
 
         self.model = self.model.to(self.device)
 
+        # varianse matrix
+        self.action_std_eye = torch.eye(self.action_size).to(self.device)
+        self.action_std_eye.requires_grad = False
+
     def get_action(self, state, sample: bool = True):
         state = torch.Tensor(state).to(self.device)
         state = state.float()
         action_mean, value_ext, value_int = self.model(state)
 
+        distribution = MultivariateNormal(action_mean, self.action_std_eye)
+
         if not sample:
-            action = action_mean
-            log_prob = None
+            action = torch.clamp(action_mean, -1, 1)
         else:
-            distribution = Normal(action_mean, 0.5)
             action = torch.clamp(distribution.sample(), -1, 1)
-            log_prob = distribution.log_prob(action)
+
+        log_prob = distribution.log_prob(action).view((-1, 1))
 
         return action, value_ext.data.cpu().numpy().squeeze(), value_int.data.cpu().numpy().squeeze(), log_prob.detach()
 
@@ -84,7 +89,7 @@ class RNDAgent(object):
         s_batch = torch.FloatTensor(s_batch).to(self.device)
         target_ext_batch = torch.FloatTensor(target_ext_batch).to(self.device)
         target_int_batch = torch.FloatTensor(target_int_batch).to(self.device)
-        y_batch = torch.LongTensor(y_batch).to(self.device)
+        y_batch = torch.FloatTensor(y_batch).to(self.device)
         adv_batch = torch.FloatTensor(adv_batch).to(self.device)
         next_obs_batch = torch.FloatTensor(next_obs_batch).to(self.device)
 
@@ -97,7 +102,7 @@ class RNDAgent(object):
             #
             # m_old = Categorical(F.softmax(policy_old_list, dim=-1))
             # log_prob_old = m_old.log_prob(y_batch)
-            log_prob_old = old_policy_log_prob
+            log_prob_old = torch.from_numpy(np.array(old_policy_log_prob))
             # ------------------------------------------------------------
 
         for i in range(self.epoch):
@@ -116,10 +121,11 @@ class RNDAgent(object):
                 forward_loss = (forward_loss * mask).sum() / torch.max(mask.sum(), torch.Tensor([1]).to(self.device))
                 # ---------------------------------------------------------------------------------
 
-                policy, value_ext, value_int = self.model(s_batch[sample_idx])
-                m = Categorical(F.softmax(policy, dim=-1))
-                log_prob = m.log_prob(y_batch[sample_idx])
+                action_mean, value_ext, value_int = self.model(s_batch[sample_idx])
+                # m = Categorical(F.softmax(policy, dim=-1))
+                m = MultivariateNormal(action_mean, self.action_std_eye)
 
+                log_prob = m.log_prob(y_batch[sample_idx])
                 ratio = torch.exp(log_prob - log_prob_old[sample_idx])
 
                 surr1 = ratio * adv_batch[sample_idx]

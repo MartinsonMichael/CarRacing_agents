@@ -7,12 +7,12 @@ import wandb
 import yaml
 from torch.multiprocessing import Pipe
 
-from .agents import RNDAgent
-from .envs import AtariEnvironment
-from .utils import RunningMeanStd, RewardForwardFilter, make_train_data
-from .config import default_config
+from agents import RNDAgent
+from envs import AtariEnvironment
+from utils import RunningMeanStd, RewardForwardFilter, make_train_data
+from config import default_config
 
-from .car_intersect_env_maker import makeCarIntersect, evaluate_and_log, create_eval_env, Logger
+from car_intersect_env_maker import makeCarIntersect, evaluate_and_log, create_eval_env, Logger
 
 
 def main():
@@ -26,12 +26,13 @@ def main():
     except:
         env_settings = yaml.load(open(default_config['CarIntersectConfigPath'], 'r'))
 
-    wandb.init(
-        project='CarRacing_RND',
-        reinit=True,
-        name=f'drq_original_{NAME}',
-        config={'env_config': env_settings, 'agent_config': default_config},
-    )
+    if 'home-test' not in NAME:
+        wandb.init(
+            project='CarRacing_RND',
+            reinit=True,
+            name=f'drq_original_{NAME}',
+            config={'env_config': env_settings, 'agent_config': default_config},
+        )
 
     # print({section: dict(config[section]) for section in config.sections()})
     train_method = default_config['TrainMethod']
@@ -59,8 +60,8 @@ def main():
 
     # input_size = env.observation_space.shape  # 4
     input_size = env.observation_space.shape
-    assert isinstance(env.action_space, gym.spaces.Discrete)
-    action_size = env.action_space.n  # 2
+    assert isinstance(env.action_space, gym.spaces.Box)
+    action_size = env.action_space.shape[0]  # 2
 
     env.close()
 
@@ -164,9 +165,9 @@ def main():
         eval_env=eval_env,
         action_get_method=lambda eval_state: agent.get_action(
             np.tile(np.float32(eval_state), (1, 4, 1, 1)) / 255.
-        )[0],
+        )[0][0].numpy(),
         logger=logger,
-        log_animation=True,
+        log_animation=False,
         exp_class='RND',
         exp_name=NAME,
         debug=True,
@@ -175,21 +176,24 @@ def main():
 
     # normalize obs
     print('Start to initailize observation normalization parameter.....')
-    next_obs = []
-    for step in range(num_step * pre_obs_norm_step):
-        actions = np.random.randint(0, action_size, size=(num_worker, ))
 
-        for parent_conn, action in zip(parent_conns, actions):
-            parent_conn.send(action)
-
-        for parent_conn in parent_conns:
-            s, r, d, rd, lr = parent_conn.recv()
-            next_obs.append(s[3, :, :].reshape([1, 84, 84]))
-
-        if len(next_obs) % (num_step * num_worker) == 0:
-            next_obs = np.stack(next_obs)
-            obs_rms.update(next_obs)
-            next_obs = []
+    print('ALERT! pass section')
+    assert 'home-test' in NAME
+    # next_obs = []
+    # for step in range(num_step * pre_obs_norm_step):
+    #     actions = np.random.uniform(-1, 1, size=(num_worker, action_size))
+    #
+    #     for parent_conn, action in zip(parent_conns, actions):
+    #         parent_conn.send(action)
+    #
+    #     for parent_conn in parent_conns:
+    #         s, r, d, rd, lr = parent_conn.recv()
+    #         next_obs.append(s[3, :, :].reshape([1, 84, 84]))
+    #
+    #     if len(next_obs) % (num_step * num_worker) == 0:
+    #         next_obs = np.stack(next_obs)
+    #         obs_rms.update(next_obs)
+    #         next_obs = []
     print('End to initalize...')
 
     while True:
@@ -204,7 +208,7 @@ def main():
             actions, value_ext, value_int, policy_log_prob = agent.get_action(np.float32(states) / 255.)
 
             for parent_conn, action in zip(parent_conns, actions):
-                parent_conn.send(action)
+                parent_conn.send(action.numpy())
 
             next_states, rewards, dones, real_dones, log_rewards, next_obs = [], [], [], [], [], []
             for parent_conn in parent_conns:
@@ -233,14 +237,14 @@ def main():
             total_state.append(states)
             total_reward.append(rewards)
             total_done.append(dones)
-            total_action.append(actions)
+            total_action.append(actions.cpu().numpy())
             total_ext_values.append(value_ext)
             total_int_values.append(value_int)
 
             # total_policy.append(policy)
             # total_policy_np.append(policy.cpu().numpy())
-            total_policy_log_prob.append(policy_log_prob)
-            total_policy_log_prob_np.append(policy_log_prob.cpu().numpy())
+
+            total_policy_log_prob.extend(policy_log_prob.cpu().numpy())
 
             states = next_states[:, :, :, :]
 
@@ -270,7 +274,11 @@ def main():
 
         total_state = np.stack(total_state).transpose([1, 0, 2, 3, 4]).reshape([-1, 4, 84, 84])
         total_reward = np.stack(total_reward).transpose().clip(-1, 1)
-        total_action = np.stack(total_action).transpose().reshape([-1])
+
+        # total_action = np.stack(total_action).transpose().reshape([-1, action_size])
+        total_action = np.array(total_action).reshape((-1, action_size))
+        # total_log_prob_old = np.array(total_policy_log_prob).reshape((-1))
+
         total_done = np.stack(total_done).transpose()
         total_next_obs = np.stack(total_next_obs).transpose([1, 0, 2, 3, 4]).reshape([-1, 1, 84, 84])
         total_ext_values = np.stack(total_ext_values).transpose()
@@ -336,7 +344,7 @@ def main():
                 eval_env=eval_env,
                 action_get_method=lambda eval_state: agent.get_action(
                     np.tile(np.float32(eval_state), (1, 4, 1, 1)) / 255.
-                )[0],
+                )[0][0].numpy(),
                 logger=logger,
                 log_animation=True,
                 exp_class='RND',

@@ -16,6 +16,7 @@ except:
 
 
 def makeCarIntersect(settings):
+    print('Making CarIntersect with continues action space, only image as observation')
     env = CarIntersect(settings_file_path_or_settings=settings)
     env = DictToTupleWrapper(env)
     # env = ChannelSwapper(env)
