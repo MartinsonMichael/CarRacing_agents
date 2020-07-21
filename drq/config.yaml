@@ -9,7 +9,7 @@ car_intersect_config: drq/drq_full_config.yaml
 # See Dreamer TF2's implementation: https://github.com/danijar/dreamer/blob/02f0210f5991c7710826ca7881f19c64a012290c/dreamer.py#L340
 action_repeat: 4
 # train
-num_train_steps: 1000000
+num_train_steps: 3000000
 num_train_iters: 1
 num_seed_steps: 10000
 replay_buffer_capacity: 250000

@@ -47,7 +47,7 @@ def save_as_mp4(image_array, save_path, save_to_wandb: bool = True) -> None:
 
     def animate(i):
         im.set_array(image_array[i])
-        return (im,)
+        return (im, )
 
     anim = animation.FuncAnimation(
         fig,
@@ -67,10 +67,9 @@ def save_as_mp4(image_array, save_path, save_to_wandb: bool = True) -> None:
             'animation': wandb.Video(
                 np.transpose(np.array(image_array)[::3, :, :, :], (0, 3, 1, 2)),
                 fps=4,
-                format="gif",
+                format="mp4",
             )
         })
-
 
 def plot_sequence_images(image_array, need_disaply=False, need_save=None):
     ''' Display images sequence as an animation in jupyter notebook
