@@ -102,7 +102,7 @@ class RNDAgent(object):
             #
             # m_old = Categorical(F.softmax(policy_old_list, dim=-1))
             # log_prob_old = m_old.log_prob(y_batch)
-            log_prob_old = torch.from_numpy(np.array(old_policy_log_prob))
+            log_prob_old = torch.from_numpy(np.array(old_policy_log_prob)).to(self.device)
             # ------------------------------------------------------------
 
         for i in range(self.epoch):
