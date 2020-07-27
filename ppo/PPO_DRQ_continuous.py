@@ -345,7 +345,7 @@ class PPO_DRQ:
                     if self._wandb_anim_save % self.config.wandb_animation_frequency == 0:
                         wandb_anim_record = True
                         print('save animation to wandb')
-                        wandb.log({'animation': wandb.Video(np.transpose(np.array(images)[::3, ::2, ::2, :], (0, 3, 1, 2)), fps=4, format="gif")})
+                        wandb.log({'animation': wandb.Video(np.transpose(np.array(images)[::3, ::2, ::2, :], (0, 3, 1, 2)), fps=4, format="mp4")})
                     self._wandb_anim_save += 1
                     Process(
                         target=save_as_mp4,

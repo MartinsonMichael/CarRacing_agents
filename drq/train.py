@@ -130,7 +130,7 @@ class Workspace(object):
                         'animation': wandb.Video(
                             np.transpose(np.array(images), (0, 3, 1, 2)),
                             fps=4,
-                            format="gif",
+                            format="mp4",
                         )
                     })
                     record_cur_episode = False
