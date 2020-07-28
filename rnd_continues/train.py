@@ -208,7 +208,7 @@ def main():
             actions, value_ext, value_int, policy_log_prob = agent.get_action(np.float32(states) / 255.)
 
             for parent_conn, action in zip(parent_conns, actions):
-                parent_conn.send(action.numpy())
+                parent_conn.send(action.cpu().numpy())
 
             next_states, rewards, dones, real_dones, log_rewards, next_obs = [], [], [], [], [], []
             for parent_conn in parent_conns:
