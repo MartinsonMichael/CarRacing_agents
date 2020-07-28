@@ -165,7 +165,7 @@ def main():
         eval_env=eval_env,
         action_get_method=lambda eval_state: agent.get_action(
             np.tile(np.float32(eval_state), (1, 4, 1, 1)) / 255.
-        )[0][0].numpy(),
+        )[0][0].cpu().numpy(),
         logger=logger,
         log_animation=False,
         exp_class='RND',
@@ -344,7 +344,7 @@ def main():
                 eval_env=eval_env,
                 action_get_method=lambda eval_state: agent.get_action(
                     np.tile(np.float32(eval_state), (1, 4, 1, 1)) / 255.
-                )[0][0].numpy(),
+                )[0][0].cpu().numpy(),
                 logger=logger,
                 log_animation=True,
                 exp_class='RND',
