@@ -30,7 +30,7 @@ def main():
         wandb.init(
             project='CarRacing_RND',
             reinit=True,
-            name=f'drq_original_{NAME}',
+            name=f'rnd_{NAME}',
             config={'env_config': env_settings, 'agent_config': default_config},
         )
 
