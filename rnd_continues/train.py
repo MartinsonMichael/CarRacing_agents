@@ -199,11 +199,10 @@ def main():
     while True:
         total_state, total_reward, total_done, total_next_state, total_action, total_int_reward, total_next_obs, total_ext_values, total_int_values, total_policy_log_prob, total_policy_log_prob_np = \
             [], [], [], [], [], [], [], [], [], [], []
-        global_step += (num_worker * num_step)
-        global_update += 1
 
         # Step 1. n-step rollout
         for _ in range(num_step):
+            global_step += num_worker
             # actions, value_ext, value_int, policy = agent.get_action(np.float32(states) / 255.)
             actions, value_ext, value_int, policy_log_prob = agent.get_action(np.float32(states) / 255.)
 
@@ -260,6 +259,8 @@ def main():
                     'reward_per_episode': sample_rall,
                     'intrinsic_reward': sample_i_rall,
                     'episode_steps': sample_step,
+                    'global_step_cnt': global_step,
+                    'updates_cnt': global_update,
                 })
                 logger.on_episode_end()
                 sample_rall = 0
@@ -328,6 +329,7 @@ def main():
         obs_rms.update(total_next_obs)
         # -----------------------------------------------
 
+        global_update += 1
         # Step 5. Training!
         agent.train_model(np.float32(total_state) / 255., ext_target, int_target, total_action,
                           total_adv, ((total_next_obs - obs_rms.mean) / np.sqrt(obs_rms.var)).clip(-5, 5),
