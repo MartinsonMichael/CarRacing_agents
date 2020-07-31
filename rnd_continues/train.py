@@ -339,7 +339,7 @@ def main():
         #     torch.save(agent.rnd.predictor.state_dict(), predictor_path)
         #     torch.save(agent.rnd.target.state_dict(), target_path)
 
-        if global_update % 30 == 0:
+        if global_update % 100 == 0:
             evaluate_and_log(
                 eval_env=eval_env,
                 action_get_method=lambda eval_state: agent.get_action(
