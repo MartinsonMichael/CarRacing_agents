@@ -160,8 +160,10 @@ class Workspace(object):
             total_reward += reward
             total_steps += 1
 
-            if np.any(done):
-                for ind, done_i in enumerate(done):
+            done_or_max = np.logical_or(done, total_steps > 130)
+
+            if np.any(done_or_max):
+                for ind, done_i in enumerate(done_or_max):
                     if not done_i:
                         continue
                     logger.log_it({
@@ -170,19 +172,18 @@ class Workspace(object):
                         'env_steps': total_steps[ind],
                     })
 
-            total_steps[done] = 0
-            total_reward[done] = 0
-            total_episodes += done.sum()
+            total_steps[done_or_max] = 0
+            total_reward[done_or_max] = 0
+            total_episodes += done_or_max.sum()
 
             for o, a, r, no, d, dnm in zip(obs, action, reward, next_obs, done, done_no_max):
                 self.replay_buffer.add(o, a, r, no, d, dnm)
 
-            if np.any(done):
-                res_obs = self.env.reset(dones=done)
-                next_obs[done] = res_obs
+            if np.any(done_or_max):
+                next_obs[done_or_max] = self.env.reset(dones=done_or_max)
             obs = next_obs
 
-            if done[0]:
+            if done_or_max[0]:
                 zero_env_episodes += 1
                 if record_cur_episode:
                     wandb.log({
