@@ -101,7 +101,7 @@ state:
   # Unused field, but actually env can return vector description of track's polygons
   #   All possible features names:
   #     'track_goal', 'track_line', 'track_polygon', 'not_road', 'cross_road'
-  vector_env_features: []
+  vector_car_features: []
 
 # Unused for now
 #   Steer policy, if "angle_steer" == false, default steer will be used,
