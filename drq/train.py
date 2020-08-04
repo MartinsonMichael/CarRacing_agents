@@ -123,10 +123,14 @@ class Workspace(object):
         evaluater.evaluate(log_animation=True)
         print('ee! test evaluate finish!')
 
+        eval_steps = 0
+
         while self.step < self.cfg.num_train_steps:
             self.step += NUM_ENVS
+            eval_steps += 1
 
-            if self.step % 10000 == 100:
+            if eval_steps % 1000 == 100:
+                print('start evaluation')
                 with utils.eval_mode(self.agent):
                     evaluater.evaluate(log_animation=True)
 
