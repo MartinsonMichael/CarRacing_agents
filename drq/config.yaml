@@ -79,4 +79,4 @@ encoder:
 hydra:
   name: ${env}
   run:
-    dir: ./runs/${now:%Y.%m.%d}/${now:%H%M%S}_${hydra.job.override_dirname}
+    dir: .

@@ -68,14 +68,14 @@ class Encoder(nn.Module):
         for i in range(self.num_layers):
             utils.tie_weights(src=source.convs[i], trg=self.convs[i])
 
-    def log(self, logger, step):
-        for k, v in self.outputs.items():
-            logger.log_histogram(f'train_encoder/{k}_hist', v, step)
-            if len(v.shape) > 2:
-                logger.log_image(f'train_encoder/{k}_img', v[0], step)
-
-        for i in range(self.num_layers):
-            logger.log_param(f'train_encoder/conv{i + 1}', self.convs[i], step)
+    # def log(self, logger, step):
+    #     for k, v in self.outputs.items():
+    #         logger.log_histogram(f'train_encoder/{k}_hist', v, step)
+    #         if len(v.shape) > 2:
+    #             logger.log_image(f'train_encoder/{k}_img', v[0], step)
+    #
+    #     for i in range(self.num_layers):
+    #         logger.log_param(f'train_encoder/conv{i + 1}', self.convs[i], step)
 
 
 class Actor(nn.Module):
@@ -101,8 +101,7 @@ class Actor(nn.Module):
         # constrain log_std inside [log_std_min, log_std_max]
         log_std = torch.tanh(log_std)
         log_std_min, log_std_max = self.log_std_bounds
-        log_std = log_std_min + 0.5 * (log_std_max - log_std_min) * (log_std +
-                                                                     1)
+        log_std = log_std_min + 0.5 * (log_std_max - log_std_min) * (log_std + 1)
         std = log_std.exp()
 
         self.outputs['mu'] = mu
@@ -111,13 +110,13 @@ class Actor(nn.Module):
         dist = utils.SquashedNormal(mu, std)
         return dist
 
-    def log(self, logger, step):
-        for k, v in self.outputs.items():
-            logger.log_histogram(f'train_actor/{k}_hist', v, step)
-
-        for i, m in enumerate(self.trunk):
-            if type(m) == nn.Linear:
-                logger.log_param(f'train_actor/fc{i}', m, step)
+    # def log(self, logger, step):
+    #     for k, v in self.outputs.items():
+    #         logger.log_histogram(f'train_actor/{k}_hist', v, step)
+    #
+    #     for i, m in enumerate(self.trunk):
+    #         if type(m) == nn.Linear:
+    #             logger.log_param(f'train_actor/fc{i}', m, step)
 
 
 class Critic(nn.Module):
@@ -148,18 +147,18 @@ class Critic(nn.Module):
 
         return q1, q2
 
-    def log(self, logger, step):
-        self.encoder.log(logger, step)
-
-        for k, v in self.outputs.items():
-            logger.log_histogram(f'train_critic/{k}_hist', v, step)
-
-        assert len(self.Q1) == len(self.Q2)
-        for i, (m1, m2) in enumerate(zip(self.Q1, self.Q2)):
-            assert type(m1) == type(m2)
-            if type(m1) is nn.Linear:
-                logger.log_param(f'train_critic/q1_fc{i}', m1, step)
-                logger.log_param(f'train_critic/q2_fc{i}', m2, step)
+    # def log(self, logger, step):
+    #     self.encoder.log(logger, step)
+    #
+    #     for k, v in self.outputs.items():
+    #         logger.log_histogram(f'train_critic/{k}_hist', v, step)
+    #
+    #     assert len(self.Q1) == len(self.Q2)
+    #     for i, (m1, m2) in enumerate(zip(self.Q1, self.Q2)):
+    #         assert type(m1) == type(m2)
+    #         if type(m1) is nn.Linear:
+    #             logger.log_param(f'train_critic/q1_fc{i}', m1, step)
+    #             logger.log_param(f'train_critic/q2_fc{i}', m2, step)
 
 
 class DRQAgent(object):
@@ -211,12 +210,13 @@ class DRQAgent(object):
 
     def act(self, obs, sample=False):
         obs = torch.FloatTensor(obs).to(self.device)
-        obs = obs.unsqueeze(0)
+        if len(obs.shape) == 1:
+            obs = obs.unsqueeze(0)
         dist = self.actor(obs)
         action = dist.sample() if sample else dist.mean
         action = action.clamp(*self.action_range)
-        assert action.ndim == 2 and action.shape[0] == 1
-        return utils.to_np(action[0])
+        assert action.ndim == 2
+        return action.detach().cpu().numpy()
 
     def update_critic(self, obs, obs_aug, action, reward, next_obs,
                       next_obs_aug, not_done, logger, step):
@@ -251,14 +251,14 @@ class DRQAgent(object):
         critic_loss += F.mse_loss(Q1_aug, target_Q) + F.mse_loss(
             Q2_aug, target_Q)
 
-        logger.log('train_critic/loss', critic_loss, step)
+        # logger.log('train_critic/loss', critic_loss, step)
 
         # Optimize the critic
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
         self.critic_optimizer.step()
 
-        self.critic.log(logger, step)
+        # self.critic.log(logger, step)
 
     def update_actor_and_alpha(self, obs, logger, step):
         # detach conv filters, so we don't update them with the actor loss
@@ -272,36 +272,37 @@ class DRQAgent(object):
 
         actor_loss = (self.alpha.detach() * log_prob - actor_Q).mean()
 
-        logger.log('train_actor/loss', actor_loss, step)
-        logger.log('train_actor/target_entropy', self.target_entropy, step)
-        logger.log('train_actor/entropy', -log_prob.mean(), step)
+        # logger.log('train_actor/loss', actor_loss, step)
+        # logger.log('train_actor/target_entropy', self.target_entropy, step)
+        # logger.log('train_actor/entropy', -log_prob.mean(), step)
 
         # optimize the actor
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
         self.actor_optimizer.step()
 
-        self.actor.log(logger, step)
+        # self.actor.log(logger, step)
 
         self.log_alpha_optimizer.zero_grad()
         alpha_loss = (self.alpha *
                       (-log_prob - self.target_entropy).detach()).mean()
-        logger.log('train_alpha/loss', alpha_loss, step)
-        logger.log('train_alpha/value', self.alpha, step)
+        # logger.log('train_alpha/loss', alpha_loss, step)
+        # logger.log('train_alpha/value', self.alpha, step)
         alpha_loss.backward()
         self.log_alpha_optimizer.step()
 
     def update(self, replay_buffer, logger, step):
         obs, action, reward, next_obs, not_done, obs_aug, next_obs_aug = replay_buffer.sample(
-            self.batch_size)
+            self.batch_size,
+        )
 
-        logger.log('train/batch_reward', reward.mean(), step)
+        # logger.log('train/batch_reward', reward.mean(), step)
 
         self.update_critic(obs, obs_aug, action, reward, next_obs,
-                           next_obs_aug, not_done, logger, step)
+                           next_obs_aug, not_done, None, step)
 
         if step % self.actor_update_frequency == 0:
-            self.update_actor_and_alpha(obs, logger, step)
+            self.update_actor_and_alpha(obs, None, step)
 
         if step % self.critic_target_update_frequency == 0:
             utils.soft_update_params(self.critic, self.critic_target,

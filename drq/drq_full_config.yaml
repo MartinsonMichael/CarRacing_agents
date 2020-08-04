@@ -96,6 +96,7 @@ state:
   #     'collide_sensor', 'checkpoint_sensor',
   #     'car_radar_1', 'car_radar_2', 'car_radar_3',
   #     'time'
+#  vector_car_features: ['hull_position', 'hull_angle', 'car_speed']
   vector_car_features: ['hull_position', 'hull_angle', 'car_speed']
 
   # Unused field, but actually env can return vector description of track's polygons

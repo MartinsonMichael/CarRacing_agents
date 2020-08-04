@@ -329,7 +329,10 @@ def _worker(remote, parent_remote, env_fn_wrapper):
             elif cmd == 'seed':
                 env.seed(data)
             elif cmd == 'render':
-                remote.send(env.render(*data[0], **data[1]))
+                if data is not None:
+                    remote.send(env.render(**data))
+                else:
+                    remote.send(env.render())
             elif cmd == 'close':
                 remote.close()
                 break
@@ -398,7 +401,6 @@ class SubprocVecEnv_tf2(VecEnv):
         self.remotes[0].send(('get_spaces', None))
         observation_space, action_space = self.remotes[0].recv()
         VecEnv.__init__(self, len(env_fns), observation_space, action_space)
-        self._last_state: np.ndarray = np.array(self.num_envs, dtype=np.object)
 
         if state_flatter == 'standard':
             self.state_flatter = lambda x: _flatten_obs(x, self.observation_space)
@@ -416,37 +418,31 @@ class SubprocVecEnv_tf2(VecEnv):
         results = [remote.recv() for remote in self.remotes]
         self.waiting = False
         obs, rews, dones, infos = zip(*results)
-        self._last_state = self.state_flatter(obs)
-        return self._last_state, np.stack(rews), np.stack(dones), np.stack(infos)
+        return np.array(obs, dtype=np.object), np.stack(rews), np.stack(dones), np.stack(infos)
 
-    def reset(self, indexes: Optional[np.ndarray] = None) -> np.ndarray:
+    def reset(self, indexes: Optional[np.ndarray] = None, dones: Optional[np.ndarray] = None) -> np.ndarray:
         """
+        :param dones: reset by array of booleans - done from prev step
         :param indexes: indexes to reset, if None reset will be call for all
         :return: states for ALL environment;
             for all envs, whose don't mention in indexes, last state will be returned
         """
+        assert indexes is None or dones is None, "Set only one of 'dones' and 'indexes'"
+
+        if dones is not None:
+            assert dones.shape[0] == len(self.remotes), "'dones' must have shape (env_number, )"
+            indexes = np.arange(len(self.remotes))[dones]
+
         if indexes is None:
-            for remote in self.remotes:
-                remote.send(('reset', None))
-            obs = [remote.recv() for remote in self.remotes]
-            self._last_state = self.state_flatter(obs)
-            return self._last_state
+            indexes = np.arange(len(self.remotes))
 
         indexes = np.array(indexes)
         target_remotes = self._get_target_remotes(indexes)
         for remote in target_remotes:
             remote.send(('reset', None))
-        obs = [remote.recv() for remote in self.remotes]
-        self._last_state[indexes] = self.state_flatter(obs)
-        return self._last_state
 
-    def force_reset(self, indices):
-        target_remotes = self._get_target_remotes(indices)
-        for remote in target_remotes:
-            remote.send(('reset', None))
-        obs = self.state_flatter([remote.recv() for remote in target_remotes])
-        self._last_state[indices] = obs
-        return obs
+        obs = [remote.recv() for remote in target_remotes]
+        return np.array(obs, dtype=np.object)
 
     def seed(self, seed):
         for index, remote in enumerate(self.remotes):
@@ -463,6 +459,11 @@ class SubprocVecEnv_tf2(VecEnv):
         for process in self.processes:
             process.join()
         self.closed = True
+
+    def render_zero(self) -> np.ndarray:
+        self.remotes[0].send(('render', {'full_image': True}))
+        img = self.remotes[0].recv()
+        return img
 
     def render(self, mode='human', *args, **kwargs):
         raise NotImplemented

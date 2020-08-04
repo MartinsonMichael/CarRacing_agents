@@ -63,13 +63,15 @@ def save_as_mp4(image_array, save_path, save_to_wandb: bool = True) -> None:
     anim.save(save_path)
 
     if save_to_wandb:
-        wandb.log({
-            'animation': wandb.Video(
-                np.transpose(np.array(image_array)[::3, :, :, :], (0, 3, 1, 2)),
-                fps=4,
-                format="mp4",
-            )
-        })
+        pass
+        # wandb.log({
+        #     'animation': wandb.Video(
+        #         np.transpose(np.array(image_array)[::3, :, :, :], (0, 3, 1, 2)),
+        #         fps=16,
+        #         format="mp4",
+        #     )
+        # })
+
 
 def plot_sequence_images(image_array, need_disaply=False, need_save=None):
     ''' Display images sequence as an animation in jupyter notebook

@@ -8,7 +8,6 @@ import wandb
 import yaml
 
 import utils
-from logger import Logger as original_Logger
 from replay_buffer import ReplayBuffer
 
 if __name__ == '__main__':
@@ -21,6 +20,8 @@ if __name__ == '__main__':
         from env import OnlyImageTaker, DictToTupleWrapper, ChannelSwapper, ImageStackWrapper
         from env.common_envs_utils.env_makers import get_EnvCreator_with_memory_safe_combiner
         from env.common_envs_utils.env_evaluater import evaluate_and_log, create_eval_env
+        from env.common_envs_utils.batch_evaluater import BatchEvaluater
+        from common_agents_utils import SubprocVecEnv_tf2
 
         from env.CarIntersect import CarIntersect
         from common_agents_utils.logger import Logger
@@ -29,11 +30,10 @@ if __name__ == '__main__':
 
 
 class Workspace(object):
-    def __init__(self, cfg, env, phi):
-        self.env = env
+    def __init__(self, cfg, env_maker, phi, work_dir):
+        self.env_maker = env_maker
+        self.env = env_maker()
         self.phi = phi
-
-        self.eval_env = create_eval_env(env)
 
         # self.env = dmc2gym.make(
         #     domain_name='CarIntersect',
@@ -44,18 +44,11 @@ class Workspace(object):
         #     frame_skip=cfg.action_repeat,
         # )
 
-        self.work_dir = os.getcwd()
+        self.work_dir = work_dir
         print(f'workspace: {self.work_dir}')
 
         self.cfg = cfg
 
-        self.logger = original_Logger(
-            self.work_dir,
-            save_tb=cfg.log_save_tb,
-            log_frequency=cfg.log_frequency_step,
-            agent=cfg.agent.name,
-            action_repeat=cfg.action_repeat,
-        )
 
         utils.set_seed_everywhere(cfg.seed)
         self.device = torch.device(cfg.device)
@@ -81,114 +74,131 @@ class Workspace(object):
         self.step = 0
 
     def run(self):
-        episode, episode_reward, episode_step, done = 0, 0, 1, True
-        start_time = time.time()
+        NUM_ENVS = int(os.environ.get('NUM_ENVS', 16))
 
         logger = Logger(
             model_config=None,
             use_wandb=True,
             use_console=True,
-            log_interval=2,
+            log_interval=20,
         )
 
-        evaluate_and_log(
-            eval_env=self.eval_env,
-            action_get_method=lambda eval_state: self.agent.act(self.phi(eval_state), sample=False),
-            logger=logger,
-            log_animation=True,
-            exp_class='DRQ_original',
-            exp_name=self.cfg.name,
-            max_episode_len=500,
-            debug=True,
+        print('create evaluater')
+        evaluater: BatchEvaluater = BatchEvaluater(
+                env_create_method=self.env_maker,
+                batch_action_get_method=lambda batch_eval_state: self.agent.act(
+                    [self.phi(x) for x in batch_eval_state],
+                    sample=False
+                ),
+                logger=logger,
+                exp_class='DRQ_original',
+                exp_name=self.cfg.name,
+                max_episode_len=130,
+                debug=True,
         )
 
-        info = dict()
+        self.env = SubprocVecEnv_tf2([
+                self.env_maker for _ in range(NUM_ENVS)
+            ],
+            state_flatter=lambda x: np.array(x, dtype=np.object),
+        )
+
+        os.chdir(self.work_dir)
+        print(os.path.abspath(os.curdir))
+
         total_env_step = 0
 
         images = []
         record_cur_episode = False
         total_updates = 0
+        total_episodes = 0
+
+        total_reward = np.zeros(NUM_ENVS, dtype=np.float32)
+        total_steps = np.zeros(NUM_ENVS, dtype=np.int16)
+
+        zero_env_episodes = 0
+        obs = self.env.reset()
+
+        print('run test evaluate')
+        evaluater.evaluate(log_animation=True)
+        print('ee! test evaluate finish!')
 
         while self.step < self.cfg.num_train_steps:
+            self.step += NUM_ENVS
 
-            if self.step % 10000 == 0:
+            if self.step % 10000 == 100:
                 with utils.eval_mode(self.agent):
-                    evaluate_and_log(
-                        eval_env=self.eval_env,
-                        action_get_method=lambda eval_state: self.agent.act(self.phi(eval_state), sample=False),
-                        logger=logger,
-                        log_animation=True,
-                        exp_class='DRQ_original',
-                        exp_name=self.cfg.name,
-                        max_episode_len=500,
-                    )
-                    logger.on_episode_end()
+                    evaluater.evaluate(log_animation=True)
 
-            if done:
+            if self.step < self.cfg.num_seed_steps:
+                action = np.random.uniform(-1, 1, size=(NUM_ENVS, 3))
+            else:
+                with utils.eval_mode(self.agent):
+                    action = self.agent.act([self.phi(obs_i) for obs_i in obs], sample=True)
+
+            # run training update
+            if self.step >= self.cfg.num_seed_steps:
+                for _ in range(self.cfg.num_train_iters):
+                    total_updates += 1
+                    self.agent.update(self.replay_buffer, None, self.step)
+
+            next_obs, reward, done, info = self.env.step(action)
+            total_env_step += NUM_ENVS
+
+            if record_cur_episode:
+                images.append(self.env.render_zero())
+
+            # allow infinite bootstrap
+            done_no_max = np.array([
+                0 if ep_len > 130 else int(ep_dn)
+                for (ep_len, ep_dn) in zip(total_steps, done)
+            ], dtype=np.int16)
+            total_reward += reward
+            total_steps += 1
+
+            if np.any(done):
+                for ind, done_i in enumerate(done):
+                    if not done_i:
+                        continue
+                    logger.log_it({
+                        'reward': total_reward[ind],
+                        'track_progress': info[ind].get('track_progress', 0.0),
+                        'env_steps': total_steps[ind],
+                    })
+
+            total_steps[done] = 0
+            total_reward[done] = 0
+            total_episodes += done.sum()
+
+            for o, a, r, no, d, dnm in zip(obs, action, reward, next_obs, done, done_no_max):
+                self.replay_buffer.add(o, a, r, no, d, dnm)
+
+            if np.any(done):
+                res_obs = self.env.reset(dones=done)
+                next_obs[done] = res_obs
+            obs = next_obs
+
+            if done[0]:
+                zero_env_episodes += 1
                 if record_cur_episode:
                     wandb.log({
-                        'animation': wandb.Video(
+                        'train_animation': wandb.Video(
                             np.transpose(np.array(images), (0, 3, 1, 2)),
-                            fps=4,
+                            fps=16,
                             format="mp4",
                         )
                     })
                     record_cur_episode = False
                     images = []
 
-                if episode % 100 == 10:
+                if zero_env_episodes % 100 == 10:
                     record_cur_episode = True
 
-                if total_env_step > 0:
-                    logger.log_it({
-                        'reward': episode_reward,
-                        'total_env_steps': total_env_step,
-                        'track_progress': info.get('track_progress', 0.0),
-                        'env_steps': episode_step,
-                        'total_updates': total_updates,
-                    })
-                    logger.on_episode_end()
-
-                obs = self.env.reset()
-                done = False
-                episode_reward = 0
-                episode_step = 0
-                episode += 1
-
-                self.logger.log('train/episode', episode, self.step)
-
-            # sample action for data collection
-            if self.step < self.cfg.num_seed_steps:
-                action = self.env.action_space.sample()
-            else:
-                with utils.eval_mode(self.agent):
-                    action = self.agent.act(self.phi(obs), sample=True)
-
-            # run training update
-            if self.step >= self.cfg.num_seed_steps and self.step % 8 == 0:
-                for _ in range(self.cfg.num_train_iters):
-                    total_updates += 1
-                    self.agent.update(self.replay_buffer, self.logger, self.step)
-
-            next_obs, reward, done, info = self.env.step(action)
-            total_env_step += 1
-
-            if record_cur_episode:
-                images.append(self.env.render(full_image=True))
-
-            # allow infinite bootstrap
-            done = float(done)
-            done_no_max = 0 if episode_step + 1 >= 130 else done
-            episode_reward += reward
-
-            if episode_step > 200:
-                done = True
-
-            self.replay_buffer.add(obs, action, reward, next_obs, done, done_no_max)
-
-            obs = next_obs
-            episode_step += 1
-            self.step += 1
+                logger.log_it({
+                    'total_env_steps': total_env_step,
+                    'total_updates': total_updates,
+                })
+                logger.publish_logs(step=total_env_step)
 
 
 @hydra.main(config_path='config.yaml', strict=True)
@@ -196,7 +206,8 @@ def main(cfg):
     print(f'cur dir : {os.path.abspath(os.path.curdir)}')
     ps = os.path.abspath(os.path.curdir)
 
-    os.chdir('../../../../.')
+    # os.chdir('../../../../.')
+    os.chdir('..')
     print(f"mid dir : {os.path.abspath(os.path.curdir)}")
 
     NAME = str(time.time())
@@ -219,13 +230,13 @@ def main(cfg):
     except:
         env_settings = yaml.load(open(cfg.car_intersect_config, 'r'))
 
-
-    wandb.init(
-        project='CarRacing_DRQ',
-        reinit=True,
-        name=f'drq_original_{NAME}',
-        config=env_settings,
-    )
+    if 'home-test' not in NAME:
+        wandb.init(
+            project='CarRacing_DRQ',
+            reinit=True,
+            name=f'drq_original_{NAME}',
+            config=env_settings,
+        )
     cfg.seed = np.random.randint(0, 2 ** 16 - 1)
 
     print(f'use name : {NAME}')
@@ -234,12 +245,11 @@ def main(cfg):
     print(f'use device : {cfg.device}')
 
     env_maker, phi = get_EnvCreator_with_memory_safe_combiner(env_settings)
-    env = env_maker()
 
-    os.chdir(ps)
+    # os.chdir(ps)
     print(f'dir after changes: {os.path.abspath(os.path.curdir)}')
 
-    workspace = Workspace(cfg, env=env, phi=phi)
+    workspace = Workspace(cfg, env_maker=env_maker, phi=phi, work_dir=ps)
     workspace.run()
 
 

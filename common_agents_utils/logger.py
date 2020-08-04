@@ -36,11 +36,10 @@ class Logger:
         stats = Logger._accumulate_stats(stats)
         self._publish_logs(stats, self.episode_number)
 
-    def on_episode_end(self) -> None:
-        self.episode_number += 1
-        if self.episode_number % self.log_interval == 0:
-            _stats = Logger._get_mean_logs(self._stats)
-            self._publish_logs(_stats, self.episode_number)
+    def publish_logs(self, step: int) -> None:
+        self.episode_number = step
+        _stats = Logger._get_mean_logs(self._stats)
+        self._publish_logs(_stats, self.episode_number)
 
     def on_training_end(self) -> None:
         if self._keeping_stats is None:
@@ -55,7 +54,7 @@ class Logger:
         for key, value in stats.items():
             if isinstance(value, (list, np.ndarray)):
                 _value = np.mean(value)
-            elif isinstance(value, (int, float, bool, np.int32, np.float32, np.bool)):
+            elif isinstance(value, (int, float, bool, np.int32, np.float32, np.bool, np.int16)):
                 _value = value
             else:
                 raise ValueError(f"Logger -> unknown type : {type(value)} with value : {value}")
@@ -88,7 +87,7 @@ class Logger:
 
     @staticmethod
     def _publish_console(stats: Dict, episode_number: int) -> None:
-        print("Episode %d\tR %.4f\tTime %.1f\tTrack %.2f" % (
+        print("Steps %d\tR %.4f\tTime %.1f\tTrack %.2f" % (
                 episode_number,
                 stats.get('reward', stats.get('EVAL reward', -1)),
                 stats.get('env_steps', stats.get('EVAL env_steps', -1)),

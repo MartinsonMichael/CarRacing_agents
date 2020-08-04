@@ -4,6 +4,7 @@
 *.log
 *logs/
 logs/
+.hydra/
 runs/
 wandb/
 *__pycache__
