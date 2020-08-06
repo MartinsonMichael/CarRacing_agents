@@ -2,7 +2,7 @@ FROM nvidia/cuda:10.0-base-ubuntu18.04
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        wget
+        wget \
         apt-utils \
         build-essential \
         curl \
@@ -24,8 +24,8 @@ ENV PATH="/root/miniconda3/bin:$PATH"
 RUN mkdir /root/.conda && bash Miniconda3-latest-Linux-x86_64.sh -b
 
 # create conda environment
-RUN conda init bash \
-    && conda env create -f conda_environment.yml
+RUN conda init bash
+RUN conda env create -f conda_environment.yml
 
 RUN conda activate CDS_Lab
 
