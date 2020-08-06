@@ -25,7 +25,8 @@ RUN mkdir /root/.conda && bash Miniconda3-latest-Linux-x86_64.sh -b
 
 # create conda environment
 RUN conda init bash
-RUN conda env create -f conda_environment.yml
+ADD conda_environment.yml /tmp/
+RUN conda env create -f /tmp/conda_environment.yml
 
 RUN conda activate CDS_Lab
 
