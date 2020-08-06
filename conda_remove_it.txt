@@ -1,0 +1,2 @@
+dmc2gym==1.0.0
+python-graphviz==0.13.2
