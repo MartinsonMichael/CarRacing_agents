@@ -23,7 +23,6 @@ defusedxml==0.6.0
 dm-control==0.0.300771433
 dm-env==1.2
 dm-tree==0.1.5
-dmc2gym==1.0.0
 docker-pycreds==0.4.0
 EasyProcess==0.2.8
 entrypoints==0.3
