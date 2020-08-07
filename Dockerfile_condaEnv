@@ -26,7 +26,7 @@ RUN mkdir /root/.conda && bash Miniconda3-latest-Linux-x86_64.sh -b
 # create conda environment
 RUN conda init bash
 ADD conda_environment.yml /tmp/
-RUN conda env create -f /tmp/conda_environment.yml --offline
+RUN conda env create -f /tmp/conda_environment.yml --offline --no-pin
 RUN conda activate CDS_Lab
 RUN conda install -c conda-forge mpi4py
 RUN conda install --file /tmp/conda_environment.yml
