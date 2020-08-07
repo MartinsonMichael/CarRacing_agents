@@ -146,7 +146,7 @@ def main():
         parent_conns.append(parent_conn)
         child_conns.append(child_conn)
 
-    os.chdir('rnd')
+    os.chdir('rnd_continues')
 
     states = np.zeros([num_worker, 4, 84, 84])
 
