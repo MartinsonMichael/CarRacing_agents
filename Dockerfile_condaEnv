@@ -28,6 +28,7 @@ RUN conda init bash
 ADD conda_environment.yml /tmp/
 RUN conda env create -f /tmp/conda_environment.yml; exit 0
 RUN conda init bash
+RUN /bin/bash
 RUN conda activate CDS_Lab
 RUN conda install -c conda-forge mpi4py
 
