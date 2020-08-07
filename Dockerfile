@@ -20,6 +20,7 @@ RUN pip3 install --upgrade pip
 COPY requirements.txt /tmp/
 RUN pip3 install -r /tmp/requirements.txt
 RUN apt-get install -y git
+
 RUN pip3 install git+git://github.com/denisyarats/dmc2gym.git
 RUN pip3 install wandb
 RUN apt-get install ffmpeg
