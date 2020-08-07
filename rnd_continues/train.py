@@ -262,7 +262,7 @@ def main():
                     'global_step_cnt': global_step,
                     'updates_cnt': global_update,
                 })
-                logger.on_episode_end()
+                logger.publish_logs(step=global_step)
                 sample_rall = 0
                 sample_step = 0
                 sample_i_rall = 0
@@ -352,7 +352,7 @@ def main():
                 exp_class='RND',
                 exp_name=NAME,
             )
-            logger.on_episode_end()
+            logger.publish_logs(step=global_step)
 
 
 if __name__ == '__main__':
