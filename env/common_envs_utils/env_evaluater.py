@@ -2,6 +2,9 @@ import os
 from multiprocessing import Process
 from typing import Callable, Optional
 import time
+import numpy as np
+
+import wandb
 
 from common_agents_utils.logger import Logger
 from env import CarIntersectEvalWrapper, CarIntersect
@@ -70,18 +73,11 @@ def evaluate_and_log(
     })
 
     if log_animation:
-        assert exp_name is not None
-        assert exp_class is not None
-        Process(
-            target=save_as_mp4,
-            args=(
-                img,
-                os.path.join(
-                    'animation',
-                    exp_class,
-                    exp_name,
-                    f"EVAL_R:_{total_reward}_Time:_{total_steps}_{time.time()}.mp4",
-                ),
-                True
-            ),
-        ).start()
+        wandb.log({
+            'EVAL animation': wandb.Video(
+                np.transpose(np.array(img)[::3, :, :, :], (0, 3, 1, 2)),
+                fps=16,
+                format="mp4",
+                caption=f"EVAL_R:_{total_reward}_Time:_{total_steps}_{time.time()}.mp4",
+            )
+        })

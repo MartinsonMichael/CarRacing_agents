@@ -63,14 +63,14 @@ def save_as_mp4(image_array, save_path, save_to_wandb: bool = True) -> None:
     anim.save(save_path)
 
     if save_to_wandb:
-        pass
-        # wandb.log({
-        #     'animation': wandb.Video(
-        #         np.transpose(np.array(image_array)[::3, :, :, :], (0, 3, 1, 2)),
-        #         fps=16,
-        #         format="mp4",
-        #     )
-        # })
+        wandb.log({
+            'animation': wandb.Video(
+                np.transpose(np.array(image_array)[::3, :, :, :], (0, 3, 1, 2)),
+                fps=16,
+                format="mp4",
+                caption=os.path.basename(save_path),
+            )
+        })
 
 
 def plot_sequence_images(image_array, need_disaply=False, need_save=None):
