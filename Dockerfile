@@ -34,4 +34,3 @@ ENV MKL_NUM_THREADS=1
 
 RUN mkdir /src
 WORKDIR /src
-ADD . ./
