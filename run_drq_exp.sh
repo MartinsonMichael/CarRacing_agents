@@ -15,7 +15,6 @@ if [[ $1 = 'cpu' ]]; then
     -e WANDB_API_KEY=$wandb_key \
     -e DEVICE=$1 \
     -e NAME=$2 \
-    --user "$(id -u):$(id -g)" \
     car-racing:latest bash -c \
       "echo 'Use python3.6 version:' && \
       python3.6 --version && \
@@ -29,9 +28,10 @@ else
     -e WANDB_API_KEY=$wandb_key \
     -e DEVICE=$1 \
     -e NAME=$2 \
-    --user "$(id -u):$(id -g)" \
     car-racing:latest bash -c \
       "echo 'Use python3.6 version:' && \
       python3.6 --version && \
+      echo 'User' $USER && \
+      ls -lah && ls -lah drq && \
       cd drq && python3.6 train.py"
 fi
