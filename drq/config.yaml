@@ -2,7 +2,7 @@
 name: drq_original_
 env: CarIntersect
 car_intersect_config: drq/drq_full_config.yaml
-env_num: 2
+env_num: 24
 # IMPORTANT: if action_repeat is used the effective number of env steps needs to be
 # multiplied by action_repeat in the result graphs.
 # This is a common practice for a fair comparison.
