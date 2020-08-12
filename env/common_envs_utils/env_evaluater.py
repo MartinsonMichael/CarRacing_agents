@@ -73,11 +73,15 @@ def evaluate_and_log(
     })
 
     if log_animation:
-        wandb.log({
-            'EVAL animation': wandb.Video(
-                np.transpose(np.array(img)[::3, :, :, :], (0, 3, 1, 2)),
-                fps=16,
-                format="mp4",
-                caption=f"EVAL_R:_{total_reward}_Time:_{total_steps}_{time.time()}.mp4",
-            )
-        })
+        try:
+            wandb.log({
+                'EVAL animation': wandb.Video(
+                    np.transpose(np.array(img)[::3, :, :, :], (0, 3, 1, 2)),
+                    fps=16,
+                    format="mp4",
+                    caption=f"EVAL_R:_{total_reward}_Time:_{total_steps}_{time.time()}.mp4",
+                )
+            })
+        except:
+            print("wandb animation wasn't logged")
+            pass

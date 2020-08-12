@@ -10,6 +10,8 @@ import yaml
 import utils
 from replay_buffer import ReplayBuffer
 
+from drq import DRQAgent
+
 if __name__ == '__main__':
     try:
         import os
@@ -60,7 +62,7 @@ class Workspace(object):
         print(f'DRQ: get action shape : {cfg.agent.params.obs_shape}')
 
         cfg.agent.params.action_range = [-1, +1]
-        self.agent = hydra.utils.instantiate(cfg.agent)
+        self.agent: DRQAgent = hydra.utils.instantiate(cfg.agent)
 
         self.replay_buffer = ReplayBuffer(
             obs_shape=cfg.agent.params.obs_shape,
@@ -73,8 +75,48 @@ class Workspace(object):
 
         self.step = 0
 
+        self.total_env_step = 0
+        self.total_updates = 0
+        self.total_episodes = 0
+
+    def save(self) -> None:
+        save_path = os.path.join("model_saves", self.cfg.name, f"STEP_{self.total_env_step}_{time.time()}")
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+
+        torch.save({
+            "drq_critic": self.agent.critic.state_dict(),
+            "drq_critic_optimizer": self.agent.critic_optimizer.state_dict(),
+
+            "drq_actor": self.agent.actor.state_dict(),
+            "drq_actor_optimizer": self.agent.actor_optimizer.state_dict(),
+
+            "drq_log_alpha": self.agent.log_alpha.detach().cpu().numpy(),
+            "drq_alpha_optimizer": self.agent.log_alpha_optimizer.state_dict(),
+
+            "total_env_step": self.total_env_step,
+            "total_updates": self.total_updates,
+            "total_episodes": self.total_episodes,
+        }, os.path.join(save_path, 'checkpoint.torch'))
+
+    def load(self, save_path: str):
+        checkpoint = torch.load(save_path)
+
+        self.agent.critic.load_state_dict(checkpoint['drq_critic'])
+        self.agent.critic_optimizer.load_state_dict(checkpoint['drq_critic_optimizer'])
+
+        self.agent.actor.load_state_dict(checkpoint['drq_actor'])
+        self.agent.actor_optimizer.load_state_dict(checkpoint['drq_actor_optimizer'])
+
+        self.agent.log_alpha = checkpoint['drq_log_alpha']
+        self.agent.log_alpha_optimizer.load_state_dict(checkpoint['drq_alpha_optimizer'])
+
+        self.total_env_step = int(checkpoint['total_env_step'])
+        self.total_updates = int(checkpoint['total_updates'])
+        self.total_episodes = int(checkpoint['total_episodes'])
+
     def run(self):
-        NUM_ENVS = int(os.environ.get('NUM_ENVS', 16))
+        NUM_ENVS = int(os.environ.get('NUM_ENVS', self.cfg.env_num))
 
         logger = Logger(
             model_config=None,
@@ -85,16 +127,17 @@ class Workspace(object):
 
         print('create evaluater')
         evaluater: BatchEvaluater = BatchEvaluater(
-                env_create_method=self.env_maker,
-                batch_action_get_method=lambda batch_eval_state: self.agent.act(
-                    [self.phi(x) for x in batch_eval_state],
-                    sample=False
-                ),
-                logger=logger,
-                exp_class='DRQ_original',
-                exp_name=self.cfg.name,
-                max_episode_len=130,
-                debug=True,
+            env_create_method=self.env_maker,
+            batch_action_get_method=lambda batch_eval_state: self.agent.act(
+                [self.phi(x) for x in batch_eval_state],
+                sample=True
+            ),
+            logger=logger,
+            exp_class='DRQ_original',
+            exp_name=self.cfg.name,
+            max_episode_len=130,
+            batch_size=10,
+            debug=True,
         )
 
         self.env = SubprocVecEnv_tf2([
@@ -106,12 +149,8 @@ class Workspace(object):
         os.chdir(self.work_dir)
         print(os.path.abspath(os.curdir))
 
-        total_env_step = 0
-
         images = []
         record_cur_episode = False
-        total_updates = 0
-        total_episodes = 0
 
         total_reward = np.zeros(NUM_ENVS, dtype=np.float32)
         total_steps = np.zeros(NUM_ENVS, dtype=np.int16)
@@ -129,6 +168,9 @@ class Workspace(object):
             self.step += NUM_ENVS
             eval_steps += 1
 
+            if eval_steps % 1000000 == (1000000 - 1):
+                self.save()
+
             if eval_steps % 1000 == 100:
                 print('start evaluation')
                 with utils.eval_mode(self.agent):
@@ -143,11 +185,11 @@ class Workspace(object):
             # run training update
             if self.step >= self.cfg.num_seed_steps:
                 for _ in range(self.cfg.num_train_iters):
-                    total_updates += 1
+                    self.total_updates += 1
                     self.agent.update(self.replay_buffer, None, self.step)
 
             next_obs, reward, done, info = self.env.step(action)
-            total_env_step += NUM_ENVS
+            self.total_env_step += NUM_ENVS
 
             if record_cur_episode:
                 images.append(self.env.render_zero())
@@ -174,7 +216,7 @@ class Workspace(object):
 
             total_steps[done_or_max] = 0
             total_reward[done_or_max] = 0
-            total_episodes += done_or_max.sum()
+            self.total_episodes += done_or_max.sum()
 
             for o, a, r, no, d, dnm in zip(obs, action, reward, next_obs, done, done_no_max):
                 self.replay_buffer.add(o, a, r, no, d, dnm)
@@ -200,10 +242,12 @@ class Workspace(object):
                     record_cur_episode = True
 
                 logger.log_it({
-                    'total_env_steps': total_env_step,
-                    'total_updates': total_updates,
+                    'total_env_steps': self.total_env_step,
+                    'total_updates': self.total_updates,
                 })
-                logger.publish_logs(step=total_env_step)
+                logger.publish_logs(step=self.total_env_step)
+
+        self.save()
 
 
 @hydra.main(config_path='config.yaml', strict=True)
@@ -255,6 +299,10 @@ def main(cfg):
     print(f'dir after changes: {os.path.abspath(os.path.curdir)}')
 
     workspace = Workspace(cfg, env_maker=env_maker, phi=phi, work_dir=ps)
+
+    if len(os.environ.get("LOAD", "")) != 0:
+        workspace.load(os.environ['LOAD'])
+
     workspace.run()
 
 

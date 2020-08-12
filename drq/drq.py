@@ -2,8 +2,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import copy
-import math
 
 import utils
 import hydra
@@ -110,14 +108,6 @@ class Actor(nn.Module):
         dist = utils.SquashedNormal(mu, std)
         return dist
 
-    # def log(self, logger, step):
-    #     for k, v in self.outputs.items():
-    #         logger.log_histogram(f'train_actor/{k}_hist', v, step)
-    #
-    #     for i, m in enumerate(self.trunk):
-    #         if type(m) == nn.Linear:
-    #             logger.log_param(f'train_actor/fc{i}', m, step)
-
 
 class Critic(nn.Module):
     """Critic network, employes double Q-learning."""
@@ -147,19 +137,6 @@ class Critic(nn.Module):
 
         return q1, q2
 
-    # def log(self, logger, step):
-    #     self.encoder.log(logger, step)
-    #
-    #     for k, v in self.outputs.items():
-    #         logger.log_histogram(f'train_critic/{k}_hist', v, step)
-    #
-    #     assert len(self.Q1) == len(self.Q2)
-    #     for i, (m1, m2) in enumerate(zip(self.Q1, self.Q2)):
-    #         assert type(m1) == type(m2)
-    #         if type(m1) is nn.Linear:
-    #             logger.log_param(f'train_critic/q1_fc{i}', m1, step)
-    #             logger.log_param(f'train_critic/q2_fc{i}', m2, step)
-
 
 class DRQAgent(object):
     """Data regularized Q: actor-critic method for learning from pixels."""
@@ -175,10 +152,10 @@ class DRQAgent(object):
         self.critic_target_update_frequency = critic_target_update_frequency
         self.batch_size = batch_size
 
-        self.actor = hydra.utils.instantiate(actor_cfg).to(self.device)
+        self.actor: Actor = hydra.utils.instantiate(actor_cfg).to(self.device)
 
-        self.critic = hydra.utils.instantiate(critic_cfg).to(self.device)
-        self.critic_target = hydra.utils.instantiate(critic_cfg).to(
+        self.critic: Critic = hydra.utils.instantiate(critic_cfg).to(self.device)
+        self.critic_target: Critic = hydra.utils.instantiate(critic_cfg).to(
             self.device)
         self.critic_target.load_state_dict(self.critic.state_dict())
 
