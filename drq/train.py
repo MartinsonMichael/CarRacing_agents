@@ -135,7 +135,7 @@ class Workspace(object):
             logger=logger,
             exp_class='DRQ_original',
             exp_name=self.cfg.name,
-            max_episode_len=130,
+            max_episode_len=500,
             batch_size=10,
             debug=True,
         )
@@ -196,13 +196,13 @@ class Workspace(object):
 
             # allow infinite bootstrap
             done_no_max = np.array([
-                0 if ep_len > 130 else int(ep_dn)
+                0 if ep_len > 500 else int(ep_dn)
                 for (ep_len, ep_dn) in zip(total_steps, done)
             ], dtype=np.int16)
             total_reward += reward
             total_steps += 1
 
-            done_or_max = np.logical_or(done, total_steps > 130)
+            done_or_max = np.logical_or(done, total_steps > 500)
 
             if np.any(done_or_max):
                 for ind, done_i in enumerate(done_or_max):
