@@ -42,7 +42,7 @@ reward:
 
   #
   new_tiles_count: 0.5
-  speed_multiplication_bonus: 0.005
+  speed_multiplication_bonus: 0.05
 
   speed_per_point: 0.0
 
