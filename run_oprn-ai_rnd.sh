@@ -1,19 +1,17 @@
 #!/bin/bash
 
-#if [[ $# != 2 ]]; then
-#	echo "please pass 2 arguments, DEVICE and NAME"
-#	exit 0
-#fi
+if [[ $# != 1 ]]; then
+	echo "please pass 1 arguments, CUDA device (it 0, 1, etc.)"
+	exit 0
+fi
 
-wandb_key=$(cat WANDB_API_KEY.txt) 
-
-#  -e WANDB_API_KEY=$wandb_key \
-#  -e DEVICE=$1 \
-#  -e NAME=$2 \
+wandb_key=$(cat WANDB_API_KEY.txt)
 
 docker run -it \
   --gpus all \
   -v "$PWD":/src \
+  -e WANDB_API_KEY=$wandb_key \
+  -e CUDA_VISIBLE_DEVICES=$1 \
   car-racing-tf1x:latest bash -c \
     "echo 'Use python3.6 version:' && \
     python3.6 --version && \
