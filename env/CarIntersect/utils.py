@@ -146,13 +146,16 @@ class DataSupporter:
 
     def load_track_point_image(self) -> None:
         path_to_tp = os.path.join('.', 'env_data', 'track_point.png')
-
         if os.path.exists(path_to_tp):
             self._track_point_image = DataSupporter._load_pil_image(path_to_tp)
             return
 
         path_to_tp = os.path.join('.', 'env', 'env_data', 'track_point.png')
+        if os.path.exists(path_to_tp):
+            self._track_point_image = DataSupporter._load_pil_image(path_to_tp)
+            return
 
+        path_to_tp = os.path.join('..', 'env', 'env_data', 'track_point.png')
         if os.path.exists(path_to_tp):
             self._track_point_image = DataSupporter._load_pil_image(path_to_tp)
             return
