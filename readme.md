@@ -63,4 +63,4 @@ Technical description in env folder [link](env/).
 We provide some additional experiments with our environment,
 especially with [DRQ](https://arxiv.org/abs/2004.13649) and [RND](https://arxiv.org/abs/1810.12894).
 Also we change and simplify experiment launching.
-See [additional](./docker_run_readme.md).
+See [additional](./additional_readme.md).
