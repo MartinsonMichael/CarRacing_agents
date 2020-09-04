@@ -1,3 +1,16 @@
+## This readme (except first 3 lines) was taken from https://github.com/jcwleo/random-network-distillation-pytorch
+
+Some modification was implemented
+
+To run RND with CarIntersect Env type: `NAME={name} DEVICE={cpu or cude:<number>} train.py`
+
+Actually it more convenient to run it in docker. See [docker run info](../docker_run_readme.md)
+
+
+###### Beginning of original README
+
+---
+
 # Random Network Distillation
 #### Intrinsic Reward Graph with play
 | Venture             |  Montezuma's Revenge |

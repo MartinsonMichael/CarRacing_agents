@@ -55,4 +55,12 @@ Technical description in env folder [link](env/).
 
 | Vector state | Image state |
 |:---:|:---:|
-| <img src="media/bots_vector.svg" width="200" height="100"/> | <img src="media/bots_image.svg" width="200" height="100"/> | 
+| <img src="media/bots_vector.svg" width="200" height="100"/> | <img src="media/bots_image.svg" width="200" height="100"/> |
+
+
+#### Beyond the article scope
+
+We provide some additional experiments with our environment,
+especially with [DRQ](https://arxiv.org/abs/2004.13649) and [RND](https://arxiv.org/abs/1810.12894).
+Also we change and simplify experiment launching.
+See [additional](./docker_run_readme.md).

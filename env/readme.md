@@ -23,6 +23,8 @@ Folder structure:
  - env_data - folder with background images, its cvat markup, car images ect
  - configs - folder with basic configs
  - common_envs_utils - set of files with some code relevant to env.
+    - batch_evaluater.py - contain class, that create small set of environments for test evaluation
+    - env_evaluater.py - set of function for single env evaluation
     - env_makers.py - some functions for creating env with specific config file
     - *_wrappers.py - files with env wrappers
     - visualizer.py - some dirty functions for work with animations
