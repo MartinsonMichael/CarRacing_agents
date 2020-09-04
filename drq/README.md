@@ -4,7 +4,7 @@ Some modification was implemented
 
 To run DRQ with CarIntersect Env type: `NAME={name} DEVICE={cpu or cude:<number>} train.py`
 
-Actually it more convinient to run it in docker. See [docker run info](../docker_run_readme.md)
+Actually it more convinient to run it in docker. See [docker run info](../additional_readme.md)
 
 
 ###### Beginning of original README

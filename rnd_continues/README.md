@@ -4,7 +4,7 @@ Some modification was implemented
 
 To run RND with CarIntersect Env type: `NAME={name} DEVICE={cpu or cude:<number>} train.py`
 
-Actually it more convenient to run it in docker. See [docker run info](../docker_run_readme.md)
+Actually it more convenient to run it in docker. See [docker run info](../additional_readme.md)
 
 
 ###### Beginning of original README
