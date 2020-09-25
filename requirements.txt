@@ -135,7 +135,7 @@ smmap2==2.0.5
 stable-baselines==2.8.0
 subprocess32==3.5.4
 tensorboard==2.0.1
-tensorflow==2.0.0
+tensorflow==1.15.4
 tensorflow-estimator==2.0.1
 tensorflow-probability==0.8.0
 termcolor==1.1.0
