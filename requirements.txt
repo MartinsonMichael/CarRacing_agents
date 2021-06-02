@@ -149,7 +149,7 @@ tqdm==4.36.1
 traitlets==4.3.3
 typing==3.6.6
 typing-extensions==3.7.4
-urllib3==1.25.8
+urllib3==1.26.5
 wandb==0.8.26
 watchdog==0.10.2
 wcwidth==0.1.7
